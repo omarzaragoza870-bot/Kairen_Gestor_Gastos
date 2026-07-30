@@ -1,6 +1,12 @@
 import { useState, useEffect } from 'react'
 import { supabase } from '../lib/supabaseClient.js'
-import { obtenerCuentas, crearTransaccion } from '../lib/db.js'
+
+import {
+  asegurarCuentasPorDefecto,
+  obtenerCuentas,
+  crearTransaccion
+} from '../lib/db.js'
+
 import InfoTooltip from '../components/InfoTooltip.jsx'
 
 const categoriasGasto = ['Alimentación', 'Transporte', 'Servicios', 'Entretenimiento', 'Ropa', 'Inglés']
@@ -16,22 +22,71 @@ export default function NuevaTransaccion({ onBack, onGuardada }) {
   const [guardando, setGuardando] = useState(false)
   const [error, setError] = useState(null)
 
-  useEffect(() => {
-    supabase.auth.getUser().then(async ({ data }) => {
-      if (!data.user) return
-      setUserId(data.user.id)
-      const cs = await obtenerCuentas(data.user.id)
-      setCuentas(cs)
-      if (cs.length > 0) setCuentaId(cs[0].id)
-    })
-  }, [])
+useEffect(() => {
+  const cargarCuentas = async () => {
+    setError(null)
+
+    try {
+      const { data, error: authError } = await supabase.auth.getUser()
+
+      if (authError) {
+        throw authError
+      }
+
+      if (!data.user) {
+        setError('No encontramos una sesión activa. Inicia sesión nuevamente.')
+        return
+      }
+
+      const idUsuario = data.user.id
+
+      setUserId(idUsuario)
+
+      // Primero comprobamos que existan Efectivo y Tarjeta.
+      await asegurarCuentasPorDefecto(idUsuario)
+
+      // Después cargamos las cuentas ya creadas.
+      const cuentasEncontradas = await obtenerCuentas(idUsuario)
+
+      setCuentas(cuentasEncontradas)
+
+      if (cuentasEncontradas.length > 0) {
+        setCuentaId(cuentasEncontradas[0].id)
+      } else {
+        setError(
+          'No se pudieron cargar las cuentas Efectivo y Tarjeta. Revisa la configuración de Supabase.'
+        )
+      }
+    } catch (err) {
+      console.error(
+        '[Kairen Finanzas] Error cargando cuentas:',
+        err
+      )
+
+      setError('No se pudieron cargar tus cuentas. Intenta cerrar sesión y entrar nuevamente.')
+    }
+  }
+
+  cargarCuentas()
+}, [])
 
   const categorias = tipo === 'gasto' ? categoriasGasto : categoriasIngreso
   const cuentaSeleccionada = cuentas.find(c => c.id === cuentaId)
-  const valido = monto && parseFloat(monto) > 0 && categoria && cuentaId
 
-  const handleGuardar = async () => {
-    setGuardando(true)
+const montoNumerico = Number(monto)
+
+const valido =
+  Number.isFinite(montoNumerico) &&
+  montoNumerico > 0 &&
+  Boolean(categoria) &&
+  Boolean(cuentaId) &&
+  Boolean(userId) &&
+  Boolean(cuentaSeleccionada)
+
+ const handleGuardar = async () => {
+  if (!valido || guardando) return
+
+  setGuardando(true)
     setError(null)
     try {
       await crearTransaccion({
@@ -39,7 +94,7 @@ export default function NuevaTransaccion({ onBack, onGuardada }) {
         cuentaId,
         categoriaNombre: categoria,
         tipo,
-        monto: parseFloat(monto),
+        monto: montoNumerico,
         descripcion: null,
         fecha: new Date().toISOString().slice(0, 10),
         cuentaSaldoActual: Number(cuentaSeleccionada.saldo)
@@ -85,6 +140,22 @@ export default function NuevaTransaccion({ onBack, onGuardada }) {
         />
       </div>
       <div style={{ display: 'flex', gap: 10, marginBottom: 20 }}>
+        {cuentas.length === 0 && (
+  <div
+    style={{
+      width: '100%',
+      padding: 14,
+      borderRadius: 'var(--radius-md)',
+      background: 'var(--bg-surface)',
+      border: '1px solid var(--border-subtle)',
+      color: 'var(--text-muted)',
+      fontSize: 13,
+      textAlign: 'center'
+    }}
+  >
+    Cargando cuentas…
+  </div>
+)}
         {cuentas.map(c => (
           <button
             key={c.id}
