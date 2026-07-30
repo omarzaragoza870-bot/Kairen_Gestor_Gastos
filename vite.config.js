@@ -8,8 +8,8 @@ export default defineConfig({
     VitePWA({
       registerType: 'autoUpdate',
       manifest: {
-        name: 'Trazo',
-        short_name: 'Trazo',
+        name: 'Kairen Finanzas',
+        short_name: 'Kairen',
         description: 'Tu dinero, bajo control.',
         theme_color: '#0F0B1E',
         background_color: '#0F0B1E',
@@ -27,12 +27,12 @@ export default defineConfig({
           {
             urlPattern: ({ request }) => request.mode === 'navigate',
             handler: 'NetworkFirst',
-            options: { cacheName: 'trazo-pages' }
+            options: { cacheName: 'kairen-finanzas-pages' }
           },
           {
             urlPattern: /\/api\//,
             handler: 'NetworkFirst',
-            options: { cacheName: 'trazo-api', networkTimeoutSeconds: 5 }
+            options: { cacheName: 'kairen-finanzas-api', networkTimeoutSeconds: 5 }
           }
         ]
       }

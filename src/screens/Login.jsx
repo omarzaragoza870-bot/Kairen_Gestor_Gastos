@@ -6,7 +6,7 @@ export default function Login() {
       provider: 'google',
       options: { redirectTo: window.location.origin }
     })
-    if (error) console.error('[Trazo] Error al iniciar sesión:', error.message)
+    if (error) console.error('[Kairen Finanzas] Error al iniciar sesión:', error.message)
   }
 
   return (
@@ -18,7 +18,7 @@ export default function Login() {
         fontSize: 32, fontWeight: 800, margin: '0 0 8px',
         backgroundImage: 'var(--gradient-brand)', WebkitBackgroundClip: 'text', color: 'transparent'
       }}>
-        Trazo
+        Kairen Finanzas
       </h1>
       <p style={{ color: 'var(--text-secondary)', fontSize: 14, margin: '0 0 40px' }}>
         Tu dinero, bajo control.
