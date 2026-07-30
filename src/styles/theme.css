@@ -1,0 +1,50 @@
+:root {
+  /* Paleta KAIREN */
+  --bg-base: #0F0B1E;
+  --bg-surface: #1A1530;
+  --bg-surface-2: #241D42;
+  --accent-blue: #4F6BFF;
+  --accent-purple: #8B5CF6;
+  --gradient-brand: linear-gradient(135deg, #4F6BFF 0%, #8B5CF6 100%);
+  --text-primary: #F4F2FF;
+  --text-secondary: #A9A3C7;
+  --text-muted: #6E6790;
+  --success: #34D399;
+  --danger: #FB7185;
+  --warning: #FBBF24;
+  --border-subtle: rgba(255, 255, 255, 0.08);
+
+  --font-display: 'Poppins', sans-serif;
+  --font-body: 'Poppins', sans-serif;
+
+  --radius-lg: 20px;
+  --radius-md: 14px;
+  --radius-sm: 10px;
+
+  --safe-top: env(safe-area-inset-top, 0px);
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
+}
+
+* { box-sizing: border-box; }
+
+html, body, #root {
+  height: 100%;
+  margin: 0;
+  background: var(--bg-base);
+  color: var(--text-primary);
+  font-family: var(--font-body);
+  -webkit-tap-highlight-color: transparent;
+}
+
+button {
+  font-family: inherit;
+  border: none;
+  cursor: pointer;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}
