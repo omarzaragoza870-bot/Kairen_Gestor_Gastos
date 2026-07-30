@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import { supabase } from './lib/supabaseClient.js'
+import { asegurarCuentasPorDefecto } from './lib/db.js'
 import BottomNav from './components/BottomNav.jsx'
 import Inicio from './screens/Inicio.jsx'
 import NuevaTransaccion from './screens/NuevaTransaccion.jsx'
@@ -11,11 +12,16 @@ export default function App() {
   const [tab, setTab] = useState('inicio')
   const [creando, setCreando] = useState(false)
   const [session, setSession] = useState(undefined) // undefined = cargando, null = sin sesión
+  const [refreshKey, setRefreshKey] = useState(0)
 
   useEffect(() => {
-    supabase.auth.getSession().then(({ data }) => setSession(data.session))
+    supabase.auth.getSession().then(({ data }) => {
+      setSession(data.session)
+      if (data.session) asegurarCuentasPorDefecto(data.session.user.id)
+    })
     const { data: listener } = supabase.auth.onAuthStateChange((_event, newSession) => {
       setSession(newSession)
+      if (newSession) asegurarCuentasPorDefecto(newSession.user.id)
     })
     return () => listener.subscription.unsubscribe()
   }, [])
@@ -29,12 +35,17 @@ export default function App() {
   }
 
   if (creando) {
-    return <NuevaTransaccion onBack={() => setCreando(false)} />
+    return (
+      <NuevaTransaccion
+        onBack={() => setCreando(false)}
+        onGuardada={() => { setCreando(false); setRefreshKey(k => k + 1) }}
+      />
+    )
   }
 
   return (
     <div style={{ minHeight: '100dvh', paddingTop: 'var(--safe-top)' }}>
-      {tab === 'inicio' && <Inicio onNuevo={() => setCreando(true)} />}
+      {tab === 'inicio' && <Inicio onNuevo={() => setCreando(true)} refreshKey={refreshKey} />}
       {tab === 'analisis' && <Placeholder titulo="Análisis" texto="Resumen, distribución y tendencias — próximo paso." />}
       {tab === 'ahorro' && (
         <Placeholder

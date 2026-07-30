@@ -1,22 +1,56 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
+import { supabase } from '../lib/supabaseClient.js'
+import { obtenerCuentas, crearTransaccion } from '../lib/db.js'
 import InfoTooltip from '../components/InfoTooltip.jsx'
-
-const cuentas = [
-  { id: 'efectivo', label: 'Efectivo', saldo: 3649.60, icon: '💵' },
-  { id: 'tarjeta', label: 'Tarjeta', saldo: 1200.00, icon: '💳' }
-]
 
 const categoriasGasto = ['Alimentación', 'Transporte', 'Servicios', 'Entretenimiento', 'Ropa', 'Inglés']
 const categoriasIngreso = ['Salario', 'Inversiones', 'Negocios', 'Reembolsos']
 
-export default function NuevaTransaccion({ onBack }) {
+export default function NuevaTransaccion({ onBack, onGuardada }) {
   const [tipo, setTipo] = useState('gasto')
-  const [cuenta, setCuenta] = useState('efectivo')
+  const [cuentas, setCuentas] = useState([])
+  const [cuentaId, setCuentaId] = useState(null)
   const [monto, setMonto] = useState('')
   const [categoria, setCategoria] = useState(null)
+  const [userId, setUserId] = useState(null)
+  const [guardando, setGuardando] = useState(false)
+  const [error, setError] = useState(null)
+
+  useEffect(() => {
+    supabase.auth.getUser().then(async ({ data }) => {
+      if (!data.user) return
+      setUserId(data.user.id)
+      const cs = await obtenerCuentas(data.user.id)
+      setCuentas(cs)
+      if (cs.length > 0) setCuentaId(cs[0].id)
+    })
+  }, [])
 
   const categorias = tipo === 'gasto' ? categoriasGasto : categoriasIngreso
-  const valido = monto && parseFloat(monto) > 0 && categoria
+  const cuentaSeleccionada = cuentas.find(c => c.id === cuentaId)
+  const valido = monto && parseFloat(monto) > 0 && categoria && cuentaId
+
+  const handleGuardar = async () => {
+    setGuardando(true)
+    setError(null)
+    try {
+      await crearTransaccion({
+        userId,
+        cuentaId,
+        categoriaNombre: categoria,
+        tipo,
+        monto: parseFloat(monto),
+        descripcion: null,
+        fecha: new Date().toISOString().slice(0, 10),
+        cuentaSaldoActual: Number(cuentaSeleccionada.saldo)
+      })
+      onGuardada ? onGuardada() : onBack()
+    } catch (err) {
+      setError('No se pudo guardar. Intenta de nuevo.')
+      console.error('[Kairen Finanzas] Error al guardar transacción:', err)
+      setGuardando(false)
+    }
+  }
 
   return (
     <div style={{ padding: '16px 16px 40px' }}>
@@ -43,7 +77,6 @@ export default function NuevaTransaccion({ onBack }) {
         ))}
       </div>
 
-      {/* Selector de cuenta — ahora visible tanto en Gasto como en Ingreso */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 8 }}>
         <label style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-secondary)' }}>Cuenta</label>
         <InfoTooltip
@@ -55,17 +88,19 @@ export default function NuevaTransaccion({ onBack }) {
         {cuentas.map(c => (
           <button
             key={c.id}
-            onClick={() => setCuenta(c.id)}
+            onClick={() => setCuentaId(c.id)}
             style={{
               flex: 1, padding: 12, borderRadius: 'var(--radius-md)',
               background: 'var(--bg-surface)',
-              border: '1.5px solid ' + (cuenta === c.id ? 'var(--accent-blue)' : 'var(--border-subtle)'),
+              border: '1.5px solid ' + (cuentaId === c.id ? 'var(--accent-blue)' : 'var(--border-subtle)'),
               textAlign: 'left'
             }}
           >
-            <div style={{ fontSize: 13, fontWeight: 600 }}>{c.icon} {c.label}</div>
+            <div style={{ fontSize: 13, fontWeight: 600 }}>
+              {c.tipo === 'tarjeta' ? '💳' : '💵'} {c.nombre}
+            </div>
             <div style={{ fontSize: 12, color: 'var(--success)' }}>
-              {c.saldo.toLocaleString('es-MX', { style: 'currency', currency: 'MXN' })}
+              {Number(c.saldo).toLocaleString('es-MX', { style: 'currency', currency: 'MXN' })}
             </div>
           </button>
         ))}
@@ -109,8 +144,11 @@ export default function NuevaTransaccion({ onBack }) {
         ))}
       </div>
 
+      {error && <p style={{ color: 'var(--danger)', fontSize: 13, marginBottom: 12 }}>{error}</p>}
+
       <button
-        disabled={!valido}
+        disabled={!valido || guardando}
+        onClick={handleGuardar}
         style={{
           width: '100%', padding: 16, borderRadius: 'var(--radius-md)',
           background: valido ? 'var(--gradient-brand)' : 'var(--bg-surface-2)',
@@ -118,7 +156,7 @@ export default function NuevaTransaccion({ onBack }) {
           fontWeight: 700, fontSize: 15
         }}
       >
-        {valido ? 'Guardar transacción' : 'Ingresa un monto y categoría'}
+        {guardando ? 'Guardando…' : valido ? 'Guardar transacción' : 'Ingresa un monto y categoría'}
       </button>
     </div>
   )
