@@ -1,10 +1,10 @@
-# Trazo (KAIREN)
+# Kairen Finanzas (KAIREN)
 
 PWA de control de gastos — mismo stack y estilo visual que KAIREN.
 
 ## Estructura
 ```
-trazo/
+kairen-finanzas/
 ├── index.html
 ├── vite.config.js       # PWA + service worker network-first
 ├── package.json
@@ -38,6 +38,19 @@ npm run dev
 
 Con esto ya debería salirte la pantalla de login "Continuar con Google" antes de entrar a Inicio.
 
+## Desplegar la Edge Function de "Eliminar cuenta"
+
+La opción de eliminar cuenta (en Ajustes) necesita una función que corre del lado
+del servidor de Supabase — no se puede hacer solo desde el navegador por seguridad.
+
+```bash
+npx supabase login
+npx supabase link --project-ref iemyltuapdpdjxegxjhn
+npx supabase functions deploy delete-account
+```
+
+(Solo se hace una vez; después de esto el botón "Eliminar cuenta" en Ajustes ya funciona.)
+
 ## Estado de las 5 mejoras
 | # | Mejora | Estado |
 |---|--------|--------|
@@ -45,7 +58,7 @@ Con esto ya debería salirte la pantalla de login "Continuar con Google" antes d
 | 2 | Tour guiado de onboarding | ⏳ pendiente (reutilizará el copy de InfoTooltip) |
 | 3 | Ahorro externo (solo tracking, sin tocar Metas) | ⏳ tab creado, falta pantalla real |
 | 4 | Iconos ⓘ contextuales | ✅ componente listo, falta regarlo en todas las tarjetas |
-| 5 | Backup/sync con cuenta Google | ✅ Login con Supabase listo, falta conectar Inicio/NuevaTransaccion a la BD real |
+| 5 | Backup/sync con cuenta Google | ✅ Login funcionando. Ajustes ya permite cerrar sesión y eliminar cuenta (falta desplegar la Edge Function una vez) |
 
 ## Siguiente paso sugerido
 Elegir backend de sync (punto 5) antes de construir Ahorro externo y Metas,

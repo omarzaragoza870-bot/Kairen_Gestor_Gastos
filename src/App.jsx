@@ -5,6 +5,7 @@ import Inicio from './screens/Inicio.jsx'
 import NuevaTransaccion from './screens/NuevaTransaccion.jsx'
 import Placeholder from './screens/Placeholder.jsx'
 import Login from './screens/Login.jsx'
+import Ajustes from './screens/Ajustes.jsx'
 
 export default function App() {
   const [tab, setTab] = useState('inicio')
@@ -42,7 +43,7 @@ export default function App() {
         />
       )}
       {tab === 'metas' && <Placeholder titulo="Metas" texto="Crea tu primera meta para comenzar." />}
-      {tab === 'ajustes' && <Placeholder titulo="Ajustes" texto="Perfil, sync con Google, categorías y más." />}
+      {tab === 'ajustes' && <Ajustes />}
 
       <BottomNav active={tab} onChange={setTab} />
     </div>
