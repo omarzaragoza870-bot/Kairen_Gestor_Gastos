@@ -21,15 +21,10 @@ export default function Ajustes() {
     setEliminando(true)
     setError(null)
     try {
-      const { data: sessionData } = await supabase.auth.getSession()
-      const token = sessionData.session?.access_token
-
-      // Llama a la Edge Function 'delete-account' (ver /supabase/functions/delete-account)
-      // Necesaria porque borrar un usuario de auth.users requiere la service_role key,
-      // que NUNCA debe vivir en el frontend — por eso vive en una función server-side.
-      const { error: fnError } = await supabase.functions.invoke('delete-account', {
-        headers: { Authorization: `Bearer ${token}` }
-      })
+      // supabase.functions.invoke ya arma automáticamente el header
+      // "apikey" (obligatorio) y "Authorization" con el token de la
+      // sesión actual — no hace falta armarlos a mano.
+      const { error: fnError } = await supabase.functions.invoke('delete-account')
 
       if (fnError) throw fnError
 
