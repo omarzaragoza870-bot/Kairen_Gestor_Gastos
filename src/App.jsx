@@ -1,12 +1,31 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
+import { supabase } from './lib/supabaseClient.js'
 import BottomNav from './components/BottomNav.jsx'
 import Inicio from './screens/Inicio.jsx'
 import NuevaTransaccion from './screens/NuevaTransaccion.jsx'
 import Placeholder from './screens/Placeholder.jsx'
+import Login from './screens/Login.jsx'
 
 export default function App() {
   const [tab, setTab] = useState('inicio')
   const [creando, setCreando] = useState(false)
+  const [session, setSession] = useState(undefined) // undefined = cargando, null = sin sesión
+
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data }) => setSession(data.session))
+    const { data: listener } = supabase.auth.onAuthStateChange((_event, newSession) => {
+      setSession(newSession)
+    })
+    return () => listener.subscription.unsubscribe()
+  }, [])
+
+  if (session === undefined) {
+    return <div style={{ minHeight: '100dvh', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text-secondary)' }}>Cargando…</div>
+  }
+
+  if (!session) {
+    return <Login />
+  }
 
   if (creando) {
     return <NuevaTransaccion onBack={() => setCreando(false)} />
