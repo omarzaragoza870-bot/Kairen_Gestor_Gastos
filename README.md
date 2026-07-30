@@ -27,6 +27,17 @@ npm install
 npm run dev
 ```
 
+## Setup de Supabase (mejora #5 — sync/backup)
+
+1. Crea un proyecto gratis en https://supabase.com
+2. En **Project Settings → API**, copia la `URL` y la `anon public key`
+3. Copia `.env.example` como `.env` y pega esos dos valores
+4. En **SQL Editor**, corre el contenido completo de `sql/schema.sql` (crea las tablas y las reglas de seguridad)
+5. En **Authentication → Providers**, activa **Google** y sigue los pasos para conectar tu OAuth Client de Google Cloud
+6. Corre `npm install` de nuevo para traer `@supabase/supabase-js`, y `npm run dev`
+
+Con esto ya debería salirte la pantalla de login "Continuar con Google" antes de entrar a Inicio.
+
 ## Estado de las 5 mejoras
 | # | Mejora | Estado |
 |---|--------|--------|
@@ -34,7 +45,7 @@ npm run dev
 | 2 | Tour guiado de onboarding | ⏳ pendiente (reutilizará el copy de InfoTooltip) |
 | 3 | Ahorro externo (solo tracking, sin tocar Metas) | ⏳ tab creado, falta pantalla real |
 | 4 | Iconos ⓘ contextuales | ✅ componente listo, falta regarlo en todas las tarjetas |
-| 5 | Backup/sync con cuenta Google | ⏳ pendiente — decidir Supabase vs Firebase |
+| 5 | Backup/sync con cuenta Google | ✅ Login con Supabase listo, falta conectar Inicio/NuevaTransaccion a la BD real |
 
 ## Siguiente paso sugerido
 Elegir backend de sync (punto 5) antes de construir Ahorro externo y Metas,
