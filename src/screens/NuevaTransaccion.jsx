@@ -10,8 +10,15 @@ import InfoTooltip from '../components/InfoTooltip.jsx'
 
 const categoriasGasto = ['Alimentación', 'Transporte', 'Servicios', 'Entretenimiento', 'Ropa', 'Inglés', 'Salud', 'Otros']
 const categoriasIngreso = ['Salario', 'Inversiones', 'Negocios', 'Reembolsos', 'Regalos', 'Otros']
-const hoy = () => new Date().toISOString().slice(0, 10)
+const hoy = () => {
+  const fecha = new Date()
 
+  const año = fecha.getFullYear()
+  const mes = String(fecha.getMonth() + 1).padStart(2, "0")
+  const dia = String(fecha.getDate()).padStart(2, "0")
+
+  return `${año}-${mes}-${dia}`
+}
 export default function NuevaTransaccion({ onBack, onGuardada, transaccionEditar = null }) {
   const editando = Boolean(transaccionEditar)
   const [tipo, setTipo] = useState(transaccionEditar?.tipo || 'gasto')
