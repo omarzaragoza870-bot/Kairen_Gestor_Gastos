@@ -81,11 +81,10 @@ export async function obtenerTransaccionesEnRango(userId, desde, hasta) {
   return data || []
 }
 
-/** Trae todas las transacciones de los últimos N meses (incluye el actual). */
-export async function obtenerTransaccionesUltimosMeses(userId, n = 6) {
-  const ahora = new Date()
-  const desde = new Date(ahora.getFullYear(), ahora.getMonth() - (n - 1), 1).toISOString().slice(0, 10)
-  const hasta = new Date(ahora.getFullYear(), ahora.getMonth() + 1, 1).toISOString().slice(0, 10)
+/** Trae todas las transacciones de los últimos N meses, contados desde fechaReferencia (incluye ese mes). */
+export async function obtenerTransaccionesUltimosMeses(userId, n = 6, fechaReferencia = new Date()) {
+  const desde = new Date(fechaReferencia.getFullYear(), fechaReferencia.getMonth() - (n - 1), 1).toISOString().slice(0, 10)
+  const hasta = new Date(fechaReferencia.getFullYear(), fechaReferencia.getMonth() + 1, 1).toISOString().slice(0, 10)
   return obtenerTransaccionesEnRango(userId, desde, hasta)
 }
 

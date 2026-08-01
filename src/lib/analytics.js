@@ -39,13 +39,12 @@ export function agruparPorCuenta(transacciones, tipo, cuentasPorId) {
     .sort((a, b) => b.monto - a.monto)
 }
 
-/** Suma ingresos/gastos por mes, para las últimas N ventanas mensuales. */
-export function agruparPorMes(transacciones, n = 6) {
-  const ahora = new Date()
+/** Suma ingresos/gastos por mes, para las últimas N ventanas mensuales contadas desde fechaReferencia. */
+export function agruparPorMes(transacciones, n = 6, fechaReferencia = new Date()) {
   const meses = []
 
   for (let i = n - 1; i >= 0; i--) {
-    const fecha = new Date(ahora.getFullYear(), ahora.getMonth() - i, 1)
+    const fecha = new Date(fechaReferencia.getFullYear(), fechaReferencia.getMonth() - i, 1)
     const clave = `${fecha.getFullYear()}-${String(fecha.getMonth() + 1).padStart(2, '0')}`
     meses.push({
       clave,

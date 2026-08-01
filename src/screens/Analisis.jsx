@@ -1,12 +1,13 @@
 import { useEffect, useState, useMemo } from 'react'
 import { supabase } from '../lib/supabaseClient.js'
-import { obtenerCuentas, obtenerTransaccionesMesAnterior, obtenerTransaccionesPorMes, obtenerTransaccionesUltimosMeses } from '../lib/db.js'
+import { obtenerCuentas, obtenerTransaccionesPorMes, obtenerTransaccionesEnRango, obtenerTransaccionesUltimosMeses } from '../lib/db.js'
 import {
   sumar, agruparPorCategoria, agruparPorMes, calcularHabitos, calcularInsights, compararConMesAnterior
 } from '../lib/analytics.js'
+import SelectorPeriodo, { MESES } from '../components/SelectorPeriodo.jsx'
 
 const fmt = (n) => Number(n).toLocaleString('es-MX', { style: 'currency', currency: 'MXN' })
-const mesActualTexto = new Date().toLocaleDateString('es-MX', { month: 'long', year: 'numeric' })
+const fmtFechaCorta = iso => new Date(`${iso}T12:00:00`).toLocaleDateString('es-MX', { day: '2-digit', month: 'short' })
 
 const COLORES_CATEGORIA = ['#8B5CF6', '#4F6BFF', '#34D399', '#FBBF24', '#FB7185', '#22D3EE', '#F472B6', '#A78BFA']
 
@@ -18,6 +19,9 @@ export default function Analisis() {
   const [mesAnterior, setMesAnterior] = useState([])
   const [ultimosMeses, setUltimosMeses] = useState([])
   const [cuentasPorId, setCuentasPorId] = useState({})
+  const hoy = new Date()
+  const [periodo, setPeriodo] = useState({ tipo: 'mes', anio: hoy.getFullYear(), mes: hoy.getMonth() })
+  const [mostrarSelector, setMostrarSelector] = useState(false)
 
   useEffect(() => {
     (async () => {
@@ -28,10 +32,23 @@ export default function Analisis() {
         if (!data.user) throw new Error('Sesión no disponible.')
         const uid = data.user.id
 
-        const [actual, anterior, historico, cuentas] = await Promise.all([
-          obtenerTransaccionesPorMes(uid),
-          obtenerTransaccionesMesAnterior(uid),
-          obtenerTransaccionesUltimosMeses(uid, 6),
+        let actual, anterior, referenciaHistorico
+
+        if (periodo.tipo === 'mes') {
+          const fechaMes = new Date(periodo.anio, periodo.mes, 1)
+          actual = await obtenerTransaccionesPorMes(uid, fechaMes)
+          anterior = await obtenerTransaccionesPorMes(uid, new Date(periodo.anio, periodo.mes - 1, 1))
+          referenciaHistorico = fechaMes
+        } else {
+          const hastaExclusivo = new Date(`${periodo.hasta}T00:00:00`)
+          hastaExclusivo.setDate(hastaExclusivo.getDate() + 1)
+          actual = await obtenerTransaccionesEnRango(uid, periodo.desde, hastaExclusivo.toISOString().slice(0, 10))
+          anterior = [] // "vs mes anterior" no aplica a un rango libre
+          referenciaHistorico = new Date(`${periodo.hasta}T12:00:00`)
+        }
+
+        const [historico, cuentas] = await Promise.all([
+          obtenerTransaccionesUltimosMeses(uid, 6, referenciaHistorico),
           obtenerCuentas(uid)
         ])
 
@@ -45,7 +62,7 @@ export default function Analisis() {
         setCargando(false)
       }
     })()
-  }, [])
+  }, [periodo])
 
   const ingresos = sumar(mesActual, 'ingreso')
   const gastos = sumar(mesActual, 'gasto')
@@ -54,10 +71,15 @@ export default function Analisis() {
 
   const gastosPorCategoria = useMemo(() => agruparPorCategoria(mesActual, 'gasto'), [mesActual])
   const ingresosPorCategoria = useMemo(() => agruparPorCategoria(mesActual, 'ingreso'), [mesActual])
-  const porMes = useMemo(() => agruparPorMes(ultimosMeses, 6), [ultimosMeses])
+  const referenciaHistorico = periodo.tipo === 'mes' ? new Date(periodo.anio, periodo.mes, 1) : new Date(`${periodo.hasta}T12:00:00`)
+  const porMes = useMemo(() => agruparPorMes(ultimosMeses, 6, referenciaHistorico), [ultimosMeses, periodo])
   const habitos = useMemo(() => calcularHabitos(mesActual), [mesActual])
   const insights = useMemo(() => calcularInsights(mesActual, cuentasPorId), [mesActual, cuentasPorId])
   const comparacion = useMemo(() => compararConMesAnterior(mesActual, mesAnterior), [mesActual, mesAnterior])
+
+  const etiquetaPeriodo = periodo.tipo === 'mes'
+    ? `${MESES[periodo.mes]} ${periodo.anio}`
+    : `${fmtFechaCorta(periodo.desde)} – ${fmtFechaCorta(periodo.hasta)}`
 
   if (cargando) {
     return <div style={{ padding: 40, textAlign: 'center', color: 'var(--text-secondary)' }}>Cargando análisis…</div>
@@ -69,8 +91,11 @@ export default function Analisis() {
 
   return (
     <div style={{ padding: '16px 16px 100px', maxWidth: 680, margin: '0 auto' }}>
-      <h1 style={{ fontSize: 20, fontWeight: 700, margin: '0 0 4px' }}>Análisis Financiero</h1>
-      <p style={{ fontSize: 13, color: 'var(--text-muted)', margin: '0 0 16px', textTransform: 'capitalize' }}>{mesActualTexto}</p>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 4 }}>
+        <h1 style={{ fontSize: 20, fontWeight: 700, margin: 0 }}>Análisis Financiero</h1>
+        <button onClick={() => setMostrarSelector(true)} aria-label="Seleccionar período" className="icon-button" style={{ fontSize: 18, minHeight: 36, padding: '4px 10px' }}>📅</button>
+      </div>
+      <p style={{ fontSize: 13, color: 'var(--text-muted)', margin: '0 0 16px' }}>{etiquetaPeriodo}</p>
 
       <div style={{ display: 'flex', gap: 8, marginBottom: 20 }}>
         {[['resumen', 'Resumen'], ['distribucion', 'Distribución'], ['tendencias', 'Tendencias']].map(([id, label]) => (
@@ -96,7 +121,15 @@ export default function Analisis() {
         <DistribucionTab gastosPorCategoria={gastosPorCategoria} ingresosPorCategoria={ingresosPorCategoria} totalGastos={gastos} totalIngresos={ingresos} />
       )}
       {tab === 'tendencias' && (
-        <TendenciasTab comparacion={comparacion} habitos={habitos} insights={insights} />
+        <TendenciasTab comparacion={comparacion} habitos={habitos} insights={insights} esRango={periodo.tipo === 'rango'} />
+      )}
+
+      {mostrarSelector && (
+        <SelectorPeriodo
+          periodoActual={periodo}
+          onCerrar={() => setMostrarSelector(false)}
+          onAplicar={(nuevo) => { setPeriodo(nuevo); setMostrarSelector(false) }}
+        />
       )}
     </div>
   )
@@ -185,25 +218,27 @@ function DistribucionTab({ gastosPorCategoria, ingresosPorCategoria, totalGastos
   )
 }
 
-function TendenciasTab({ comparacion, habitos, insights }) {
+function TendenciasTab({ comparacion, habitos, insights, esRango }) {
   return (
     <>
-      <Tarjeta>
-        <h3 style={{ margin: '0 0 4px', fontSize: 14, fontWeight: 600 }}>↕ Comparación con período anterior</h3>
-        <p style={{ margin: '0 0 14px', fontSize: 12, color: 'var(--text-muted)' }}>vs mes anterior</p>
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
-          <div style={{ textAlign: 'center', padding: 14, borderRadius: 'var(--radius-md)', border: '1px solid var(--border-subtle)' }}>
-            <div style={{ color: 'var(--success)', fontSize: 12 }}>↑ Ingreso</div>
-            <div style={{ fontWeight: 700, fontSize: 16, margin: '4px 0' }}>{fmt(comparacion.ingresoActual)}</div>
-            <div style={{ fontSize: 11, color: 'var(--text-muted)' }}>{comparacion.variacionIngreso ?? '—'}</div>
+      {!esRango && (
+        <Tarjeta>
+          <h3 style={{ margin: '0 0 4px', fontSize: 14, fontWeight: 600 }}>↕ Comparación con período anterior</h3>
+          <p style={{ margin: '0 0 14px', fontSize: 12, color: 'var(--text-muted)' }}>vs mes anterior</p>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+            <div style={{ textAlign: 'center', padding: 14, borderRadius: 'var(--radius-md)', border: '1px solid var(--border-subtle)' }}>
+              <div style={{ color: 'var(--success)', fontSize: 12 }}>↑ Ingreso</div>
+              <div style={{ fontWeight: 700, fontSize: 16, margin: '4px 0' }}>{fmt(comparacion.ingresoActual)}</div>
+              <div style={{ fontSize: 11, color: 'var(--text-muted)' }}>{comparacion.variacionIngreso ?? '—'}</div>
+            </div>
+            <div style={{ textAlign: 'center', padding: 14, borderRadius: 'var(--radius-md)', border: '1px solid var(--border-subtle)' }}>
+              <div style={{ color: 'var(--warning)', fontSize: 12 }}>↓ Gasto</div>
+              <div style={{ fontWeight: 700, fontSize: 16, margin: '4px 0' }}>{fmt(comparacion.gastoActual)}</div>
+              <div style={{ fontSize: 11, color: 'var(--text-muted)' }}>{comparacion.variacionGasto ?? '—'}</div>
+            </div>
           </div>
-          <div style={{ textAlign: 'center', padding: 14, borderRadius: 'var(--radius-md)', border: '1px solid var(--border-subtle)' }}>
-            <div style={{ color: 'var(--warning)', fontSize: 12 }}>↓ Gasto</div>
-            <div style={{ fontWeight: 700, fontSize: 16, margin: '4px 0' }}>{fmt(comparacion.gastoActual)}</div>
-            <div style={{ fontSize: 11, color: 'var(--text-muted)' }}>{comparacion.variacionGasto ?? '—'}</div>
-          </div>
-        </div>
-      </Tarjeta>
+        </Tarjeta>
+      )}
 
       {habitos && (
         <Tarjeta>
