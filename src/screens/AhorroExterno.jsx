@@ -3,6 +3,7 @@ import { supabase } from '../lib/supabaseClient.js'
 import { obtenerAhorroExterno, crearAhorroExterno, editarAhorroExterno, eliminarAhorroExterno } from '../lib/db.js'
 import InfoTooltip from '../components/InfoTooltip.jsx'
 import { useScrollLock } from '../hooks/useScrollLock.js'
+import Monto from '../components/Monto.jsx'
 
 const fmt = (n) => Number(n).toLocaleString('es-MX', { style: 'currency', currency: 'MXN' })
 const hoy = () => {
@@ -101,7 +102,7 @@ export default function AhorroExterno() {
           fontSize: 28, fontWeight: 800, marginTop: 4,
           backgroundImage: 'var(--gradient-brand)', WebkitBackgroundClip: 'text', color: 'transparent'
         }}>
-          {cargando ? '…' : fmt(total)}
+          {cargando ? '…' : <Monto valor={total} />}
         </div>
       </div>
 

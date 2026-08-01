@@ -2,8 +2,10 @@ import { useState, useEffect } from 'react'
 import { supabase } from '../lib/supabaseClient.js'
 import InfoTooltip from '../components/InfoTooltip.jsx'
 import { useScrollLock } from '../hooks/useScrollLock.js'
+import { usePreferencias } from '../context/PreferenciasContext.jsx'
 
 export default function Ajustes({ onVerTutorial }) {
+  const { ocultarSaldos, toggleOcultarSaldos } = usePreferencias()
   const [user, setUser] = useState(null)
   const [confirmando, setConfirmando] = useState(false)
   useScrollLock(confirmando)
@@ -120,6 +122,57 @@ export default function Ajustes({ onVerTutorial }) {
         <p style={{ color: 'var(--danger)', fontSize: 13, marginTop: 10 }}>{error}</p>
       )}
 
+      {/* Preferencias */}
+      <div style={{ margin: '24px 0 8px' }}>
+        <h2 style={{ fontSize: 14, fontWeight: 600, color: 'var(--text-secondary)', margin: 0 }}>Preferencias</h2>
+      </div>
+
+      <section style={{
+        background: 'var(--bg-surface)', borderRadius: 'var(--radius-lg)',
+        border: '1px solid var(--border-subtle)', overflow: 'hidden', marginBottom: 16
+      }}>
+        <FilaAjuste icono="💱" titulo="Moneda" subtitulo="🇲🇽 MXN - Peso Mexicano" etiqueta="Próximamente" />
+        <FilaAjuste icono="🌐" titulo="Idioma" subtitulo="Español" />
+        <FilaAjuste icono="🎨" titulo="Tema" subtitulo="Oscuro (KAIREN)" etiqueta="Próximamente" />
+        <FilaAjuste icono="🏷️" titulo="Administrar categorías" subtitulo="Personalizar categorías" etiqueta="Próximamente" />
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '14px 16px' }}>
+          <span style={{ fontSize: 18 }}>👁️</span>
+          <div style={{ flex: 1 }}>
+            <div style={{ fontSize: 14, fontWeight: 600 }}>Ocultar saldos</div>
+            <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>Oculta las cifras de tu balance general y cuentas</div>
+          </div>
+          <button
+            onClick={toggleOcultarSaldos}
+            aria-label="Ocultar saldos"
+            style={{
+              width: 46, height: 26, borderRadius: 999, flexShrink: 0, position: 'relative',
+              background: ocultarSaldos ? 'var(--gradient-brand)' : 'var(--bg-surface-2)',
+              border: '1px solid var(--border-subtle)'
+            }}
+          >
+            <span style={{
+              position: 'absolute', top: 2, left: ocultarSaldos ? 22 : 2,
+              width: 20, height: 20, borderRadius: '50%', background: '#fff', transition: 'left 0.15s'
+            }} />
+          </button>
+        </div>
+      </section>
+
+      {/* Acerca de la App */}
+      <div style={{ margin: '24px 0 8px' }}>
+        <h2 style={{ fontSize: 14, fontWeight: 600, color: 'var(--text-secondary)', margin: 0 }}>Acerca de la App</h2>
+      </div>
+
+      <section style={{
+        background: 'var(--bg-surface)', borderRadius: 'var(--radius-lg)',
+        border: '1px solid var(--border-subtle)', padding: '16px', textAlign: 'center'
+      }}>
+        <div style={{ fontSize: 28, marginBottom: 6 }}>💜</div>
+        <div style={{ fontWeight: 700, fontSize: 15 }}>Kairen Finanzas</div>
+        <div style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 2 }}>Versión 1.0.0</div>
+        <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 8 }}>Parte del ecosistema KAIREN</div>
+      </section>
+
       {/* Modal de confirmación para eliminar cuenta */}
       {confirmando && (
         <div
@@ -164,6 +217,29 @@ export default function Ajustes({ onVerTutorial }) {
             </div>
           </div>
         </div>
+      )}
+    </div>
+  )
+}
+
+function FilaAjuste({ icono, titulo, subtitulo, etiqueta }) {
+  return (
+    <div style={{
+      display: 'flex', alignItems: 'center', gap: 12, padding: '14px 16px',
+      borderBottom: '1px solid var(--border-subtle)'
+    }}>
+      <span style={{ fontSize: 18 }}>{icono}</span>
+      <div style={{ flex: 1 }}>
+        <div style={{ fontSize: 14, fontWeight: 600 }}>{titulo}</div>
+        <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>{subtitulo}</div>
+      </div>
+      {etiqueta && (
+        <span style={{
+          fontSize: 10, fontWeight: 700, color: 'var(--text-muted)',
+          border: '1px solid var(--border-subtle)', borderRadius: 999, padding: '2px 8px', flexShrink: 0
+        }}>
+          {etiqueta}
+        </span>
       )}
     </div>
   )

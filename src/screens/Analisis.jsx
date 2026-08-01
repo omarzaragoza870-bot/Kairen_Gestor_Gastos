@@ -5,6 +5,7 @@ import {
   sumar, agruparPorCategoria, agruparPorMes, calcularHabitos, calcularInsights, compararConMesAnterior
 } from '../lib/estadisticas.js'
 import SelectorPeriodo, { MESES } from '../components/SelectorPeriodo.jsx'
+import Monto from '../components/Monto.jsx'
 
 const fmt = (n) => Number(n).toLocaleString('es-MX', { style: 'currency', currency: 'MXN' })
 const fmtFechaCorta = iso => new Date(`${iso}T12:00:00`).toLocaleDateString('es-MX', { day: '2-digit', month: 'short' })
@@ -152,9 +153,9 @@ function ResumenTab({ ingresos, gastos, balance, tasaAhorro, porMes }) {
   return (
     <>
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 14 }}>
-        <MiniStat label="↑ Total Ingresos" valor={fmt(ingresos)} color="var(--success)" />
-        <MiniStat label="↓ Total Gastos" valor={fmt(gastos)} color="var(--danger)" />
-        <MiniStat label="↗ Balance" valor={fmt(balance)} color={balance >= 0 ? 'var(--success)' : 'var(--danger)'} />
+        <MiniStat label="↑ Total Ingresos" valor={<Monto valor={ingresos} />} color="var(--success)" />
+        <MiniStat label="↓ Total Gastos" valor={<Monto valor={gastos} />} color="var(--danger)" />
+        <MiniStat label="↗ Balance" valor={<Monto valor={balance} />} color={balance >= 0 ? 'var(--success)' : 'var(--danger)'} />
         <MiniStat label="🐷 Tasa de Ahorro" valor={`${tasaAhorro.toFixed(1)}%`} color="var(--success)" />
       </div>
 

@@ -7,6 +7,7 @@ import {
   obtenerCuentas
 } from '../lib/db.js'
 import InfoTooltip from '../components/InfoTooltip.jsx'
+import Monto from '../components/Monto.jsx'
 
 const categoriasGasto = ['Alimentación', 'Transporte', 'Servicios', 'Entretenimiento', 'Ropa', 'Inglés', 'Salud', 'Otros']
 const categoriasIngreso = ['Salario', 'Inversiones', 'Negocios', 'Reembolsos', 'Regalos', 'Otros']
@@ -130,7 +131,7 @@ export default function NuevaTransaccion({ onBack, onGuardada, transaccionEditar
             border: '1.5px solid ' + (cuentaId === c.id ? 'var(--accent-blue)' : 'var(--border-subtle)'), textAlign: 'left'
           }}>
             <div style={{ fontSize: 13, fontWeight: 600 }}>{c.tipo === 'tarjeta' ? '💳' : '💵'} {c.nombre}</div>
-            <div style={{ fontSize: 12, color: 'var(--success)' }}>{Number(c.saldo).toLocaleString('es-MX', { style: 'currency', currency: 'MXN' })}</div>
+            <div style={{ fontSize: 12, color: 'var(--success)' }}><Monto valor={c.saldo} /></div>
           </button>
         ))}
       </div>

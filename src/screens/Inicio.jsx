@@ -3,6 +3,7 @@ import { supabase } from '../lib/supabaseClient.js'
 import { obtenerTransaccionesPorMes, obtenerTransaccionesEnRango } from '../lib/db.js'
 import InfoTooltip from '../components/InfoTooltip.jsx'
 import SelectorPeriodo, { MESES } from '../components/SelectorPeriodo.jsx'
+import Monto from '../components/Monto.jsx'
 
 const fmt = n => Number(n).toLocaleString('es-MX', { style: 'currency', currency: 'MXN' })
 const fmtFecha = fechaISO => new Date(`${fechaISO}T12:00:00`).toLocaleDateString('es-MX', { day: '2-digit', month: 'short', year: 'numeric' })
@@ -80,10 +81,10 @@ export default function Inicio({ onNuevo, onEditar, onVerTodas, refreshKey }) {
           <span style={{ fontSize: 13, color: 'var(--text-secondary)' }}>Dinero Disponible</span>
           <InfoTooltip title="Dinero Disponible" text="Ingresos menos gastos del período seleccionado. No incluye el ahorro externo." />
         </div>
-        <div className="available-amount">{cargando ? '…' : fmt(disponible)}</div>
+        <div className="available-amount">{cargando ? '…' : <Monto valor={disponible} />}</div>
         <div className="summary-grid">
-          <div><span className="income-label">↑ Ingresos</span><div>+{cargando ? '…' : fmt(ingresos)}</div></div>
-          <div><span className="expense-label">↓ Gastos</span><div>-{cargando ? '…' : fmt(gastos)}</div></div>
+          <div><span className="income-label">↑ Ingresos</span><div>{cargando ? '…' : <Monto valor={ingresos} prefijo="+" />}</div></div>
+          <div><span className="expense-label">↓ Gastos</span><div>{cargando ? '…' : <Monto valor={gastos} prefijo="-" />}</div></div>
         </div>
       </section>
 

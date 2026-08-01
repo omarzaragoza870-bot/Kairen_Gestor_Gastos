@@ -1,6 +1,7 @@
 import { useEffect, useState, useCallback } from 'react'
 import { obtenerContribucionesMeta, registrarContribucionMeta } from '../lib/db.js'
 import { useScrollLock } from '../hooks/useScrollLock.js'
+import Monto from '../components/Monto.jsx'
 
 const fmt = (n) => Number(n).toLocaleString('es-MX', { style: 'currency', currency: 'MXN' })
 const fmtFecha = (f) => f ? new Date(`${f}T12:00:00`).toLocaleDateString('es-MX', { day: '2-digit', month: 'short', year: 'numeric' }) : '—'
@@ -97,9 +98,9 @@ export default function MetaDetalle({ meta, userId, onBack, onCambio }) {
           </div>
           <div>
             <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>Ahorrado</div>
-            <div style={{ fontSize: 20, fontWeight: 800, marginBottom: 10 }}>{fmt(montoActual)}</div>
+            <div style={{ fontSize: 20, fontWeight: 800, marginBottom: 10 }}><Monto valor={montoActual} /></div>
             <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>Meta</div>
-            <div style={{ fontSize: 16, fontWeight: 700 }}>{fmt(meta.monto_objetivo)}</div>
+            <div style={{ fontSize: 16, fontWeight: 700 }}><Monto valor={meta.monto_objetivo} /></div>
           </div>
         </section>
 

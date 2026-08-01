@@ -3,6 +3,7 @@ import { supabase } from '../lib/supabaseClient.js'
 import { obtenerMetas, crearMeta, editarMeta, marcarMetaCompletada, eliminarMeta } from '../lib/db.js'
 import { useScrollLock } from '../hooks/useScrollLock.js'
 import MetaDetalle from './MetaDetalle.jsx'
+import Monto from '../components/Monto.jsx'
 
 const fmt = (n) => Number(n).toLocaleString('es-MX', { style: 'currency', currency: 'MXN' })
 const fmtFecha = (f) => f ? new Date(`${f}T12:00:00`).toLocaleDateString('es-MX', { day: '2-digit', month: 'short', year: 'numeric' }) : null
@@ -163,8 +164,8 @@ export default function Metas() {
                 </div>
               </div>
               <div style={{ textAlign: 'right', flexShrink: 0 }}>
-                <div style={{ fontWeight: 700, fontSize: 14 }}>{fmt(meta.monto_actual)}</div>
-                <div style={{ fontSize: 11, color: 'var(--text-muted)' }}>de {fmt(meta.monto_objetivo)}</div>
+                <div style={{ fontWeight: 700, fontSize: 14 }}><Monto valor={meta.monto_actual} /></div>
+                <div style={{ fontSize: 11, color: 'var(--text-muted)' }}>de <Monto valor={meta.monto_objetivo} /></div>
               </div>
             </div>
 

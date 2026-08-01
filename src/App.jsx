@@ -12,8 +12,9 @@ import Placeholder from './screens/Placeholder.jsx'
 import Login from './screens/Login.jsx'
 import Ajustes from './screens/Ajustes.jsx'
 import OnboardingTour, { TOUR_STORAGE_KEY } from './components/OnboardingTour.jsx'
+import { PreferenciasProvider } from './context/PreferenciasContext.jsx'
 
-export default function App() {
+function AppInner() {
   const [tab, setTab] = useState('inicio')
   const [vista, setVista] = useState('principal')
   const [transaccionEditar, setTransaccionEditar] = useState(null)
@@ -72,5 +73,13 @@ export default function App() {
 
       {mostrarTour && <OnboardingTour onFinalizar={() => setMostrarTour(false)} />}
     </div>
+  )
+}
+
+export default function App() {
+  return (
+    <PreferenciasProvider>
+      <AppInner />
+    </PreferenciasProvider>
   )
 }
