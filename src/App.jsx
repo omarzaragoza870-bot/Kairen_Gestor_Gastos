@@ -49,17 +49,27 @@ export default function App() {
   const abrirEdicion = tx => { setTransaccionEditar(tx); setVista('formulario') }
   const guardada = () => { setRefreshKey(k => k + 1); setVista(transaccionEditar ? 'lista' : 'principal'); setTransaccionEditar(null) }
 
-  if (vista === 'formulario') return <NuevaTransaccion transaccionEditar={transaccionEditar} onBack={() => setVista(transaccionEditar ? 'lista' : 'principal')} onGuardada={guardada} />
-  if (vista === 'lista') return <Transacciones refreshKey={refreshKey} onBack={() => setVista('principal')} onEditar={abrirEdicion} onCambio={() => setRefreshKey(k => k + 1)} />
-
   return (
-    <div style={{ minHeight: '100dvh', paddingTop: 'var(--safe-top)' }}>
-      {tab === 'inicio' && <Inicio onNuevo={abrirNueva} onEditar={abrirEdicion} onVerTodas={() => setVista('lista')} refreshKey={refreshKey} />}
-      {tab === 'analisis' && <Analisis />}
-      {tab === 'ahorro' && <AhorroExterno />}
-      {tab === 'metas' && <Metas />}
-      {tab === 'ajustes' && <Ajustes onVerTutorial={() => setMostrarTour(true)} />}
-      <BottomNav active={tab} onChange={setTab} />
+    <div id="app-scroll" style={{ height: '100dvh', overflowY: 'auto', WebkitOverflowScrolling: 'touch', paddingTop: 'var(--safe-top)' }}>
+      {vista === 'formulario' && (
+        <NuevaTransaccion transaccionEditar={transaccionEditar} onBack={() => setVista(transaccionEditar ? 'lista' : 'principal')} onGuardada={guardada} />
+      )}
+
+      {vista === 'lista' && (
+        <Transacciones refreshKey={refreshKey} onBack={() => setVista('principal')} onEditar={abrirEdicion} onCambio={() => setRefreshKey(k => k + 1)} />
+      )}
+
+      {vista === 'principal' && (
+        <>
+          {tab === 'inicio' && <Inicio onNuevo={abrirNueva} onEditar={abrirEdicion} onVerTodas={() => setVista('lista')} refreshKey={refreshKey} />}
+          {tab === 'analisis' && <Analisis />}
+          {tab === 'ahorro' && <AhorroExterno />}
+          {tab === 'metas' && <Metas />}
+          {tab === 'ajustes' && <Ajustes onVerTutorial={() => setMostrarTour(true)} />}
+          <BottomNav active={tab} onChange={setTab} />
+        </>
+      )}
+
       {mostrarTour && <OnboardingTour onFinalizar={() => setMostrarTour(false)} />}
     </div>
   )
