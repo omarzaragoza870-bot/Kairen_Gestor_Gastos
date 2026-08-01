@@ -3,7 +3,7 @@ import { supabase } from '../lib/supabaseClient.js'
 import { obtenerCuentas, obtenerTransaccionesPorMes, obtenerTransaccionesEnRango, obtenerTransaccionesUltimosMeses } from '../lib/db.js'
 import {
   sumar, agruparPorCategoria, agruparPorMes, calcularHabitos, calcularInsights, compararConMesAnterior
-} from '../lib/analytics.js'
+} from '../lib/estadisticas.js'
 import SelectorPeriodo, { MESES } from '../components/SelectorPeriodo.jsx'
 
 const fmt = (n) => Number(n).toLocaleString('es-MX', { style: 'currency', currency: 'MXN' })
