@@ -196,6 +196,43 @@ export async function eliminarMeta(id, userId) {
   if (error) throw error
 }
 
+export async function obtenerContribucionesMeta(metaId, userId) {
+  const { data, error } = await supabase
+    .from('meta_contribuciones')
+    .select('*')
+    .eq('meta_id', metaId)
+    .eq('user_id', userId)
+    .order('fecha', { ascending: false })
+    .order('created_at', { ascending: false })
+
+  if (error) throw error
+  return data || []
+}
+
+/** Registra un abono o retiro y ajusta el monto_actual de la meta correspondiente. */
+export async function registrarContribucionMeta({ metaId, userId, tipo, monto, nota, montoActualPrevio, montoObjetivo }) {
+  const { error: insertError } = await supabase.from('meta_contribuciones').insert({
+    user_id: userId,
+    meta_id: metaId,
+    tipo,
+    monto,
+    nota: nota || null,
+    fecha: new Date().toISOString().slice(0, 10)
+  })
+  if (insertError) throw insertError
+
+  const nuevoMonto = tipo === 'contribucion' ? montoActualPrevio + monto : Math.max(0, montoActualPrevio - monto)
+
+  const { error: updateError } = await supabase
+    .from('metas')
+    .update({ monto_actual: nuevoMonto, completada: nuevoMonto >= montoObjetivo })
+    .eq('id', metaId)
+    .eq('user_id', userId)
+  if (updateError) throw updateError
+
+  return nuevoMonto
+}
+
 async function crearTransaccionLegacy({ userId, cuentaId, categoriaNombre, tipo, monto, descripcion, fecha, cuentaSaldoActual }) {
   const { error: insertError } = await supabase.from('transacciones').insert({
     user_id: userId,

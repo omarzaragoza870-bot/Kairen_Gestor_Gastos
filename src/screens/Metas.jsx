@@ -2,6 +2,7 @@ import { useEffect, useState, useCallback, useMemo } from 'react'
 import { supabase } from '../lib/supabaseClient.js'
 import { obtenerMetas, crearMeta, editarMeta, marcarMetaCompletada, eliminarMeta } from '../lib/db.js'
 import { useScrollLock } from '../hooks/useScrollLock.js'
+import MetaDetalle from './MetaDetalle.jsx'
 
 const fmt = (n) => Number(n).toLocaleString('es-MX', { style: 'currency', currency: 'MXN' })
 const fmtFecha = (f) => f ? new Date(`${f}T12:00:00`).toLocaleDateString('es-MX', { day: '2-digit', month: 'short', year: 'numeric' }) : null
@@ -21,6 +22,7 @@ export default function Metas() {
   const [error, setError] = useState(null)
   const [editando, setEditando] = useState(null)
   const [aEliminar, setAEliminar] = useState(null)
+  const [detalle, setDetalle] = useState(null)
   useScrollLock(editando !== null || Boolean(aEliminar))
   const [procesando, setProcesando] = useState(false)
 
@@ -90,6 +92,17 @@ export default function Metas() {
     }
   }
 
+  if (detalle) {
+    return (
+      <MetaDetalle
+        meta={detalle}
+        userId={userId}
+        onBack={() => setDetalle(null)}
+        onCambio={() => cargar(userId)}
+      />
+    )
+  }
+
   return (
     <div style={{ padding: '16px 16px 100px', maxWidth: 680, margin: '0 auto' }}>
       <h1 style={{ fontSize: 20, fontWeight: 700, margin: '0 0 16px' }}>Metas</h1>
@@ -134,6 +147,7 @@ export default function Metas() {
             background: 'var(--bg-surface)', borderRadius: 'var(--radius-md)',
             border: '1px solid var(--border-subtle)', padding: 16, marginBottom: 12
           }}>
+            <div onClick={() => setDetalle(meta)} style={{ cursor: 'pointer' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 10, gap: 10 }}>
               <div style={{ display: 'flex', gap: 10, minWidth: 0 }}>
                 <span style={{ fontSize: 24, flexShrink: 0 }}>{meta.icono || '🎯'}</span>
@@ -158,6 +172,7 @@ export default function Metas() {
               <div style={{ height: '100%', width: `${pct}%`, background: meta.completada ? 'var(--success)' : 'var(--gradient-brand)', borderRadius: 4 }} />
             </div>
             <div style={{ fontSize: 11, color: 'var(--text-muted)', textAlign: 'right', marginBottom: 10 }}>{pct.toFixed(0)}%</div>
+            </div>
 
             <div style={{ display: 'flex', gap: 8, borderTop: '1px solid var(--border-subtle)', paddingTop: 10 }}>
               <button onClick={() => setEditando(meta)} style={{ flex: 1, background: 'transparent', color: 'var(--text-secondary)', fontSize: 12, padding: 6 }}>✏️ Editar</button>
