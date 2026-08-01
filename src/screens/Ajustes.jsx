@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import { supabase } from '../lib/supabaseClient.js'
 import InfoTooltip from '../components/InfoTooltip.jsx'
 
-export default function Ajustes() {
+export default function Ajustes({ onVerTutorial }) {
   const [user, setUser] = useState(null)
   const [confirmando, setConfirmando] = useState(false)
   const [eliminando, setEliminando] = useState(false)
@@ -75,6 +75,20 @@ export default function Ajustes() {
           text="Cerrar sesión solo desvincula este dispositivo — tus datos siguen guardados y puedes volver a entrar cuando quieras. Eliminar cuenta borra permanentemente tu perfil y todos tus datos, sin poder recuperarlos."
         />
       </div>
+
+      {onVerTutorial && (
+        <button
+          onClick={onVerTutorial}
+          style={{
+            width: '100%', textAlign: 'left', padding: '14px 16px', marginBottom: 10,
+            background: 'var(--bg-surface)', borderRadius: 'var(--radius-md)',
+            border: '1px solid var(--border-subtle)', color: 'var(--text-primary)',
+            fontSize: 14, fontWeight: 600, display: 'flex', alignItems: 'center', gap: 10
+          }}
+        >
+          <span>🎓</span> Ver tutorial de nuevo
+        </button>
+      )}
 
       <button
         onClick={handleLogout}

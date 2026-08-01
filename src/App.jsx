@@ -10,6 +10,7 @@ import AhorroExterno from './screens/AhorroExterno.jsx'
 import Placeholder from './screens/Placeholder.jsx'
 import Login from './screens/Login.jsx'
 import Ajustes from './screens/Ajustes.jsx'
+import OnboardingTour, { TOUR_STORAGE_KEY } from './components/OnboardingTour.jsx'
 
 export default function App() {
   const [tab, setTab] = useState('inicio')
@@ -17,15 +18,25 @@ export default function App() {
   const [transaccionEditar, setTransaccionEditar] = useState(null)
   const [session, setSession] = useState(undefined)
   const [refreshKey, setRefreshKey] = useState(0)
+  const [mostrarTour, setMostrarTour] = useState(false)
 
   useEffect(() => {
+    let yaVistoAntes = false
+    try { yaVistoAntes = localStorage.getItem(TOUR_STORAGE_KEY) === 'true' } catch { /* noop */ }
+
     supabase.auth.getSession().then(({ data }) => {
       setSession(data.session)
-      if (data.session) asegurarCuentasPorDefecto(data.session.user.id).catch(console.error)
+      if (data.session) {
+        asegurarCuentasPorDefecto(data.session.user.id).catch(console.error)
+        if (!yaVistoAntes) setMostrarTour(true)
+      }
     })
     const { data: listener } = supabase.auth.onAuthStateChange((_event, nueva) => {
       setSession(nueva)
-      if (nueva) asegurarCuentasPorDefecto(nueva.user.id).catch(console.error)
+      if (nueva) {
+        asegurarCuentasPorDefecto(nueva.user.id).catch(console.error)
+        if (!yaVistoAntes) setMostrarTour(true)
+      }
     })
     return () => listener.subscription.unsubscribe()
   }, [])
@@ -46,8 +57,9 @@ export default function App() {
       {tab === 'analisis' && <Analisis />}
       {tab === 'ahorro' && <AhorroExterno />}
       {tab === 'metas' && <Placeholder titulo="Metas" texto="Crea tu primera meta para comenzar." />}
-      {tab === 'ajustes' && <Ajustes />}
+      {tab === 'ajustes' && <Ajustes onVerTutorial={() => setMostrarTour(true)} />}
       <BottomNav active={tab} onChange={setTab} />
+      {mostrarTour && <OnboardingTour onFinalizar={() => setMostrarTour(false)} />}
     </div>
   )
 }
