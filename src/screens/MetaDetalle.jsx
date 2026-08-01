@@ -61,7 +61,7 @@ export default function MetaDetalle({ meta, userId, onBack, onCambio }) {
   }
 
   return (
-    <div style={{ maxWidth: 680, margin: '0 auto', paddingBottom: 40 }}>
+    <div style={{ maxWidth: 680, margin: '0 auto', paddingBottom: 110 }}>
       <div style={{
         background: 'linear-gradient(180deg, var(--bg-surface-2) 0%, var(--bg-base) 100%)',
         padding: '16px 20px 28px', textAlign: 'center'
