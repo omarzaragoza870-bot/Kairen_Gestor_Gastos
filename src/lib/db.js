@@ -135,6 +135,62 @@ export async function eliminarAhorroExterno(id, userId) {
   if (error) throw error
 }
 
+export async function obtenerMetas(userId) {
+  const { data, error } = await supabase
+    .from('metas')
+    .select('*')
+    .eq('user_id', userId)
+    .order('created_at', { ascending: false })
+
+  if (error) throw error
+  return data || []
+}
+
+export async function crearMeta({ userId, nombre, montoObjetivo, montoActual, fechaLimite }) {
+  const { error } = await supabase.from('metas').insert({
+    user_id: userId,
+    nombre,
+    monto_objetivo: montoObjetivo,
+    monto_actual: montoActual || 0,
+    fecha_limite: fechaLimite || null,
+    completada: (montoActual || 0) >= montoObjetivo
+  })
+  if (error) throw error
+}
+
+export async function editarMeta({ id, userId, nombre, montoObjetivo, montoActual, fechaLimite }) {
+  const { error } = await supabase
+    .from('metas')
+    .update({
+      nombre,
+      monto_objetivo: montoObjetivo,
+      monto_actual: montoActual,
+      fecha_limite: fechaLimite || null,
+      completada: montoActual >= montoObjetivo
+    })
+    .eq('id', id)
+    .eq('user_id', userId)
+  if (error) throw error
+}
+
+export async function marcarMetaCompletada(id, userId, completada) {
+  const { error } = await supabase
+    .from('metas')
+    .update({ completada })
+    .eq('id', id)
+    .eq('user_id', userId)
+  if (error) throw error
+}
+
+export async function eliminarMeta(id, userId) {
+  const { error } = await supabase
+    .from('metas')
+    .delete()
+    .eq('id', id)
+    .eq('user_id', userId)
+  if (error) throw error
+}
+
 async function crearTransaccionLegacy({ userId, cuentaId, categoriaNombre, tipo, monto, descripcion, fecha, cuentaSaldoActual }) {
   const { error: insertError } = await supabase.from('transacciones').insert({
     user_id: userId,

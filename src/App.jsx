@@ -7,6 +7,7 @@ import NuevaTransaccion from './screens/NuevaTransaccion.jsx'
 import Transacciones from './screens/Transacciones.jsx'
 import Analisis from './screens/Analisis.jsx'
 import AhorroExterno from './screens/AhorroExterno.jsx'
+import Metas from './screens/Metas.jsx'
 import Placeholder from './screens/Placeholder.jsx'
 import Login from './screens/Login.jsx'
 import Ajustes from './screens/Ajustes.jsx'
@@ -56,7 +57,7 @@ export default function App() {
       {tab === 'inicio' && <Inicio onNuevo={abrirNueva} onEditar={abrirEdicion} onVerTodas={() => setVista('lista')} refreshKey={refreshKey} />}
       {tab === 'analisis' && <Analisis />}
       {tab === 'ahorro' && <AhorroExterno />}
-      {tab === 'metas' && <Placeholder titulo="Metas" texto="Crea tu primera meta para comenzar." />}
+      {tab === 'metas' && <Metas />}
       {tab === 'ajustes' && <Ajustes onVerTutorial={() => setMostrarTour(true)} />}
       <BottomNav active={tab} onChange={setTab} />
       {mostrarTour && <OnboardingTour onFinalizar={() => setMostrarTour(false)} />}
