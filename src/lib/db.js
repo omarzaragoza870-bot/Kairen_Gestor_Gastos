@@ -68,6 +68,32 @@ export async function obtenerTodasLasTransacciones(userId) {
   return data || []
 }
 
+export async function obtenerTransaccionesEnRango(userId, desde, hasta) {
+  const { data, error } = await supabase
+    .from('transacciones')
+    .select('*')
+    .eq('user_id', userId)
+    .gte('fecha', desde)
+    .lt('fecha', hasta)
+    .order('fecha', { ascending: true })
+
+  if (error) throw error
+  return data || []
+}
+
+/** Trae todas las transacciones de los últimos N meses (incluye el actual). */
+export async function obtenerTransaccionesUltimosMeses(userId, n = 6) {
+  const ahora = new Date()
+  const desde = new Date(ahora.getFullYear(), ahora.getMonth() - (n - 1), 1).toISOString().slice(0, 10)
+  const hasta = new Date(ahora.getFullYear(), ahora.getMonth() + 1, 1).toISOString().slice(0, 10)
+  return obtenerTransaccionesEnRango(userId, desde, hasta)
+}
+
+export async function obtenerTransaccionesMesAnterior(userId) {
+  const ahora = new Date()
+  return obtenerTransaccionesPorMes(userId, new Date(ahora.getFullYear(), ahora.getMonth() - 1, 1))
+}
+
 async function crearTransaccionLegacy({ userId, cuentaId, categoriaNombre, tipo, monto, descripcion, fecha, cuentaSaldoActual }) {
   const { error: insertError } = await supabase.from('transacciones').insert({
     user_id: userId,
