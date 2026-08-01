@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { supabase } from './lib/supabaseClient.js'
-import { asegurarCuentasPorDefecto } from './lib/db.js'
+import { asegurarCuentasPorDefecto, asegurarCategoriasPorDefecto } from './lib/db.js'
 import BottomNav from './components/BottomNav.jsx'
 import Inicio from './screens/Inicio.jsx'
 import NuevaTransaccion from './screens/NuevaTransaccion.jsx'
@@ -30,6 +30,7 @@ function AppInner() {
       setSession(data.session)
       if (data.session) {
         asegurarCuentasPorDefecto(data.session.user.id).catch(console.error)
+        asegurarCategoriasPorDefecto(data.session.user.id).catch(console.error)
         if (!yaVistoAntes) setMostrarTour(true)
       }
     })
@@ -37,6 +38,7 @@ function AppInner() {
       setSession(nueva)
       if (nueva) {
         asegurarCuentasPorDefecto(nueva.user.id).catch(console.error)
+        asegurarCategoriasPorDefecto(nueva.user.id).catch(console.error)
         if (!yaVistoAntes) setMostrarTour(true)
       }
     })

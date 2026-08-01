@@ -2,15 +2,15 @@ import { useEffect, useMemo, useState } from 'react'
 import { supabase } from '../lib/supabaseClient.js'
 import {
   asegurarCuentasPorDefecto,
+  asegurarCategoriasPorDefecto,
   crearTransaccion,
   editarTransaccion,
-  obtenerCuentas
+  obtenerCuentas,
+  obtenerCategorias
 } from '../lib/db.js'
 import InfoTooltip from '../components/InfoTooltip.jsx'
 import Monto from '../components/Monto.jsx'
 
-const categoriasGasto = ['Alimentación', 'Transporte', 'Servicios', 'Entretenimiento', 'Ropa', 'Inglés', 'Salud', 'Otros']
-const categoriasIngreso = ['Salario', 'Inversiones', 'Negocios', 'Reembolsos', 'Regalos', 'Otros']
 const hoy = () => {
   const fecha = new Date()
 
@@ -30,6 +30,8 @@ export default function NuevaTransaccion({ onBack, onGuardada, transaccionEditar
   const [descripcion, setDescripcion] = useState(transaccionEditar?.descripcion || '')
   const [fecha, setFecha] = useState(transaccionEditar?.fecha || hoy())
   const [userId, setUserId] = useState(null)
+  const [categoriasGasto, setCategoriasGasto] = useState([])
+  const [categoriasIngreso, setCategoriasIngreso] = useState([])
   const [guardando, setGuardando] = useState(false)
   const [error, setError] = useState(null)
 
@@ -43,8 +45,14 @@ export default function NuevaTransaccion({ onBack, onGuardada, transaccionEditar
 
         setUserId(data.user.id)
         await asegurarCuentasPorDefecto(data.user.id)
-        const lista = await obtenerCuentas(data.user.id)
+        await asegurarCategoriasPorDefecto(data.user.id)
+        const [lista, todasCategorias] = await Promise.all([
+          obtenerCuentas(data.user.id),
+          obtenerCategorias(data.user.id)
+        ])
         setCuentas(lista)
+        setCategoriasGasto(todasCategorias.filter(c => c.tipo === 'gasto').map(c => c.nombre))
+        setCategoriasIngreso(todasCategorias.filter(c => c.tipo === 'ingreso').map(c => c.nombre))
 
         if (!cuentaId && lista.length > 0) setCuentaId(lista[0].id)
         if (lista.length === 0) throw new Error('No se pudieron cargar las cuentas Efectivo y Tarjeta.')

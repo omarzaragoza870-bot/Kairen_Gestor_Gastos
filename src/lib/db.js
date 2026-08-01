@@ -22,6 +22,55 @@ export async function asegurarCuentasPorDefecto(userId) {
   }
 }
 
+const CATEGORIAS_GASTO_DEFECTO = ['Alimentación', 'Transporte', 'Servicios', 'Entretenimiento', 'Ropa', 'Salud', 'Otros']
+const CATEGORIAS_INGRESO_DEFECTO = ['Salario', 'Inversiones', 'Negocios', 'Reembolsos', 'Regalos', 'Otros']
+
+export async function asegurarCategoriasPorDefecto(userId) {
+  const { data: existentes, error } = await supabase
+    .from('categorias')
+    .select('id')
+    .eq('user_id', userId)
+
+  if (error) throw error
+
+  if (!existentes || existentes.length === 0) {
+    const filas = [
+      ...CATEGORIAS_GASTO_DEFECTO.map(nombre => ({ user_id: userId, nombre, tipo: 'gasto' })),
+      ...CATEGORIAS_INGRESO_DEFECTO.map(nombre => ({ user_id: userId, nombre, tipo: 'ingreso' }))
+    ]
+    const { error: insertError } = await supabase.from('categorias').insert(filas)
+    if (insertError) throw insertError
+  }
+}
+
+export async function obtenerCategorias(userId) {
+  const { data, error } = await supabase
+    .from('categorias')
+    .select('*')
+    .eq('user_id', userId)
+    .order('created_at', { ascending: true })
+
+  if (error) throw error
+  return data || []
+}
+
+export async function crearCategoria({ userId, nombre, tipo, icono }) {
+  const { error } = await supabase.from('categorias').insert({
+    user_id: userId, nombre, tipo, icono: icono || '🏷️'
+  })
+  if (error) throw error
+}
+
+export async function eliminarCategoria(id, userId) {
+  const { error } = await supabase
+    .from('categorias')
+    .delete()
+    .eq('id', id)
+    .eq('user_id', userId)
+  if (error) throw error
+}
+
+
 export async function obtenerCuentas(userId) {
   const { data, error } = await supabase
     .from('cuentas')
@@ -307,4 +356,121 @@ export async function eliminarTransaccion(transaccionId) {
     throw error
   }
   return data
+}
+
+// ============================================================
+// Exportar / Importar / Reiniciar cuenta
+// ============================================================
+
+export async function exportarTodosLosDatos(userId) {
+  const [cuentas, categorias, transacciones, metas, ahorroExterno] = await Promise.all([
+    obtenerCuentas(userId),
+    obtenerCategorias(userId),
+    obtenerTodasLasTransacciones(userId),
+    obtenerMetas(userId),
+    obtenerAhorroExterno(userId)
+  ])
+
+  // Contribuciones de todas las metas juntas
+  const contribuciones = []
+  for (const meta of metas) {
+    const propias = await obtenerContribucionesMeta(meta.id, userId)
+    contribuciones.push(...propias)
+  }
+
+  return {
+    version: 1,
+    exportado_en: new Date().toISOString(),
+    cuentas,
+    categorias,
+    transacciones,
+    metas,
+    meta_contribuciones: contribuciones,
+    ahorro_externo: ahorroExterno
+  }
+}
+
+/**
+ * Importa un respaldo generado por exportarTodosLosDatos. Como los IDs
+ * viejos no existen en esta base, se crean filas nuevas y se arma un
+ * mapa id-viejo -> id-nuevo para que las referencias (cuenta_id,
+ * categoria_id, meta_id) sigan apuntando correctamente.
+ */
+export async function importarTodosLosDatos(userId, datos) {
+  const mapaCuentas = new Map()
+  const mapaCategorias = new Map()
+  const mapaMetas = new Map()
+
+  for (const c of datos.cuentas || []) {
+    const { data, error } = await supabase.from('cuentas')
+      .insert({ user_id: userId, nombre: c.nombre, tipo: c.tipo, saldo: c.saldo })
+      .select('id').single()
+    if (error) throw error
+    mapaCuentas.set(c.id, data.id)
+  }
+
+  for (const c of datos.categorias || []) {
+    const { data, error } = await supabase.from('categorias')
+      .insert({ user_id: userId, nombre: c.nombre, tipo: c.tipo, icono: c.icono })
+      .select('id').single()
+    if (error) throw error
+    mapaCategorias.set(c.id, data.id)
+  }
+
+  for (const m of datos.metas || []) {
+    const { data, error } = await supabase.from('metas')
+      .insert({
+        user_id: userId, nombre: m.nombre, descripcion: m.descripcion, icono: m.icono,
+        prioridad: m.prioridad, monto_objetivo: m.monto_objetivo, monto_actual: m.monto_actual,
+        fecha_limite: m.fecha_limite, completada: m.completada
+      })
+      .select('id').single()
+    if (error) throw error
+    mapaMetas.set(m.id, data.id)
+  }
+
+  for (const t of datos.transacciones || []) {
+    const { error } = await supabase.from('transacciones').insert({
+      user_id: userId,
+      cuenta_id: mapaCuentas.get(t.cuenta_id) || null,
+      categoria_id: mapaCategorias.get(t.categoria_id) || null,
+      categoria_nombre: t.categoria_nombre,
+      tipo: t.tipo, monto: t.monto, descripcion: t.descripcion, fecha: t.fecha
+    })
+    if (error) throw error
+  }
+
+  for (const mc of datos.meta_contribuciones || []) {
+    const metaNueva = mapaMetas.get(mc.meta_id)
+    if (!metaNueva) continue
+    const { error } = await supabase.from('meta_contribuciones').insert({
+      user_id: userId, meta_id: metaNueva, tipo: mc.tipo, monto: mc.monto, nota: mc.nota, fecha: mc.fecha
+    })
+    if (error) throw error
+  }
+
+  for (const a of datos.ahorro_externo || []) {
+    const { error } = await supabase.from('ahorro_externo').insert({
+      user_id: userId, nombre_banco: a.nombre_banco, monto: a.monto, fecha_registro: a.fecha_registro, nota: a.nota
+    })
+    if (error) throw error
+  }
+}
+
+/** Borra todos los datos del usuario pero conserva su sesión/cuenta. */
+export async function reiniciarCuentaActual(userId) {
+  await supabase.from('meta_contribuciones').delete().eq('user_id', userId)
+  await supabase.from('metas').delete().eq('user_id', userId)
+  await supabase.from('ahorro_externo').delete().eq('user_id', userId)
+  await supabase.from('transacciones').delete().eq('user_id', userId)
+  await supabase.from('categorias').delete().eq('user_id', userId)
+
+  // Las cuentas se conservan pero con saldo en cero
+  const { data: cuentas, error } = await supabase.from('cuentas').select('id').eq('user_id', userId)
+  if (error) throw error
+  for (const c of cuentas || []) {
+    await supabase.from('cuentas').update({ saldo: 0 }).eq('id', c.id)
+  }
+
+  await asegurarCategoriasPorDefecto(userId)
 }
