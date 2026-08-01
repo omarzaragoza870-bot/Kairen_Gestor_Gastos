@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { useScrollLock } from '../hooks/useScrollLock.js'
 
 /**
  * Icono (i) que se coloca junto a cualquier tarjeta o control.
@@ -8,6 +9,7 @@ import { useState } from 'react'
  */
 export default function InfoTooltip({ title, text }) {
   const [open, setOpen] = useState(false)
+  useScrollLock(open)
 
   return (
     <>

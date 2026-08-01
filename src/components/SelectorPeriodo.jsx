@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { useScrollLock } from '../hooks/useScrollLock.js'
 
 function fechaLocal(date) {
   const a = date.getFullYear()
@@ -84,6 +85,7 @@ export default function SelectorPeriodo({ periodoActual, onAplicar, onCerrar }) 
   const [mes, setMes] = useState(periodoActual.mes ?? new Date().getMonth())
   const [desde, setDesde] = useState(periodoActual.desde || '')
   const [hasta, setHasta] = useState(periodoActual.hasta || '')
+  useScrollLock(true)
 
   const anios = generarAnios()
 

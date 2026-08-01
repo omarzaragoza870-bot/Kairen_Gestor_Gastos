@@ -2,6 +2,7 @@ import { useEffect, useState, useCallback } from 'react'
 import { supabase } from '../lib/supabaseClient.js'
 import { obtenerAhorroExterno, crearAhorroExterno, editarAhorroExterno, eliminarAhorroExterno } from '../lib/db.js'
 import InfoTooltip from '../components/InfoTooltip.jsx'
+import { useScrollLock } from '../hooks/useScrollLock.js'
 
 const fmt = (n) => Number(n).toLocaleString('es-MX', { style: 'currency', currency: 'MXN' })
 const hoy = () => {
@@ -20,6 +21,7 @@ export default function AhorroExterno() {
   const [error, setError] = useState(null)
   const [editando, setEditando] = useState(null) // null = cerrado, {} = nuevo, {...registro} = editar
   const [aEliminar, setAEliminar] = useState(null)
+  useScrollLock(editando !== null || Boolean(aEliminar))
   const [procesando, setProcesando] = useState(false)
 
   const cargar = useCallback(async (uid) => {

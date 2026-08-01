@@ -1,10 +1,12 @@
 import { useState, useEffect } from 'react'
 import { supabase } from '../lib/supabaseClient.js'
 import InfoTooltip from '../components/InfoTooltip.jsx'
+import { useScrollLock } from '../hooks/useScrollLock.js'
 
 export default function Ajustes({ onVerTutorial }) {
   const [user, setUser] = useState(null)
   const [confirmando, setConfirmando] = useState(false)
+  useScrollLock(confirmando)
   const [eliminando, setEliminando] = useState(false)
   const [error, setError] = useState(null)
 

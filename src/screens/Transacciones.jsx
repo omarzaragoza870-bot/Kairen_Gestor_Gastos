@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { supabase } from '../lib/supabaseClient.js'
 import { eliminarTransaccion, obtenerTodasLasTransacciones } from '../lib/db.js'
+import { useScrollLock } from '../hooks/useScrollLock.js'
 
 const fmt = n => Number(n).toLocaleString('es-MX', { style: 'currency', currency: 'MXN' })
 const fmtFecha = f => new Date(`${f}T12:00:00`).toLocaleDateString('es-MX', { day: '2-digit', month: 'long', year: 'numeric' })
@@ -11,6 +12,7 @@ export default function Transacciones({ onBack, onEditar, refreshKey, onCambio }
   const [error, setError] = useState(null)
   const [filtro, setFiltro] = useState('todos')
   const [aEliminar, setAEliminar] = useState(null)
+  useScrollLock(Boolean(aEliminar))
   const [eliminando, setEliminando] = useState(false)
 
   const cargar = useCallback(async () => {

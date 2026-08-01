@@ -1,6 +1,7 @@
 import { useEffect, useState, useCallback, useMemo } from 'react'
 import { supabase } from '../lib/supabaseClient.js'
 import { obtenerMetas, crearMeta, editarMeta, marcarMetaCompletada, eliminarMeta } from '../lib/db.js'
+import { useScrollLock } from '../hooks/useScrollLock.js'
 
 const fmt = (n) => Number(n).toLocaleString('es-MX', { style: 'currency', currency: 'MXN' })
 const fmtFecha = (f) => f ? new Date(`${f}T12:00:00`).toLocaleDateString('es-MX', { day: '2-digit', month: 'short', year: 'numeric' }) : null
@@ -20,6 +21,7 @@ export default function Metas() {
   const [error, setError] = useState(null)
   const [editando, setEditando] = useState(null)
   const [aEliminar, setAEliminar] = useState(null)
+  useScrollLock(editando !== null || Boolean(aEliminar))
   const [procesando, setProcesando] = useState(false)
 
   const cargar = useCallback(async (uid) => {

@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { useScrollLock } from '../hooks/useScrollLock.js'
 
 export const TOUR_STORAGE_KEY = 'kairen_tour_completado'
 
@@ -42,6 +43,7 @@ const pasos = [
 
 export default function OnboardingTour({ onFinalizar }) {
   const [paso, setPaso] = useState(0)
+  useScrollLock(true)
   const actual = pasos[paso]
   const esUltimo = paso === pasos.length - 1
 
