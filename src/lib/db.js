@@ -94,6 +94,47 @@ export async function obtenerTransaccionesMesAnterior(userId) {
   return obtenerTransaccionesPorMes(userId, new Date(ahora.getFullYear(), ahora.getMonth() - 1, 1))
 }
 
+export async function obtenerAhorroExterno(userId) {
+  const { data, error } = await supabase
+    .from('ahorro_externo')
+    .select('*')
+    .eq('user_id', userId)
+    .order('fecha_registro', { ascending: false })
+    .order('created_at', { ascending: false })
+
+  if (error) throw error
+  return data || []
+}
+
+export async function crearAhorroExterno({ userId, nombreBanco, monto, fechaRegistro, nota }) {
+  const { error } = await supabase.from('ahorro_externo').insert({
+    user_id: userId,
+    nombre_banco: nombreBanco,
+    monto,
+    fecha_registro: fechaRegistro,
+    nota: nota || null
+  })
+  if (error) throw error
+}
+
+export async function editarAhorroExterno({ id, userId, nombreBanco, monto, fechaRegistro, nota }) {
+  const { error } = await supabase
+    .from('ahorro_externo')
+    .update({ nombre_banco: nombreBanco, monto, fecha_registro: fechaRegistro, nota: nota || null })
+    .eq('id', id)
+    .eq('user_id', userId)
+  if (error) throw error
+}
+
+export async function eliminarAhorroExterno(id, userId) {
+  const { error } = await supabase
+    .from('ahorro_externo')
+    .delete()
+    .eq('id', id)
+    .eq('user_id', userId)
+  if (error) throw error
+}
+
 async function crearTransaccionLegacy({ userId, cuentaId, categoriaNombre, tipo, monto, descripcion, fecha, cuentaSaldoActual }) {
   const { error: insertError } = await supabase.from('transacciones').insert({
     user_id: userId,
