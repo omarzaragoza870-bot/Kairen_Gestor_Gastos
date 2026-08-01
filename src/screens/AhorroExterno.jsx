@@ -4,7 +4,13 @@ import { obtenerAhorroExterno, crearAhorroExterno, editarAhorroExterno, eliminar
 import InfoTooltip from '../components/InfoTooltip.jsx'
 
 const fmt = (n) => Number(n).toLocaleString('es-MX', { style: 'currency', currency: 'MXN' })
-const hoy = () => new Date().toISOString().slice(0, 10)
+const hoy = () => {
+  const fecha = new Date()
+  const año = fecha.getFullYear()
+  const mes = String(fecha.getMonth() + 1).padStart(2, '0')
+  const dia = String(fecha.getDate()).padStart(2, '0')
+  return `${año}-${mes}-${dia}`
+}
 const fmtFecha = (f) => new Date(`${f}T12:00:00`).toLocaleDateString('es-MX', { day: '2-digit', month: 'short', year: 'numeric' })
 
 export default function AhorroExterno() {
