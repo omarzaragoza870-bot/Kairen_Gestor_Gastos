@@ -1,132 +1,111 @@
-import { useState, useEffect } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { supabase } from '../lib/supabaseClient.js'
-
 import {
   asegurarCuentasPorDefecto,
-  obtenerCuentas,
-  crearTransaccion
+  crearTransaccion,
+  editarTransaccion,
+  obtenerCuentas
 } from '../lib/db.js'
-
 import InfoTooltip from '../components/InfoTooltip.jsx'
 
-const categoriasGasto = ['Alimentación', 'Transporte', 'Servicios', 'Entretenimiento', 'Ropa', 'Inglés']
-const categoriasIngreso = ['Salario', 'Inversiones', 'Negocios', 'Reembolsos']
+const categoriasGasto = ['Alimentación', 'Transporte', 'Servicios', 'Entretenimiento', 'Ropa', 'Inglés', 'Salud', 'Otros']
+const categoriasIngreso = ['Salario', 'Inversiones', 'Negocios', 'Reembolsos', 'Regalos', 'Otros']
+const hoy = () => new Date().toISOString().slice(0, 10)
 
-export default function NuevaTransaccion({ onBack, onGuardada }) {
-  const [tipo, setTipo] = useState('gasto')
+export default function NuevaTransaccion({ onBack, onGuardada, transaccionEditar = null }) {
+  const editando = Boolean(transaccionEditar)
+  const [tipo, setTipo] = useState(transaccionEditar?.tipo || 'gasto')
   const [cuentas, setCuentas] = useState([])
-  const [cuentaId, setCuentaId] = useState(null)
-  const [monto, setMonto] = useState('')
-  const [categoria, setCategoria] = useState(null)
+  const [cuentaId, setCuentaId] = useState(transaccionEditar?.cuenta_id || null)
+  const [monto, setMonto] = useState(transaccionEditar ? String(transaccionEditar.monto) : '')
+  const [categoria, setCategoria] = useState(transaccionEditar?.categoria_nombre || null)
+  const [descripcion, setDescripcion] = useState(transaccionEditar?.descripcion || '')
+  const [fecha, setFecha] = useState(transaccionEditar?.fecha || hoy())
   const [userId, setUserId] = useState(null)
   const [guardando, setGuardando] = useState(false)
   const [error, setError] = useState(null)
 
-useEffect(() => {
-  const cargarCuentas = async () => {
-    setError(null)
+  useEffect(() => {
+    const cargarCuentas = async () => {
+      setError(null)
+      try {
+        const { data, error: authError } = await supabase.auth.getUser()
+        if (authError) throw authError
+        if (!data.user) throw new Error('No encontramos una sesión activa.')
 
-    try {
-      const { data, error: authError } = await supabase.auth.getUser()
+        setUserId(data.user.id)
+        await asegurarCuentasPorDefecto(data.user.id)
+        const lista = await obtenerCuentas(data.user.id)
+        setCuentas(lista)
 
-      if (authError) {
-        throw authError
+        if (!cuentaId && lista.length > 0) setCuentaId(lista[0].id)
+        if (lista.length === 0) throw new Error('No se pudieron cargar las cuentas Efectivo y Tarjeta.')
+      } catch (err) {
+        console.error('[Kairen Finanzas] Error cargando cuentas:', err)
+        setError(err.message || 'No se pudieron cargar tus cuentas.')
       }
-
-      if (!data.user) {
-        setError('No encontramos una sesión activa. Inicia sesión nuevamente.')
-        return
-      }
-
-      const idUsuario = data.user.id
-
-      setUserId(idUsuario)
-
-      // Primero comprobamos que existan Efectivo y Tarjeta.
-      await asegurarCuentasPorDefecto(idUsuario)
-
-      // Después cargamos las cuentas ya creadas.
-      const cuentasEncontradas = await obtenerCuentas(idUsuario)
-
-      setCuentas(cuentasEncontradas)
-
-      if (cuentasEncontradas.length > 0) {
-        setCuentaId(cuentasEncontradas[0].id)
-      } else {
-        setError(
-          'No se pudieron cargar las cuentas Efectivo y Tarjeta. Revisa la configuración de Supabase.'
-        )
-      }
-    } catch (err) {
-      console.error(
-        '[Kairen Finanzas] Error cargando cuentas:',
-        err
-      )
-
-      setError('No se pudieron cargar tus cuentas. Intenta cerrar sesión y entrar nuevamente.')
     }
-  }
-
-  cargarCuentas()
-}, [])
+    cargarCuentas()
+  }, [])
 
   const categorias = tipo === 'gasto' ? categoriasGasto : categoriasIngreso
   const cuentaSeleccionada = cuentas.find(c => c.id === cuentaId)
+  const montoNumerico = Number(monto)
+  const valido = Number.isFinite(montoNumerico) && montoNumerico > 0 && Boolean(categoria) && Boolean(cuentaId) && Boolean(userId) && Boolean(cuentaSeleccionada) && Boolean(fecha)
 
-const montoNumerico = Number(monto)
+  const etiquetaBoton = useMemo(() => {
+    if (guardando) return editando ? 'Guardando cambios…' : 'Guardando…'
+    if (!valido) return 'Completa monto, categoría y fecha'
+    return editando ? 'Guardar cambios' : 'Guardar transacción'
+  }, [editando, guardando, valido])
 
-const valido =
-  Number.isFinite(montoNumerico) &&
-  montoNumerico > 0 &&
-  Boolean(categoria) &&
-  Boolean(cuentaId) &&
-  Boolean(userId) &&
-  Boolean(cuentaSeleccionada)
-
- const handleGuardar = async () => {
-  if (!valido || guardando) return
-
-  setGuardando(true)
+  const handleGuardar = async () => {
+    if (!valido || guardando) return
+    setGuardando(true)
     setError(null)
+
     try {
-      await crearTransaccion({
-        userId,
+      const comunes = {
         cuentaId,
         categoriaNombre: categoria,
         tipo,
         monto: montoNumerico,
-        descripcion: null,
-        fecha: new Date().toISOString().slice(0, 10),
-        cuentaSaldoActual: Number(cuentaSeleccionada.saldo)
-      })
-      onGuardada ? onGuardada() : onBack()
+        descripcion: descripcion.trim() || null,
+        fecha
+      }
+
+      if (editando) {
+        await editarTransaccion({ transaccionId: transaccionEditar.id, ...comunes })
+      } else {
+        await crearTransaccion({
+          userId,
+          cuentaSaldoActual: Number(cuentaSeleccionada.saldo),
+          ...comunes
+        })
+      }
+      onGuardada?.()
     } catch (err) {
-      setError('No se pudo guardar. Intenta de nuevo.')
-      console.error('[Kairen Finanzas] Error al guardar transacción:', err)
+      console.error('[Kairen Finanzas] Error guardando transacción:', err)
+      setError(err.message || 'No se pudo guardar. Intenta de nuevo.')
       setGuardando(false)
     }
   }
 
   return (
-    <div style={{ padding: '16px 16px 40px' }}>
+    <div style={{ padding: '16px 16px 40px', maxWidth: 680, margin: '0 auto' }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 20 }}>
-        <button onClick={onBack} style={{ background: 'transparent', color: 'var(--text-primary)', fontSize: 20 }}>←</button>
-        <h1 style={{ fontSize: 17, fontWeight: 700, margin: 0 }}>Nueva Transacción</h1>
+        <button onClick={onBack} aria-label="Volver" style={{ background: 'transparent', color: 'var(--text-primary)', fontSize: 20 }}>←</button>
+        <h1 style={{ fontSize: 17, fontWeight: 700, margin: 0 }}>{editando ? 'Editar Transacción' : 'Nueva Transacción'}</h1>
       </div>
 
       <div style={{ display: 'flex', gap: 10, marginBottom: 20 }}>
         {['gasto', 'ingreso'].map(t => (
-          <button
-            key={t}
-            onClick={() => { setTipo(t); setCategoria(null) }}
-            style={{
-              flex: 1, padding: 14, borderRadius: 'var(--radius-md)',
-              background: tipo === t ? 'var(--gradient-brand)' : 'var(--bg-surface)',
-              color: tipo === t ? '#fff' : 'var(--text-secondary)',
-              fontWeight: 600, fontSize: 14,
-              border: '1px solid ' + (tipo === t ? 'transparent' : 'var(--border-subtle)')
-            }}
-          >
+          <button key={t} onClick={() => { setTipo(t); setCategoria(null) }} style={{
+            flex: 1, padding: 14, borderRadius: 'var(--radius-md)',
+            background: tipo === t ? 'var(--gradient-brand)' : 'var(--bg-surface)',
+            color: tipo === t ? '#fff' : 'var(--text-secondary)', fontWeight: 600, fontSize: 14,
+            border: '1px solid ' + (tipo === t ? 'transparent' : 'var(--border-subtle)')
+          }}>
             {t === 'gasto' ? '⊖ Gasto' : '⊕ Ingreso'}
           </button>
         ))}
@@ -134,101 +113,55 @@ const valido =
 
       <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 8 }}>
         <label style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-secondary)' }}>Cuenta</label>
-        <InfoTooltip
-          title="Cuenta"
-          text="Elige de dónde sale el dinero (si es gasto) o a dónde entra (si es ingreso): Efectivo o Tarjeta."
-        />
+        <InfoTooltip title="Cuenta" text="Elige de dónde sale el dinero o a dónde entra." />
       </div>
       <div style={{ display: 'flex', gap: 10, marginBottom: 20 }}>
-        {cuentas.length === 0 && (
-  <div
-    style={{
-      width: '100%',
-      padding: 14,
-      borderRadius: 'var(--radius-md)',
-      background: 'var(--bg-surface)',
-      border: '1px solid var(--border-subtle)',
-      color: 'var(--text-muted)',
-      fontSize: 13,
-      textAlign: 'center'
-    }}
-  >
-    Cargando cuentas…
-  </div>
-)}
+        {cuentas.length === 0 && <div className="empty-inline">Cargando cuentas…</div>}
         {cuentas.map(c => (
-          <button
-            key={c.id}
-            onClick={() => setCuentaId(c.id)}
-            style={{
-              flex: 1, padding: 12, borderRadius: 'var(--radius-md)',
-              background: 'var(--bg-surface)',
-              border: '1.5px solid ' + (cuentaId === c.id ? 'var(--accent-blue)' : 'var(--border-subtle)'),
-              textAlign: 'left'
-            }}
-          >
-            <div style={{ fontSize: 13, fontWeight: 600 }}>
-              {c.tipo === 'tarjeta' ? '💳' : '💵'} {c.nombre}
-            </div>
-            <div style={{ fontSize: 12, color: 'var(--success)' }}>
-              {Number(c.saldo).toLocaleString('es-MX', { style: 'currency', currency: 'MXN' })}
-            </div>
+          <button key={c.id} onClick={() => setCuentaId(c.id)} style={{
+            flex: 1, padding: 12, borderRadius: 'var(--radius-md)', background: 'var(--bg-surface)',
+            border: '1.5px solid ' + (cuentaId === c.id ? 'var(--accent-blue)' : 'var(--border-subtle)'), textAlign: 'left'
+          }}>
+            <div style={{ fontSize: 13, fontWeight: 600 }}>{c.tipo === 'tarjeta' ? '💳' : '💵'} {c.nombre}</div>
+            <div style={{ fontSize: 12, color: 'var(--success)' }}>{Number(c.saldo).toLocaleString('es-MX', { style: 'currency', currency: 'MXN' })}</div>
           </button>
         ))}
       </div>
 
-      <label style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-secondary)' }}>Monto</label>
-      <div style={{
-        display: 'flex', alignItems: 'center', gap: 6, marginTop: 8, marginBottom: 20,
-        background: 'var(--bg-surface)', borderRadius: 'var(--radius-md)',
-        border: '1px solid var(--border-subtle)', padding: '14px 16px'
-      }}>
+      <label className="field-label">Monto</label>
+      <div className="input-shell">
         <span style={{ color: 'var(--text-muted)' }}>$</span>
-        <input
-          inputMode="decimal"
-          value={monto}
-          onChange={(e) => setMonto(e.target.value)}
-          placeholder="0.00"
-          style={{
-            flex: 1, background: 'transparent', border: 'none', outline: 'none',
-            color: 'var(--text-primary)', fontSize: 16
-          }}
-        />
+        <input inputMode="decimal" value={monto} onChange={e => setMonto(e.target.value.replace(',', '.'))} placeholder="0.00" />
       </div>
 
-      <label style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-secondary)' }}>Categoría</label>
-      <div style={{ display: 'flex', gap: 8, overflowX: 'auto', margin: '8px 0 24px', paddingBottom: 4 }}>
+      <label className="field-label">Categoría</label>
+      <div style={{ display: 'flex', gap: 8, overflowX: 'auto', margin: '8px 0 20px', paddingBottom: 4 }}>
         {categorias.map(cat => (
-          <button
-            key={cat}
-            onClick={() => setCategoria(cat)}
-            style={{
-              flexShrink: 0, padding: '10px 16px', borderRadius: 999,
-              background: categoria === cat ? 'var(--gradient-brand)' : 'var(--bg-surface)',
-              color: categoria === cat ? '#fff' : 'var(--text-secondary)',
-              fontSize: 13, fontWeight: 600,
-              border: '1px solid ' + (categoria === cat ? 'transparent' : 'var(--border-subtle)')
-            }}
-          >
-            {cat}
-          </button>
+          <button key={cat} onClick={() => setCategoria(cat)} style={{
+            flexShrink: 0, padding: '10px 16px', borderRadius: 999,
+            background: categoria === cat ? 'var(--gradient-brand)' : 'var(--bg-surface)',
+            color: categoria === cat ? '#fff' : 'var(--text-secondary)', fontSize: 13, fontWeight: 600,
+            border: '1px solid ' + (categoria === cat ? 'transparent' : 'var(--border-subtle)')
+          }}>{cat}</button>
         ))}
       </div>
 
-      {error && <p style={{ color: 'var(--danger)', fontSize: 13, marginBottom: 12 }}>{error}</p>}
+      <label className="field-label">Descripción <span style={{ fontWeight: 400, color: 'var(--text-muted)' }}>(opcional)</span></label>
+      <div className="input-shell" style={{ marginTop: 8 }}>
+        <input value={descripcion} onChange={e => setDescripcion(e.target.value)} maxLength={120} placeholder="Ej. Comida con clientes" />
+      </div>
 
-      <button
-        disabled={!valido || guardando}
-        onClick={handleGuardar}
-        style={{
-          width: '100%', padding: 16, borderRadius: 'var(--radius-md)',
-          background: valido ? 'var(--gradient-brand)' : 'var(--bg-surface-2)',
-          color: valido ? '#fff' : 'var(--text-muted)',
-          fontWeight: 700, fontSize: 15
-        }}
-      >
-        {guardando ? 'Guardando…' : valido ? 'Guardar transacción' : 'Ingresa un monto y categoría'}
-      </button>
+      <label className="field-label">Fecha</label>
+      <div className="input-shell" style={{ marginTop: 8 }}>
+        <input type="date" value={fecha} onChange={e => setFecha(e.target.value)} />
+      </div>
+
+      {error && <p className="error-message">{error}</p>}
+
+      <button disabled={!valido || guardando} onClick={handleGuardar} className="primary-button" style={{
+        background: valido ? 'var(--gradient-brand)' : 'var(--bg-surface-2)',
+        color: valido ? '#fff' : 'var(--text-muted)'
+      }}>{etiquetaBoton}</button>
     </div>
   )
 }

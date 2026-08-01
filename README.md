@@ -1,65 +1,46 @@
-# Kairen Finanzas (KAIREN)
+# Kairen Finanzas
 
-PWA de control de gastos — mismo stack y estilo visual que KAIREN.
+PWA de control personal de ingresos y gastos con React, Vite y Supabase.
 
-## Estructura
-```
-kairen-finanzas/
-├── index.html
-├── vite.config.js       # PWA + service worker network-first
-├── package.json
-└── src/
-    ├── main.jsx
-    ├── App.jsx           # navegación entre pantallas
-    ├── styles/theme.css  # paleta azul-morado + Poppins (tokens de KAIREN)
-    ├── components/
-    │   ├── InfoTooltip.jsx   # ⓘ mejora #4
-    │   └── BottomNav.jsx
-    └── screens/
-        ├── Inicio.jsx
-        ├── NuevaTransaccion.jsx  # selector Efectivo/Tarjeta en Gasto E Ingreso (mejora #1)
-        └── Placeholder.jsx       # Análisis, Ahorro, Metas, Ajustes (pendientes)
-```
+## Funciones disponibles
 
-## Levantar en Codespaces / local
+- Inicio de sesión con Google.
+- Cuentas Efectivo y Tarjeta por usuario.
+- Registro de ingresos y gastos.
+- Descripción y fecha personalizadas.
+- Resumen mensual y navegación entre meses.
+- Historial completo con filtros.
+- Edición y eliminación de movimientos.
+- Corrección automática de saldos al editar o eliminar.
+- PWA instalable.
+
+## Ejecutar localmente
+
 ```bash
 npm install
 npm run dev
 ```
 
-## Setup de Supabase (mejora #5 — sync/backup)
+## Configurar Supabase desde cero
 
-1. Crea un proyecto gratis en https://supabase.com
-2. En **Project Settings → API**, copia la `URL` y la `anon public key`
-3. Copia `.env.example` como `.env` y pega esos dos valores
-4. En **SQL Editor**, corre el contenido completo de `sql/schema.sql` (crea las tablas y las reglas de seguridad)
-5. En **Authentication → Providers**, activa **Google** y sigue los pasos para conectar tu OAuth Client de Google Cloud
-6. Corre `npm install` de nuevo para traer `@supabase/supabase-js`, y `npm run dev`
+1. Crea el archivo `.env` con `VITE_SUPABASE_URL` y `VITE_SUPABASE_ANON_KEY`.
+2. Ejecuta `src/sql/schema.sql` en Supabase > SQL Editor.
+3. Ejecuta `src/sql/upgrade_v1_1.sql` para habilitar creación, edición y eliminación atómicas.
+4. Activa Google en Authentication > Providers.
 
-Con esto ya debería salirte la pantalla de login "Continuar con Google" antes de entrar a Inicio.
+## Actualizar una base ya existente
 
-## Desplegar la Edge Function de "Eliminar cuenta"
+Si las tablas ya existen, ejecuta únicamente:
 
-La opción de eliminar cuenta (en Ajustes) necesita una función que corre del lado
-del servidor de Supabase — no se puede hacer solo desde el navegador por seguridad.
-
-```bash
-npx supabase login
-npx supabase link --project-ref iemyltuapdpdjxegxjhn
-npx supabase functions deploy delete-account
+```text
+src/sql/upgrade_v1_1.sql
 ```
 
-(Solo se hace una vez; después de esto el botón "Eliminar cuenta" en Ajustes ya funciona.)
+Esta actualización no borra datos.
 
-## Estado de las 5 mejoras
-| # | Mejora | Estado |
-|---|--------|--------|
-| 1 | Selector Efectivo/Tarjeta en Ingreso | ✅ hecho en NuevaTransaccion.jsx |
-| 2 | Tour guiado de onboarding | ⏳ pendiente (reutilizará el copy de InfoTooltip) |
-| 3 | Ahorro externo (solo tracking, sin tocar Metas) | ⏳ tab creado, falta pantalla real |
-| 4 | Iconos ⓘ contextuales | ✅ componente listo, falta regarlo en todas las tarjetas |
-| 5 | Backup/sync con cuenta Google | ✅ Login funcionando. Ajustes ya permite cerrar sesión y eliminar cuenta (falta desplegar la Edge Function una vez) |
+## Próximos módulos
 
-## Siguiente paso sugerido
-Elegir backend de sync (punto 5) antes de construir Ahorro externo y Metas,
-porque de eso depende el modelo de datos (transacciones) desde el inicio.
+- Análisis.
+- Ahorro externo.
+- Metas.
+- Categorías personalizadas.

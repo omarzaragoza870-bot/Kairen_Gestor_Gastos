@@ -1,5 +1,5 @@
 -- ============================================================
--- Trazo - Schema inicial
+-- Kairen Finanzas - Schema inicial
 -- Correr esto en: Supabase Dashboard -> SQL Editor -> New Query
 -- ============================================================
 
