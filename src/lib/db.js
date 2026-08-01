@@ -146,10 +146,13 @@ export async function obtenerMetas(userId) {
   return data || []
 }
 
-export async function crearMeta({ userId, nombre, montoObjetivo, montoActual, fechaLimite }) {
+export async function crearMeta({ userId, nombre, descripcion, icono, prioridad, montoObjetivo, montoActual, fechaLimite }) {
   const { error } = await supabase.from('metas').insert({
     user_id: userId,
     nombre,
+    descripcion: descripcion || null,
+    icono: icono || '🎯',
+    prioridad: prioridad || 'media',
     monto_objetivo: montoObjetivo,
     monto_actual: montoActual || 0,
     fecha_limite: fechaLimite || null,
@@ -158,11 +161,14 @@ export async function crearMeta({ userId, nombre, montoObjetivo, montoActual, fe
   if (error) throw error
 }
 
-export async function editarMeta({ id, userId, nombre, montoObjetivo, montoActual, fechaLimite }) {
+export async function editarMeta({ id, userId, nombre, descripcion, icono, prioridad, montoObjetivo, montoActual, fechaLimite }) {
   const { error } = await supabase
     .from('metas')
     .update({
       nombre,
+      descripcion: descripcion || null,
+      icono: icono || '🎯',
+      prioridad: prioridad || 'media',
       monto_objetivo: montoObjetivo,
       monto_actual: montoActual,
       fecha_limite: fechaLimite || null,

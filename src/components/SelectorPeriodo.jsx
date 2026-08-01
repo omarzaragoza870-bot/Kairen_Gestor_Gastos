@@ -1,5 +1,55 @@
 import { useState } from 'react'
 
+function fechaLocal(date) {
+  const a = date.getFullYear()
+  const m = String(date.getMonth() + 1).padStart(2, '0')
+  const d = String(date.getDate()).padStart(2, '0')
+  return `${a}-${m}-${d}`
+}
+
+function calcularRangoRapido(id) {
+  const hoy = new Date()
+  const fin = fechaLocal(hoy)
+
+  switch (id) {
+    case 'hoy':
+      return { desde: fin, hasta: fin }
+    case 'semana': {
+      const inicio = new Date(hoy)
+      inicio.setDate(inicio.getDate() - 6)
+      return { desde: fechaLocal(inicio), hasta: fin }
+    }
+    case '30dias': {
+      const inicio = new Date(hoy)
+      inicio.setDate(inicio.getDate() - 29)
+      return { desde: fechaLocal(inicio), hasta: fin }
+    }
+    case '3meses': {
+      const inicio = new Date(hoy.getFullYear(), hoy.getMonth() - 3, hoy.getDate())
+      return { desde: fechaLocal(inicio), hasta: fin }
+    }
+    case '6meses': {
+      const inicio = new Date(hoy.getFullYear(), hoy.getMonth() - 6, hoy.getDate())
+      return { desde: fechaLocal(inicio), hasta: fin }
+    }
+    case 'anio': {
+      const inicio = new Date(hoy.getFullYear(), 0, 1)
+      return { desde: fechaLocal(inicio), hasta: fin }
+    }
+    default:
+      return { desde: fin, hasta: fin }
+  }
+}
+
+const RANGOS_RAPIDOS = [
+  ['hoy', 'Hoy'],
+  ['semana', 'Última semana'],
+  ['30dias', 'Últimos 30 días'],
+  ['3meses', 'Últimos 3 meses'],
+  ['6meses', '6 meses'],
+  ['anio', 'Este Año']
+]
+
 const MESES = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre']
 const MESES_CORTO = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic']
 
@@ -111,8 +161,20 @@ export default function SelectorPeriodo({ periodoActual, onAplicar, onCerrar }) 
               <input type="date" value={desde} onChange={(e) => setDesde(e.target.value)} />
             </div>
             <label style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-secondary)' }}>Hasta</label>
-            <div className="input-shell">
+            <div className="input-shell" style={{ marginBottom: 14 }}>
               <input type="date" value={hasta} onChange={(e) => setHasta(e.target.value)} min={desde || undefined} />
+            </div>
+
+            <label style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-secondary)' }}>Rangos Rápidos:</label>
+            <div style={{ display: 'flex', gap: 8, overflowX: 'auto', margin: '8px 0 4px', paddingBottom: 4 }}>
+              {RANGOS_RAPIDOS.map(([id, etiqueta]) => (
+                <Chip key={id} activo={false} onClick={() => {
+                  const { desde: d, hasta: h } = calcularRangoRapido(id)
+                  setDesde(d); setHasta(h)
+                }}>
+                  {etiqueta}
+                </Chip>
+              ))}
             </div>
           </>
         )}
