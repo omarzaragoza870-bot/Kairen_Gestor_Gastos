@@ -2,6 +2,7 @@ import { useEffect, useState, useCallback, useMemo } from 'react'
 import { obtenerCategorias, crearCategoria, eliminarCategoria } from '../lib/db.js'
 import { useScrollLock } from '../hooks/useScrollLock.js'
 import { usePreferencias } from '../context/PreferenciasContext.jsx'
+import { mensajeAmigable } from '../lib/errores.js'
 
 const ICONOS = ['🏷️', '🍔', '🚗', '💡', '🎬', '👕', '🏥', '📚', '✈️', '🐾', '💰', '📈', '💼', '🎁', '↩️']
 
@@ -22,7 +23,7 @@ export default function Categorias({ userId, onBack }) {
     try {
       setLista(await obtenerCategorias(userId))
     } catch (err) {
-      setError(err.message)
+      setError(mensajeAmigable(err))
     } finally {
       setCargando(false)
     }
@@ -40,7 +41,7 @@ export default function Categorias({ userId, onBack }) {
       setCreando(false)
       await cargar()
     } catch (err) {
-      setError(err.message)
+      setError(mensajeAmigable(err))
     } finally {
       setProcesando(false)
     }
@@ -54,7 +55,7 @@ export default function Categorias({ userId, onBack }) {
       setAEliminar(null)
       await cargar()
     } catch (err) {
-      setError(err.message)
+      setError(mensajeAmigable(err))
     } finally {
       setProcesando(false)
     }

@@ -3,6 +3,7 @@ import { supabase } from '../lib/supabaseClient.js'
 import { obtenerCuentas, crearTransferencia } from '../lib/db.js'
 import { usePreferencias } from '../context/PreferenciasContext.jsx'
 import Monto from '../components/Monto.jsx'
+import { mensajeAmigable } from '../lib/errores.js'
 
 const hoy = () => {
   const fecha = new Date()
@@ -50,7 +51,7 @@ export default function NuevaTransferencia({ onBack, onGuardada }) {
       })
       onGuardada ? onGuardada() : onBack()
     } catch (err) {
-      setError(err.message)
+      setError(mensajeAmigable(err))
       setGuardando(false)
     }
   }

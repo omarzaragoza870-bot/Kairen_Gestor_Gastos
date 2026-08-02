@@ -3,6 +3,7 @@ import { obtenerCuentas, crearCuenta, editarCuenta, eliminarCuenta, obtenerTrans
 import { useScrollLock } from '../hooks/useScrollLock.js'
 import { usePreferencias } from '../context/PreferenciasContext.jsx'
 import Monto from '../components/Monto.jsx'
+import { mensajeAmigable } from '../lib/errores.js'
 
 const TIPOS = ['efectivo', 'tarjeta', 'banco', 'otro']
 const ICONO_TIPO = { efectivo: '💵', tarjeta: '💳', banco: '🏦', otro: '📦' }
@@ -26,7 +27,7 @@ export default function AdministrarCuentas({ userId, onBack, onCambio }) {
       setLista(cuentasList)
       setTransferencias(tfs)
     } catch (err) {
-      setError(err.message)
+      setError(mensajeAmigable(err))
     } finally {
       setCargando(false)
     }
@@ -47,7 +48,7 @@ export default function AdministrarCuentas({ userId, onBack, onCambio }) {
       await cargar()
       onCambio?.()
     } catch (err) {
-      setError(err.message)
+      setError(mensajeAmigable(err))
     } finally {
       setProcesando(false)
     }
@@ -62,7 +63,7 @@ export default function AdministrarCuentas({ userId, onBack, onCambio }) {
       await cargar()
       onCambio?.()
     } catch (err) {
-      setError(err.message)
+      setError(mensajeAmigable(err))
     } finally {
       setProcesando(false)
     }
@@ -74,7 +75,7 @@ export default function AdministrarCuentas({ userId, onBack, onCambio }) {
       await cargar()
       onCambio?.()
     } catch (err) {
-      setError(err.message)
+      setError(mensajeAmigable(err))
     }
   }
 

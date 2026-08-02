@@ -56,7 +56,7 @@ export default function Inicio({ onNuevo, onNuevaTransferencia, onEditar, onVerT
           const mapa = {}
           cats.forEach(c => { mapa[`${c.tipo}:${c.nombre}`] = c.icono || '🏷️' })
           setIconosPorCategoria(mapa)
-        }).catch(() => {})
+        }).catch(err => console.warn('[Kairen Finanzas] No se pudieron cargar los íconos de categoría:', err.message))
       }
     })
   }, [cargarDatos, refreshKey])

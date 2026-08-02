@@ -34,7 +34,7 @@ export default function Ajustes({ onVerTutorial }) {
   }, [])
 
   const handleLogout = async () => {
-    await supabase.auth.signOut()
+    await supabase.auth.signOut({ scope: 'global' }) // invalida el refresh token en todos los dispositivos, no solo este
     // onAuthStateChange en App.jsx detecta esto solo y regresa al Login
   }
 
@@ -49,7 +49,7 @@ export default function Ajustes({ onVerTutorial }) {
 
       if (fnError) throw fnError
 
-      await supabase.auth.signOut()
+      await supabase.auth.signOut({ scope: 'global' }) // invalida el refresh token en todos los dispositivos, no solo este
     } catch (err) {
       setError('No se pudo eliminar la cuenta. Intenta de nuevo o contáctanos.')
       console.error('[Kairen Finanzas] Error al eliminar cuenta:', err)
@@ -88,12 +88,35 @@ export default function Ajustes({ onVerTutorial }) {
     e.target.value = ''
     if (!archivo || !user) return
 
+    // IV-02: validar tamaño y tipo del archivo antes de procesarlo (defensa en profundidad —
+    // el "accept" del <input> es solo una sugerencia de UI, se puede evadir fácilmente)
+    const LIMITE_BYTES = 5 * 1024 * 1024 // 5 MB
+    if (archivo.size > LIMITE_BYTES) {
+      setError('El archivo es demasiado grande (máximo 5 MB).')
+      return
+    }
+    const esJson = archivo.type === 'application/json' || archivo.name.toLowerCase().endsWith('.json')
+    if (!esJson) {
+      setError('Selecciona un archivo .json exportado desde Kairen Finanzas.')
+      return
+    }
+
     setImportando(true)
     setError(null)
     setMensaje(null)
     try {
       const texto = await archivo.text()
       const datos = JSON.parse(texto)
+
+      // IV-04: validación mínima de forma antes de mandarlo a la base de datos —
+      // evita procesar un JSON cualquiera que no sea un respaldo real de la app.
+      const clavesEsperadas = ['cuentas', 'categorias', 'transacciones', 'metas']
+      const formaValida = datos && typeof datos === 'object' &&
+        clavesEsperadas.every(clave => Array.isArray(datos[clave]))
+      if (!formaValida) {
+        throw new Error('El archivo no tiene el formato de un respaldo de Kairen Finanzas.')
+      }
+
       await importarTodosLosDatos(user.id, datos)
       setMensaje('Datos importados correctamente. Los verás reflejados en Inicio, Análisis, etc.')
     } catch (err) {
@@ -121,7 +144,9 @@ export default function Ajustes({ onVerTutorial }) {
 
 
   const nombre = user?.user_metadata?.full_name || user?.user_metadata?.name || 'Usuario'
-  const avatar = user?.user_metadata?.avatar_url
+  const avatarBruto = user?.user_metadata?.avatar_url
+  // XSS-03: solo aceptamos avatares servidos por https, nunca esquemas raros (javascript:, data:, etc.)
+  const avatar = avatarBruto?.startsWith('https://') ? avatarBruto : null
   const email = user?.email
 
   if (mostrarCategorias && user) {

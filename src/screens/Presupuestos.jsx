@@ -5,6 +5,7 @@ import { agruparPorCategoria } from '../lib/estadisticas.js'
 import { useScrollLock } from '../hooks/useScrollLock.js'
 import { usePreferencias } from '../context/PreferenciasContext.jsx'
 import Monto from '../components/Monto.jsx'
+import { mensajeAmigable } from '../lib/errores.js'
 
 export default function Presupuestos({ onBack }) {
   const { t } = usePreferencias()
@@ -32,7 +33,7 @@ export default function Presupuestos({ onBack }) {
       setCategoriasGasto(cats.filter(c => c.tipo === 'gasto'))
       setGastoPorCategoria(agruparPorCategoria(txMes, 'gasto'))
     } catch (err) {
-      setError(err.message)
+      setError(mensajeAmigable(err))
     } finally {
       setCargando(false)
     }
@@ -62,7 +63,7 @@ export default function Presupuestos({ onBack }) {
       setEditando(null)
       await cargar(userId)
     } catch (err) {
-      setError(err.message)
+      setError(mensajeAmigable(err))
     } finally {
       setProcesando(false)
     }
@@ -76,7 +77,7 @@ export default function Presupuestos({ onBack }) {
       setAEliminar(null)
       await cargar(userId)
     } catch (err) {
-      setError(err.message)
+      setError(mensajeAmigable(err))
     } finally {
       setProcesando(false)
     }

@@ -3,6 +3,7 @@ import { obtenerContribucionesMeta, registrarContribucionMeta } from '../lib/db.
 import { useScrollLock } from '../hooks/useScrollLock.js'
 import Monto from '../components/Monto.jsx'
 import { usePreferencias } from '../context/PreferenciasContext.jsx'
+import { mensajeAmigable } from '../lib/errores.js'
 
 const fmt = (n) => Number(n).toLocaleString('es-MX', { style: 'currency', currency: 'MXN' })
 const fmtFecha = (f) => f ? new Date(`${f}T12:00:00`).toLocaleDateString('es-MX', { day: '2-digit', month: 'short', year: 'numeric' }) : '—'
@@ -26,7 +27,7 @@ export default function MetaDetalle({ meta, userId, onBack, onCambio }) {
     try {
       setContribuciones(await obtenerContribucionesMeta(meta.id, userId))
     } catch (err) {
-      setError(err.message)
+      setError(mensajeAmigable(err))
     } finally {
       setCargando(false)
     }
@@ -56,7 +57,7 @@ export default function MetaDetalle({ meta, userId, onBack, onCambio }) {
       await cargar()
       onCambio?.()
     } catch (err) {
-      setError(err.message)
+      setError(mensajeAmigable(err))
     } finally {
       setProcesando(false)
     }
