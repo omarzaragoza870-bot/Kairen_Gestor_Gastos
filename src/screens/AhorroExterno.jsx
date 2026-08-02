@@ -130,7 +130,7 @@ export default function AhorroExterno() {
               <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 2 }}>{fmtFecha(r.fecha_registro)}</div>
               {r.nota && <div style={{ fontSize: 12, color: 'var(--text-secondary)', marginTop: 4 }}>{r.nota}</div>}
             </div>
-            <div style={{ fontWeight: 700, fontSize: 15 }}>{fmt(r.monto)}</div>
+            <div style={{ fontWeight: 700, fontSize: 15 }}><Monto valor={r.monto} /></div>
           </div>
           <div style={{ display: 'flex', gap: 8, marginTop: 10, borderTop: '1px solid var(--border-subtle)', paddingTop: 8 }}>
             <button onClick={() => setEditando(r)} style={{ flex: 1, background: 'transparent', color: 'var(--text-secondary)', fontSize: 12, padding: 6 }}>✏️ Editar</button>
@@ -165,7 +165,7 @@ export default function AhorroExterno() {
         <div onClick={() => !procesando && setAEliminar(null)} className="modal-backdrop">
           <div onClick={(e) => e.stopPropagation()} className="modal-card">
             <h3>¿Eliminar este registro?</h3>
-            <p>Se eliminará "{aEliminar.nombre_banco}" por {fmt(aEliminar.monto)}. Esto no afecta tu Dinero Disponible ni tus Metas.</p>
+            <p>Se eliminará "{aEliminar.nombre_banco}" por <Monto valor={aEliminar.monto} />. Esto no afecta tu Dinero Disponible ni tus Metas.</p>
             <div className="modal-actions">
               <button onClick={() => setAEliminar(null)} disabled={procesando}>Cancelar</button>
               <button className="danger-button" onClick={confirmarEliminar} disabled={procesando}>

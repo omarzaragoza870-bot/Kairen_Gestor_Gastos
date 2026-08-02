@@ -170,7 +170,7 @@ export default function MetaDetalle({ meta, userId, onBack, onCambio }) {
                   <div style={{ fontSize: 11, color: 'var(--text-muted)' }}>{fmtFecha(c.fecha)}</div>
                 </div>
                 <div style={{ fontWeight: 700, color: c.tipo === 'contribucion' ? 'var(--success)' : 'var(--danger)' }}>
-                  {c.tipo === 'contribucion' ? '+' : '-'}{fmt(c.monto)}
+                  <Monto valor={c.monto} prefijo={c.tipo === 'contribucion' ? '+' : '-'} />
                 </div>
               </div>
             ))
@@ -208,7 +208,7 @@ function ModalMonto({ tipo, maxRetiro, onCancelar, onConfirmar, procesando }) {
           <input inputMode="decimal" value={monto} onChange={(e) => setMonto(e.target.value.replace(',', '.'))} placeholder="0.00" autoFocus />
         </div>
         {tipo === 'retiro' && (
-          <p style={{ fontSize: 12, color: 'var(--text-muted)', margin: '4px 0 0' }}>Máximo disponible: {fmt(maxRetiro)}</p>
+          <p style={{ fontSize: 12, color: 'var(--text-muted)', margin: '4px 0 0' }}>Máximo disponible: <Monto valor={maxRetiro} /></p>
         )}
 
         <label className="field-label">Nota (opcional)</label>

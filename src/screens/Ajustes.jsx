@@ -2,16 +2,20 @@ import { useState, useEffect, useRef } from 'react'
 import { supabase } from '../lib/supabaseClient.js'
 import InfoTooltip from '../components/InfoTooltip.jsx'
 import { useScrollLock } from '../hooks/useScrollLock.js'
-import { usePreferencias } from '../context/PreferenciasContext.jsx'
+import { usePreferencias, MONEDAS } from '../context/PreferenciasContext.jsx'
 import { exportarTodosLosDatos, importarTodosLosDatos, reiniciarCuentaActual } from '../lib/db.js'
 import Categorias from './Categorias.jsx'
+import SelectorMoneda from './SelectorMoneda.jsx'
+import SelectorTema from './SelectorTema.jsx'
 
 export default function Ajustes({ onVerTutorial }) {
-  const { ocultarSaldos, toggleOcultarSaldos } = usePreferencias()
+  const { ocultarSaldos, toggleOcultarSaldos, moneda, tema } = usePreferencias()
   const [user, setUser] = useState(null)
   const [confirmando, setConfirmando] = useState(false)
   const [confirmandoReinicio, setConfirmandoReinicio] = useState(false)
   const [mostrarCategorias, setMostrarCategorias] = useState(false)
+  const [mostrarMoneda, setMostrarMoneda] = useState(false)
+  const [mostrarTema, setMostrarTema] = useState(false)
   useScrollLock(confirmando || confirmandoReinicio)
   const [eliminando, setEliminando] = useState(false)
   const [reiniciando, setReiniciando] = useState(false)
@@ -119,6 +123,12 @@ export default function Ajustes({ onVerTutorial }) {
   if (mostrarCategorias && user) {
     return <Categorias userId={user.id} onBack={() => setMostrarCategorias(false)} />
   }
+  if (mostrarMoneda) {
+    return <SelectorMoneda onBack={() => setMostrarMoneda(false)} />
+  }
+  if (mostrarTema) {
+    return <SelectorTema onBack={() => setMostrarTema(false)} />
+  }
 
   return (
     <div style={{ padding: '16px 16px 100px' }}>
@@ -207,9 +217,21 @@ export default function Ajustes({ onVerTutorial }) {
         background: 'var(--bg-surface)', borderRadius: 'var(--radius-lg)',
         border: '1px solid var(--border-subtle)', overflow: 'hidden', marginBottom: 16
       }}>
-        <FilaAjuste icono="💱" titulo="Moneda" subtitulo="🇲🇽 MXN - Peso Mexicano" etiqueta="Próximamente" />
+        <button onClick={() => setMostrarMoneda(true)} style={{ width: '100%', textAlign: 'left', background: 'transparent' }}>
+          <FilaAjuste
+            icono="💱" titulo="Moneda"
+            subtitulo={`${MONEDAS.find(m => m.codigo === moneda)?.bandera || ''} ${moneda} - ${MONEDAS.find(m => m.codigo === moneda)?.label || ''}`}
+            flecha
+          />
+        </button>
         <FilaAjuste icono="🌐" titulo="Idioma" subtitulo="Español" />
-        <FilaAjuste icono="🎨" titulo="Tema" subtitulo="Oscuro (KAIREN)" etiqueta="Próximamente" />
+        <button onClick={() => setMostrarTema(true)} style={{ width: '100%', textAlign: 'left', background: 'transparent' }}>
+          <FilaAjuste
+            icono="🎨" titulo="Tema"
+            subtitulo={tema === 'sistema' ? 'Sistema' : tema === 'claro' ? 'Claro' : 'Oscuro'}
+            flecha
+          />
+        </button>
         <button onClick={() => setMostrarCategorias(true)} style={{ width: '100%', textAlign: 'left', background: 'transparent' }}>
           <FilaAjuste icono="🏷️" titulo="Administrar categorías" subtitulo="Personalizar categorías" flecha />
         </button>

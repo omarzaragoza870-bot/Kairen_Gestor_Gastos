@@ -105,7 +105,7 @@ export default function Inicio({ onNuevo, onEditar, onVerTodas, refreshKey }) {
             {tx.descripcion && <div className="transaction-description">{tx.descripcion}</div>}
             <div className="transaction-date">{fmtFecha(tx.fecha)}</div>
           </div>
-          <div className={tx.tipo === 'gasto' ? 'amount expense' : 'amount income'}>{tx.tipo === 'gasto' ? '-' : '+'}{fmt(tx.monto)}</div>
+          <div className={tx.tipo === 'gasto' ? 'amount expense' : 'amount income'}><Monto valor={tx.monto} prefijo={tx.tipo === 'gasto' ? '-' : '+'} /></div>
         </button>
       ))}
 

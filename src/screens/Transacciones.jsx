@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react'
 import { supabase } from '../lib/supabaseClient.js'
 import { eliminarTransaccion, obtenerTodasLasTransacciones } from '../lib/db.js'
 import { useScrollLock } from '../hooks/useScrollLock.js'
+import Monto from '../components/Monto.jsx'
 
 const fmt = n => Number(n).toLocaleString('es-MX', { style: 'currency', currency: 'MXN' })
 const fmtFecha = f => new Date(`${f}T12:00:00`).toLocaleDateString('es-MX', { day: '2-digit', month: 'long', year: 'numeric' })
@@ -64,7 +65,7 @@ export default function Transacciones({ onBack, onEditar, refreshKey, onCambio }
         <div key={tx.id} className="transaction-card">
           <button onClick={() => onEditar(tx)} className="transaction-main">
             <div style={{ minWidth: 0, textAlign: 'left' }}><strong>{tx.categoria_nombre}</strong>{tx.descripcion && <span>{tx.descripcion}</span>}<small>{fmtFecha(tx.fecha)}</small></div>
-            <div className={tx.tipo === 'gasto' ? 'amount expense' : 'amount income'}>{tx.tipo === 'gasto' ? '-' : '+'}{fmt(tx.monto)}</div>
+            <div className={tx.tipo === 'gasto' ? 'amount expense' : 'amount income'}><Monto valor={tx.monto} prefijo={tx.tipo === 'gasto' ? '-' : '+'} /></div>
           </button>
           <div className="transaction-actions"><button onClick={() => onEditar(tx)}>✏️ Editar</button><button className="danger-link" onClick={() => setAEliminar(tx)}>🗑️ Eliminar</button></div>
         </div>
@@ -73,7 +74,7 @@ export default function Transacciones({ onBack, onEditar, refreshKey, onCambio }
       {aEliminar && <div className="modal-backdrop" onClick={() => !eliminando && setAEliminar(null)}>
         <div className="modal-card" onClick={e => e.stopPropagation()}>
           <h3>¿Eliminar movimiento?</h3>
-          <p>Se eliminará “{aEliminar.categoria_nombre}” por {fmt(aEliminar.monto)} y el saldo de la cuenta se corregirá automáticamente.</p>
+          <p>Se eliminará "{aEliminar.categoria_nombre}" por <Monto valor={aEliminar.monto} /> y el saldo de la cuenta se corregirá automáticamente.</p>
           <div className="modal-actions"><button onClick={() => setAEliminar(null)} disabled={eliminando}>Cancelar</button><button className="danger-button" onClick={confirmarEliminar} disabled={eliminando}>{eliminando ? 'Eliminando…' : 'Sí, eliminar'}</button></div>
         </div>
       </div>}

@@ -195,7 +195,7 @@ function DistribucionTab({ gastosPorCategoria, ingresosPorCategoria, totalGastos
       <Tarjeta>
         <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 16 }}>
           <h3 style={{ margin: 0, fontSize: 14, fontWeight: 600 }}>Total de Gastos</h3>
-          <span style={{ fontWeight: 700 }}>{fmt(totalGastos)}</span>
+          <span style={{ fontWeight: 700 }}><Monto valor={totalGastos} /></span>
         </div>
         {gastosPorCategoria.length === 0 ? (
           <EmptyMini texto="Sin gastos este mes." />
@@ -207,7 +207,7 @@ function DistribucionTab({ gastosPorCategoria, ingresosPorCategoria, totalGastos
       <Tarjeta>
         <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 16 }}>
           <h3 style={{ margin: 0, fontSize: 14, fontWeight: 600 }}>Total de Ingresos</h3>
-          <span style={{ fontWeight: 700 }}>{fmt(totalIngresos)}</span>
+          <span style={{ fontWeight: 700 }}><Monto valor={totalIngresos} /></span>
         </div>
         {ingresosPorCategoria.length === 0 ? (
           <EmptyMini texto="Sin ingresos este mes." />
@@ -229,12 +229,12 @@ function TendenciasTab({ comparacion, habitos, insights, esRango }) {
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
             <div style={{ textAlign: 'center', padding: 14, borderRadius: 'var(--radius-md)', border: '1px solid var(--border-subtle)' }}>
               <div style={{ color: 'var(--success)', fontSize: 12 }}>↑ Ingreso</div>
-              <div style={{ fontWeight: 700, fontSize: 16, margin: '4px 0' }}>{fmt(comparacion.ingresoActual)}</div>
+              <div style={{ fontWeight: 700, fontSize: 16, margin: '4px 0' }}><Monto valor={comparacion.ingresoActual} /></div>
               <div style={{ fontSize: 11, color: 'var(--text-muted)' }}>{comparacion.variacionIngreso ?? '—'}</div>
             </div>
             <div style={{ textAlign: 'center', padding: 14, borderRadius: 'var(--radius-md)', border: '1px solid var(--border-subtle)' }}>
               <div style={{ color: 'var(--warning)', fontSize: 12 }}>↓ Gasto</div>
-              <div style={{ fontWeight: 700, fontSize: 16, margin: '4px 0' }}>{fmt(comparacion.gastoActual)}</div>
+              <div style={{ fontWeight: 700, fontSize: 16, margin: '4px 0' }}><Monto valor={comparacion.gastoActual} /></div>
               <div style={{ fontSize: 11, color: 'var(--text-muted)' }}>{comparacion.variacionGasto ?? '—'}</div>
             </div>
           </div>
@@ -245,10 +245,10 @@ function TendenciasTab({ comparacion, habitos, insights, esRango }) {
         <Tarjeta>
           <h3 style={{ margin: '0 0 14px', fontSize: 14, fontWeight: 600 }}>💡 Hábitos</h3>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
-            <MiniInfo label="Mayor gasto" valor={fmt(habitos.mayorGasto)} />
+            <MiniInfo label="Mayor gasto" valor={<Monto valor={habitos.mayorGasto} />} />
             <MiniInfo label="Categoría frecuente" valor={`${habitos.categoriaFrecuente} (${habitos.vecesFrecuente}x)`} />
             <MiniInfo label="Día donde más gastas" valor={habitos.diaTop} />
-            <MiniInfo label="Gasto promedio" valor={fmt(habitos.promedio)} />
+            <MiniInfo label="Gasto promedio" valor={<Monto valor={habitos.promedio} />} />
           </div>
         </Tarjeta>
       )}
