@@ -4,8 +4,10 @@ import { obtenerCuentas, obtenerTransaccionesPorMes, obtenerTransaccionesEnRango
 import {
   sumar, agruparPorCategoria, agruparPorMes, calcularHabitos, calcularInsights, compararConMesAnterior
 } from '../lib/estadisticas.js'
-import SelectorPeriodo, { MESES } from '../components/SelectorPeriodo.jsx'
+import SelectorPeriodo from '../components/SelectorPeriodo.jsx'
+import { MESES_POR_IDIOMA } from '../i18n/translations.js'
 import Monto from '../components/Monto.jsx'
+import { usePreferencias } from '../context/PreferenciasContext.jsx'
 
 const fmt = (n) => Number(n).toLocaleString('es-MX', { style: 'currency', currency: 'MXN' })
 const fmtFechaCorta = iso => new Date(`${iso}T12:00:00`).toLocaleDateString('es-MX', { day: '2-digit', month: 'short' })
@@ -23,6 +25,8 @@ export default function Analisis() {
   const hoy = new Date()
   const [periodo, setPeriodo] = useState({ tipo: 'mes', anio: hoy.getFullYear(), mes: hoy.getMonth() })
   const [mostrarSelector, setMostrarSelector] = useState(false)
+  const { t, idioma } = usePreferencias()
+  const MESES = MESES_POR_IDIOMA[idioma] || MESES_POR_IDIOMA.es
 
   useEffect(() => {
     (async () => {
@@ -58,7 +62,7 @@ export default function Analisis() {
         setUltimosMeses(historico)
         setCuentasPorId(Object.fromEntries(cuentas.map(c => [c.id, c])))
       } catch (err) {
-        setError(err.message || 'No se pudo cargar el análisis.')
+        setError(err.message || t('an_cargando'))
       } finally {
         setCargando(false)
       }
@@ -83,7 +87,7 @@ export default function Analisis() {
     : `${fmtFechaCorta(periodo.desde)} – ${fmtFechaCorta(periodo.hasta)}`
 
   if (cargando) {
-    return <div style={{ padding: 40, textAlign: 'center', color: 'var(--text-secondary)' }}>Cargando análisis…</div>
+    return <div style={{ padding: 40, textAlign: 'center', color: 'var(--text-secondary)' }}>{t('an_cargando')}</div>
   }
 
   if (error) {
@@ -93,13 +97,13 @@ export default function Analisis() {
   return (
     <div style={{ padding: '16px 16px 100px', maxWidth: 680, margin: '0 auto' }}>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 4 }}>
-        <h1 style={{ fontSize: 20, fontWeight: 700, margin: 0 }}>Análisis Financiero</h1>
+        <h1 style={{ fontSize: 20, fontWeight: 700, margin: 0 }}>{t('an_titulo')}</h1>
         <button onClick={() => setMostrarSelector(true)} aria-label="Seleccionar período" className="icon-button" style={{ fontSize: 18, minHeight: 36, padding: '4px 10px' }}>📅</button>
       </div>
       <p style={{ fontSize: 13, color: 'var(--text-muted)', margin: '0 0 16px' }}>{etiquetaPeriodo}</p>
 
       <div style={{ display: 'flex', gap: 8, marginBottom: 20 }}>
-        {[['resumen', 'Resumen'], ['distribucion', 'Distribución'], ['tendencias', 'Tendencias']].map(([id, label]) => (
+        {[['resumen', t('an_tab_resumen')], ['distribucion', t('an_tab_distribucion')], ['tendencias', t('an_tab_tendencias')]].map(([id, label]) => (
           <button
             key={id}
             onClick={() => setTab(id)}
@@ -148,27 +152,29 @@ function Tarjeta({ children, style }) {
 }
 
 function ResumenTab({ ingresos, gastos, balance, tasaAhorro, porMes }) {
+  const { t, idioma } = usePreferencias()
+  const MESES = MESES_POR_IDIOMA[idioma] || MESES_POR_IDIOMA.es
   const maxMensual = Math.max(...porMes.map(m => Math.max(m.ingresos, m.gastos)), 1)
 
   return (
     <>
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 14 }}>
-        <MiniStat label="↑ Total Ingresos" valor={<Monto valor={ingresos} />} color="var(--success)" />
-        <MiniStat label="↓ Total Gastos" valor={<Monto valor={gastos} />} color="var(--danger)" />
-        <MiniStat label="↗ Balance" valor={<Monto valor={balance} />} color={balance >= 0 ? 'var(--success)' : 'var(--danger)'} />
-        <MiniStat label="🐷 Tasa de Ahorro" valor={`${tasaAhorro.toFixed(1)}%`} color="var(--success)" />
+        <MiniStat label={`↑ ${t('an_total_ingresos')}`} valor={<Monto valor={ingresos} />} color="var(--success)" />
+        <MiniStat label={`↓ ${t('an_total_gastos')}`} valor={<Monto valor={gastos} />} color="var(--danger)" />
+        <MiniStat label={`↗ ${t('an_balance')}`} valor={<Monto valor={balance} />} color={balance >= 0 ? 'var(--success)' : 'var(--danger)'} />
+        <MiniStat label={`🐷 ${t('an_tasa_ahorro')}`} valor={`${tasaAhorro.toFixed(1)}%`} color="var(--success)" />
       </div>
 
       <Tarjeta>
-        <h3 style={{ margin: '0 0 16px', fontSize: 14, fontWeight: 600 }}>Ingresos vs Gastos</h3>
+        <h3 style={{ margin: '0 0 16px', fontSize: 14, fontWeight: 600 }}>{t('an_ingresos_vs_gastos')}</h3>
         <div style={{ display: 'flex', alignItems: 'flex-end', gap: 24, height: 140, justifyContent: 'center' }}>
-          <Barra etiqueta="Ingreso" valor={ingresos} max={Math.max(ingresos, gastos, 1)} color="var(--success)" />
-          <Barra etiqueta="Gasto" valor={gastos} max={Math.max(ingresos, gastos, 1)} color="var(--danger)" />
+          <Barra etiqueta={t('inicio_ingresos')} valor={ingresos} max={Math.max(ingresos, gastos, 1)} color="var(--success)" />
+          <Barra etiqueta={t('nt_gasto')} valor={gastos} max={Math.max(ingresos, gastos, 1)} color="var(--danger)" />
         </div>
       </Tarjeta>
 
       <Tarjeta>
-        <h3 style={{ margin: '0 0 16px', fontSize: 14, fontWeight: 600 }}>Balance últimos 6 meses</h3>
+        <h3 style={{ margin: '0 0 16px', fontSize: 14, fontWeight: 600 }}>{t('an_balance_6_meses')}</h3>
         <div style={{ display: 'flex', alignItems: 'flex-end', gap: 10, height: 120 }}>
           {porMes.map(m => {
             const bal = m.ingresos - m.gastos
@@ -190,15 +196,17 @@ function ResumenTab({ ingresos, gastos, balance, tasaAhorro, porMes }) {
 }
 
 function DistribucionTab({ gastosPorCategoria, ingresosPorCategoria, totalGastos, totalIngresos }) {
+  const { t, idioma } = usePreferencias()
+  const MESES = MESES_POR_IDIOMA[idioma] || MESES_POR_IDIOMA.es
   return (
     <>
       <Tarjeta>
         <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 16 }}>
-          <h3 style={{ margin: 0, fontSize: 14, fontWeight: 600 }}>Total de Gastos</h3>
+          <h3 style={{ margin: 0, fontSize: 14, fontWeight: 600 }}>{t('an_total_gastos_card')}</h3>
           <span style={{ fontWeight: 700 }}><Monto valor={totalGastos} /></span>
         </div>
         {gastosPorCategoria.length === 0 ? (
-          <EmptyMini texto="Sin gastos este mes." />
+          <EmptyMini texto={t('an_sin_gastos')} />
         ) : (
           <Dona datos={gastosPorCategoria} />
         )}
@@ -206,11 +214,11 @@ function DistribucionTab({ gastosPorCategoria, ingresosPorCategoria, totalGastos
 
       <Tarjeta>
         <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 16 }}>
-          <h3 style={{ margin: 0, fontSize: 14, fontWeight: 600 }}>Total de Ingresos</h3>
+          <h3 style={{ margin: 0, fontSize: 14, fontWeight: 600 }}>{t('an_total_ingresos_card')}</h3>
           <span style={{ fontWeight: 700 }}><Monto valor={totalIngresos} /></span>
         </div>
         {ingresosPorCategoria.length === 0 ? (
-          <EmptyMini texto="Sin ingresos este mes." />
+          <EmptyMini texto={t('an_sin_ingresos')} />
         ) : (
           <Dona datos={ingresosPorCategoria} />
         )}
@@ -220,20 +228,22 @@ function DistribucionTab({ gastosPorCategoria, ingresosPorCategoria, totalGastos
 }
 
 function TendenciasTab({ comparacion, habitos, insights, esRango }) {
+  const { t, idioma } = usePreferencias()
+  const MESES = MESES_POR_IDIOMA[idioma] || MESES_POR_IDIOMA.es
   return (
     <>
       {!esRango && (
         <Tarjeta>
-          <h3 style={{ margin: '0 0 4px', fontSize: 14, fontWeight: 600 }}>↕ Comparación con período anterior</h3>
-          <p style={{ margin: '0 0 14px', fontSize: 12, color: 'var(--text-muted)' }}>vs mes anterior</p>
+          <h3 style={{ margin: '0 0 4px', fontSize: 14, fontWeight: 600 }}>↕ {t('an_comparacion_titulo')}</h3>
+          <p style={{ margin: '0 0 14px', fontSize: 12, color: 'var(--text-muted)' }}>{t('an_comparacion_subtitulo')}</p>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
             <div style={{ textAlign: 'center', padding: 14, borderRadius: 'var(--radius-md)', border: '1px solid var(--border-subtle)' }}>
-              <div style={{ color: 'var(--success)', fontSize: 12 }}>↑ Ingreso</div>
+              <div style={{ color: 'var(--success)', fontSize: 12 }}>↑ {t('inicio_ingresos')}</div>
               <div style={{ fontWeight: 700, fontSize: 16, margin: '4px 0' }}><Monto valor={comparacion.ingresoActual} /></div>
               <div style={{ fontSize: 11, color: 'var(--text-muted)' }}>{comparacion.variacionIngreso ?? '—'}</div>
             </div>
             <div style={{ textAlign: 'center', padding: 14, borderRadius: 'var(--radius-md)', border: '1px solid var(--border-subtle)' }}>
-              <div style={{ color: 'var(--warning)', fontSize: 12 }}>↓ Gasto</div>
+              <div style={{ color: 'var(--warning)', fontSize: 12 }}>↓ {t('nt_gasto')}</div>
               <div style={{ fontWeight: 700, fontSize: 16, margin: '4px 0' }}><Monto valor={comparacion.gastoActual} /></div>
               <div style={{ fontSize: 11, color: 'var(--text-muted)' }}>{comparacion.variacionGasto ?? '—'}</div>
             </div>
@@ -243,20 +253,20 @@ function TendenciasTab({ comparacion, habitos, insights, esRango }) {
 
       {habitos && (
         <Tarjeta>
-          <h3 style={{ margin: '0 0 14px', fontSize: 14, fontWeight: 600 }}>💡 Hábitos</h3>
+          <h3 style={{ margin: '0 0 14px', fontSize: 14, fontWeight: 600 }}>💡 {t('an_habitos')}</h3>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
-            <MiniInfo label="Mayor gasto" valor={<Monto valor={habitos.mayorGasto} />} />
-            <MiniInfo label="Categoría frecuente" valor={`${habitos.categoriaFrecuente} (${habitos.vecesFrecuente}x)`} />
-            <MiniInfo label="Día donde más gastas" valor={habitos.diaTop} />
-            <MiniInfo label="Gasto promedio" valor={<Monto valor={habitos.promedio} />} />
+            <MiniInfo label={t('an_mayor_gasto')} valor={<Monto valor={habitos.mayorGasto} />} />
+            <MiniInfo label={t('an_categoria_frecuente')} valor={`${habitos.categoriaFrecuente} (${habitos.vecesFrecuente}x)`} />
+            <MiniInfo label={t('an_dia_mas_gasta')} valor={habitos.diaTop} />
+            <MiniInfo label={t('an_gasto_promedio')} valor={<Monto valor={habitos.promedio} />} />
           </div>
         </Tarjeta>
       )}
 
       <Tarjeta>
-        <h3 style={{ margin: '0 0 14px', fontSize: 14, fontWeight: 600 }}>📈 Tendencias detectadas</h3>
+        <h3 style={{ margin: '0 0 14px', fontSize: 14, fontWeight: 600 }}>📈 {t('an_tendencias_detectadas')}</h3>
         {insights.length === 0 ? (
-          <EmptyMini texto="Aún no hay suficientes datos este mes para generar tendencias." />
+          <EmptyMini texto={t('an_sin_tendencias')} />
         ) : (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
             {insights.map((ins, i) => (

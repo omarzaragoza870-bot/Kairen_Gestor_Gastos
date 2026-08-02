@@ -4,15 +4,16 @@ import { obtenerMetas, crearMeta, editarMeta, marcarMetaCompletada, eliminarMeta
 import { useScrollLock } from '../hooks/useScrollLock.js'
 import MetaDetalle from './MetaDetalle.jsx'
 import Monto from '../components/Monto.jsx'
+import { usePreferencias } from '../context/PreferenciasContext.jsx'
 
 const fmt = (n) => Number(n).toLocaleString('es-MX', { style: 'currency', currency: 'MXN' })
 const fmtFecha = (f) => f ? new Date(`${f}T12:00:00`).toLocaleDateString('es-MX', { day: '2-digit', month: 'short', year: 'numeric' }) : null
 
 const ICONOS = ['🎯', '✈️', '🏠', '🚗', '💍', '🎓', '💻', '🏥', '🐾', '🎉', '📱', '💰']
-const PRIORIDADES = [
-  ['baja', 'Baja', 'var(--text-secondary)'],
-  ['media', 'Media', 'var(--warning)'],
-  ['alta', 'Alta', 'var(--danger)']
+const PRIORIDADES_IDS = [
+  ['baja', 'var(--text-secondary)'],
+  ['media', 'var(--warning)'],
+  ['alta', 'var(--danger)']
 ]
 
 export default function Metas() {
@@ -26,6 +27,8 @@ export default function Metas() {
   const [detalle, setDetalle] = useState(null)
   useScrollLock(editando !== null || Boolean(aEliminar))
   const [procesando, setProcesando] = useState(false)
+  const { t } = usePreferencias()
+  const PRIORIDADES = PRIORIDADES_IDS.map(([id, color]) => [id, t(`metas_prioridad_${id}`), color])
 
   const cargar = useCallback(async (uid) => {
     setCargando(true)
@@ -33,7 +36,7 @@ export default function Metas() {
     try {
       setLista(await obtenerMetas(uid))
     } catch (err) {
-      setError(err.message || 'No se pudieron cargar tus metas.')
+      setError(err.message || t('metas_vacio_activas'))
     } finally {
       setCargando(false)
     }
@@ -106,10 +109,10 @@ export default function Metas() {
 
   return (
     <div style={{ padding: '16px 16px 100px', maxWidth: 680, margin: '0 auto' }}>
-      <h1 style={{ fontSize: 20, fontWeight: 700, margin: '0 0 16px' }}>Metas</h1>
+      <h1 style={{ fontSize: 20, fontWeight: 700, margin: '0 0 16px' }}>{t('metas_titulo')}</h1>
 
       <div style={{ display: 'flex', gap: 8, marginBottom: 20 }}>
-        {[['activas', `Activas${activas.length ? ` (${activas.length})` : ''}`], ['completadas', `Completadas${completadas.length ? ` (${completadas.length})` : ''}`]].map(([id, label]) => (
+        {[['activas', `${t('metas_activas')}${activas.length ? ` (${activas.length})` : ''}`], ['completadas', `${t('metas_completadas')}${completadas.length ? ` (${completadas.length})` : ''}`]].map(([id, label]) => (
           <button
             key={id}
             onClick={() => setTab(id)}
@@ -134,9 +137,9 @@ export default function Metas() {
         }}>
           <div style={{ fontSize: 32, marginBottom: 8 }}>🎯</div>
           <p style={{ fontSize: 14, margin: 0 }}>
-            {tab === 'activas' ? 'No tienes metas activas.' : 'Aún no completas ninguna meta.'}
+            {tab === 'activas' ? t('metas_vacio_activas') : t('metas_vacio_completadas')}
           </p>
-          {tab === 'activas' && <p style={{ fontSize: 13, margin: '4px 0 0' }}>Crea tu primera meta para comenzar.</p>}
+          {tab === 'activas' && <p style={{ fontSize: 13, margin: '4px 0 0' }}>{t('metas_vacio_subtitulo')}</p>}
         </div>
       )}
 
@@ -160,7 +163,7 @@ export default function Metas() {
                     </span>
                   </div>
                   {meta.descripcion && <div style={{ fontSize: 12, color: 'var(--text-secondary)', marginTop: 2 }}>{meta.descripcion}</div>}
-                  {meta.fecha_limite && <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 2 }}>Meta: {fmtFecha(meta.fecha_limite)}</div>}
+                  {meta.fecha_limite && <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 2 }}>{t('md_meta')}: {fmtFecha(meta.fecha_limite)}</div>}
                 </div>
               </div>
               <div style={{ textAlign: 'right', flexShrink: 0 }}>
@@ -176,11 +179,11 @@ export default function Metas() {
             </div>
 
             <div style={{ display: 'flex', gap: 8, borderTop: '1px solid var(--border-subtle)', paddingTop: 10 }}>
-              <button onClick={() => setEditando(meta)} style={{ flex: 1, background: 'transparent', color: 'var(--text-secondary)', fontSize: 12, padding: 6 }}>✏️ Editar</button>
+              <button onClick={() => setEditando(meta)} style={{ flex: 1, background: 'transparent', color: 'var(--text-secondary)', fontSize: 12, padding: 6 }}>✏️ {t('comun_editar')}</button>
               <button onClick={() => handleToggleCompletada(meta)} style={{ flex: 1, background: 'transparent', color: 'var(--success)', fontSize: 12, padding: 6 }}>
-                {meta.completada ? '↩️ Reactivar' : '✅ Marcar completa'}
+                {meta.completada ? `↩️ ${t('metas_reactivar')}` : `✅ ${t('metas_marcar_completa')}`}
               </button>
-              <button onClick={() => setAEliminar(meta)} style={{ flex: 1, background: 'transparent', color: 'var(--danger)', fontSize: 12, padding: 6 }}>🗑️ Eliminar</button>
+              <button onClick={() => setAEliminar(meta)} style={{ flex: 1, background: 'transparent', color: 'var(--danger)', fontSize: 12, padding: 6 }}>🗑️ {t('comun_eliminar')}</button>
             </div>
           </div>
         )
@@ -188,7 +191,7 @@ export default function Metas() {
 
       <button
         onClick={() => setEditando({})}
-        aria-label="Crear meta"
+        aria-label={t('metas_crear_boton')}
         style={{
           position: 'fixed', right: 20, bottom: 92,
           width: 56, height: 56, borderRadius: 16,
@@ -211,12 +214,12 @@ export default function Metas() {
       {aEliminar && (
         <div onClick={() => !procesando && setAEliminar(null)} className="modal-backdrop">
           <div onClick={(e) => e.stopPropagation()} className="modal-card">
-            <h3>¿Eliminar esta meta?</h3>
-            <p>Se eliminará "{aEliminar.nombre}" por completo. Esta acción no se puede deshacer.</p>
+            <h3>{t('metas_eliminar_titulo')}</h3>
+            <p>{t('tx_eliminar_confirmar_1')} "{aEliminar.nombre}" {t('tx_eliminar_confirmar_3')}</p>
             <div className="modal-actions">
-              <button onClick={() => setAEliminar(null)} disabled={procesando}>Cancelar</button>
+              <button onClick={() => setAEliminar(null)} disabled={procesando}>{t('comun_cancelar')}</button>
               <button className="danger-button" onClick={confirmarEliminar} disabled={procesando}>
-                {procesando ? 'Eliminando…' : 'Sí, eliminar'}
+                {procesando ? t('comun_eliminando') : t('comun_si_eliminar')}
               </button>
             </div>
           </div>
@@ -227,6 +230,8 @@ export default function Metas() {
 }
 
 function FormularioMeta({ meta, onCancelar, onGuardar, guardando }) {
+  const { t } = usePreferencias()
+  const PRIORIDADES = PRIORIDADES_IDS.map(([id, color]) => [id, t(`metas_prioridad_${id}`), color])
   const esNueva = !meta.id
   const [nombre, setNombre] = useState(meta.nombre || '')
   const [descripcion, setDescripcion] = useState(meta.descripcion || '')
@@ -243,9 +248,9 @@ function FormularioMeta({ meta, onCancelar, onGuardar, guardando }) {
   return (
     <div onClick={onCancelar} className="modal-backdrop">
       <div onClick={(e) => e.stopPropagation()} className="modal-card" style={{ maxWidth: 420, maxHeight: '85vh', overflowY: 'auto' }}>
-        <h3>{esNueva ? 'Nueva meta' : 'Editar meta'}</h3>
+        <h3>{esNueva ? t('metas_form_nueva') : t('metas_form_editar')}</h3>
 
-        <label className="field-label">Icono</label>
+        <label className="field-label">{t('metas_icono')}</label>
         <div style={{ display: 'flex', gap: 8, overflowX: 'auto', margin: '8px 0 16px', paddingBottom: 4 }}>
           {ICONOS.map(ic => (
             <button
@@ -262,28 +267,28 @@ function FormularioMeta({ meta, onCancelar, onGuardar, guardando }) {
           ))}
         </div>
 
-        <label className="field-label">Título de la meta</label>
+        <label className="field-label">{t('metas_nombre')}</label>
         <div className="input-shell">
-          <input value={nombre} onChange={(e) => setNombre(e.target.value)} placeholder="Ej. Vacaciones, Fondo de emergencia…" maxLength={40} />
+          <input value={nombre} onChange={(e) => setNombre(e.target.value)} placeholder={t('metas_nombre_placeholder')} maxLength={40} />
         </div>
 
-        <label className="field-label">Descripción (opcional)</label>
+        <label className="field-label">{t('metas_descripcion')}</label>
         <div className="input-shell">
-          <input value={descripcion} onChange={(e) => setDescripcion(e.target.value)} placeholder="Detalles de tu meta" maxLength={80} />
+          <input value={descripcion} onChange={(e) => setDescripcion(e.target.value)} placeholder={t('metas_descripcion').replace(' (opcional)', '').replace(' (optional)', '')} maxLength={80} />
         </div>
 
-        <label className="field-label">Monto objetivo</label>
+        <label className="field-label">{t('metas_monto_objetivo')}</label>
         <div className="input-shell">
           <span style={{ color: 'var(--text-muted)' }}>$</span>
           <input inputMode="decimal" value={montoObjetivo} onChange={(e) => setMontoObjetivo(e.target.value.replace(',', '.'))} placeholder="0.00" />
         </div>
 
-        <label className="field-label">Fecha objetivo (opcional)</label>
+        <label className="field-label">{t('metas_fecha_objetivo')}</label>
         <div className="input-shell">
           <input type="date" value={fechaLimite} onChange={(e) => setFechaLimite(e.target.value)} />
         </div>
 
-        <label className="field-label">Prioridad</label>
+        <label className="field-label">{t('metas_prioridad')}</label>
         <div style={{ display: 'flex', gap: 8, margin: '8px 0 16px' }}>
           {PRIORIDADES.map(([id, label, color]) => (
             <button
@@ -301,14 +306,14 @@ function FormularioMeta({ meta, onCancelar, onGuardar, guardando }) {
           ))}
         </div>
 
-        <label className="field-label">{esNueva ? 'Aporte inicial (opcional)' : 'Cuánto llevas ahorrado'}</label>
+        <label className="field-label">{esNueva ? t('metas_aporte_inicial') : t('metas_cuanto_llevas')}</label>
         <div className="input-shell">
           <span style={{ color: 'var(--text-muted)' }}>$</span>
           <input inputMode="decimal" value={montoActual} onChange={(e) => setMontoActual(e.target.value.replace(',', '.'))} placeholder="0.00" />
         </div>
 
         <div className="modal-actions" style={{ marginTop: 12 }}>
-          <button onClick={onCancelar} disabled={guardando}>Cancelar</button>
+          <button onClick={onCancelar} disabled={guardando}>{t('comun_cancelar')}</button>
           <button
             disabled={!valido || guardando}
             onClick={() => onGuardar({
@@ -323,7 +328,7 @@ function FormularioMeta({ meta, onCancelar, onGuardar, guardando }) {
             })}
             style={{ background: valido ? 'var(--gradient-brand)' : 'var(--bg-surface-2)', color: valido ? '#fff' : 'var(--text-muted)' }}
           >
-            {guardando ? 'Guardando…' : esNueva ? 'Crear Meta' : 'Guardar cambios'}
+            {guardando ? t('comun_guardando') : esNueva ? t('metas_crear_boton') : t('nt_boton_actualizar')}
           </button>
         </div>
       </div>

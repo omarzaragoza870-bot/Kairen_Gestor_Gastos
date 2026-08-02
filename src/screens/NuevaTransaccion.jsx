@@ -10,6 +10,7 @@ import {
 } from '../lib/db.js'
 import InfoTooltip from '../components/InfoTooltip.jsx'
 import Monto from '../components/Monto.jsx'
+import { usePreferencias } from '../context/PreferenciasContext.jsx'
 
 const hoy = () => {
   const fecha = new Date()
@@ -34,6 +35,7 @@ export default function NuevaTransaccion({ onBack, onGuardada, transaccionEditar
   const [categoriasIngreso, setCategoriasIngreso] = useState([])
   const [guardando, setGuardando] = useState(false)
   const [error, setError] = useState(null)
+  const { t } = usePreferencias()
 
   useEffect(() => {
     const cargarCuentas = async () => {
@@ -70,10 +72,10 @@ export default function NuevaTransaccion({ onBack, onGuardada, transaccionEditar
   const valido = Number.isFinite(montoNumerico) && montoNumerico > 0 && Boolean(categoria) && Boolean(cuentaId) && Boolean(userId) && Boolean(cuentaSeleccionada) && Boolean(fecha)
 
   const etiquetaBoton = useMemo(() => {
-    if (guardando) return editando ? 'Guardando cambios…' : 'Guardando…'
-    if (!valido) return 'Completa monto, categoría y fecha'
-    return editando ? 'Guardar cambios' : 'Guardar transacción'
-  }, [editando, guardando, valido])
+    if (guardando) return editando ? t('nt_guardando_cambios') : t('nt_guardando')
+    if (!valido) return t('nt_completa_datos')
+    return editando ? t('nt_boton_actualizar') : t('nt_boton_guardar')
+  }, [editando, guardando, valido, t])
 
   const handleGuardar = async () => {
     if (!valido || guardando) return
@@ -111,28 +113,28 @@ export default function NuevaTransaccion({ onBack, onGuardada, transaccionEditar
     <div style={{ padding: '16px 16px 40px', maxWidth: 680, margin: '0 auto' }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 20 }}>
         <button onClick={onBack} aria-label="Volver" style={{ background: 'transparent', color: 'var(--text-primary)', fontSize: 20 }}>←</button>
-        <h1 style={{ fontSize: 17, fontWeight: 700, margin: 0 }}>{editando ? 'Editar Transacción' : 'Nueva Transacción'}</h1>
+        <h1 style={{ fontSize: 17, fontWeight: 700, margin: 0 }}>{editando ? t('nt_titulo_editar') : t('nt_titulo_nueva')}</h1>
       </div>
 
       <div style={{ display: 'flex', gap: 10, marginBottom: 20 }}>
-        {['gasto', 'ingreso'].map(t => (
-          <button key={t} onClick={() => { setTipo(t); setCategoria(null) }} style={{
+        {['gasto', 'ingreso'].map(opcion => (
+          <button key={opcion} onClick={() => { setTipo(opcion); setCategoria(null) }} style={{
             flex: 1, padding: 14, borderRadius: 'var(--radius-md)',
-            background: tipo === t ? 'var(--gradient-brand)' : 'var(--bg-surface)',
-            color: tipo === t ? '#fff' : 'var(--text-secondary)', fontWeight: 600, fontSize: 14,
-            border: '1px solid ' + (tipo === t ? 'transparent' : 'var(--border-subtle)')
+            background: tipo === opcion ? 'var(--gradient-brand)' : 'var(--bg-surface)',
+            color: tipo === opcion ? '#fff' : 'var(--text-secondary)', fontWeight: 600, fontSize: 14,
+            border: '1px solid ' + (tipo === opcion ? 'transparent' : 'var(--border-subtle)')
           }}>
-            {t === 'gasto' ? '⊖ Gasto' : '⊕ Ingreso'}
+            {opcion === 'gasto' ? `⊖ ${t('nt_gasto')}` : `⊕ ${t('nt_ingreso')}`}
           </button>
         ))}
       </div>
 
       <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 8 }}>
-        <label style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-secondary)' }}>Cuenta</label>
-        <InfoTooltip title="Cuenta" text="Elige de dónde sale el dinero o a dónde entra." />
+        <label style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-secondary)' }}>{t('nt_cuenta')}</label>
+        <InfoTooltip title={t('nt_cuenta')} text={t('nt_cuenta_info')} />
       </div>
       <div style={{ display: 'flex', gap: 10, marginBottom: 20 }}>
-        {cuentas.length === 0 && <div className="empty-inline">Cargando cuentas…</div>}
+        {cuentas.length === 0 && <div className="empty-inline">{t('nt_cargando_cuentas')}</div>}
         {cuentas.map(c => (
           <button key={c.id} onClick={() => setCuentaId(c.id)} style={{
             flex: 1, padding: 12, borderRadius: 'var(--radius-md)', background: 'var(--bg-surface)',
@@ -144,13 +146,13 @@ export default function NuevaTransaccion({ onBack, onGuardada, transaccionEditar
         ))}
       </div>
 
-      <label className="field-label">Monto</label>
+      <label className="field-label">{t('nt_monto')}</label>
       <div className="input-shell">
         <span style={{ color: 'var(--text-muted)' }}>$</span>
         <input inputMode="decimal" value={monto} onChange={e => setMonto(e.target.value.replace(',', '.'))} placeholder="0.00" />
       </div>
 
-      <label className="field-label">Categoría</label>
+      <label className="field-label">{t('nt_categoria')}</label>
       <div style={{ display: 'flex', gap: 8, overflowX: 'auto', margin: '8px 0 20px', paddingBottom: 4 }}>
         {categorias.map(cat => (
           <button key={cat} onClick={() => setCategoria(cat)} style={{
@@ -162,12 +164,12 @@ export default function NuevaTransaccion({ onBack, onGuardada, transaccionEditar
         ))}
       </div>
 
-      <label className="field-label">Descripción <span style={{ fontWeight: 400, color: 'var(--text-muted)' }}>(opcional)</span></label>
+      <label className="field-label">{t('nt_descripcion').split(' (')[0]} <span style={{ fontWeight: 400, color: 'var(--text-muted)' }}>{t('nt_opcional')}</span></label>
       <div className="input-shell" style={{ marginTop: 8 }}>
-        <input value={descripcion} onChange={e => setDescripcion(e.target.value)} maxLength={120} placeholder="Ej. Comida con clientes" />
+        <input value={descripcion} onChange={e => setDescripcion(e.target.value)} maxLength={120} placeholder={t('nt_descripcion_placeholder')} />
       </div>
 
-      <label className="field-label">Fecha</label>
+      <label className="field-label">{t('nt_fecha')}</label>
       <div className="input-shell" style={{ marginTop: 8 }}>
         <input type="date" value={fecha} onChange={e => setFecha(e.target.value)} />
       </div>

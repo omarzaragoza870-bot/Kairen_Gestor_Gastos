@@ -1,19 +1,17 @@
 import { usePreferencias } from '../context/PreferenciasContext.jsx'
 
-const OPCIONES = [
-  ['sistema', '⚙️', 'Sistema', 'Usa el modo claro u oscuro de tu dispositivo'],
-  ['claro', '☀️', 'Claro', 'Fondo claro, texto oscuro'],
-  ['oscuro', '🌙', 'Oscuro', 'Fondo oscuro con acentos KAIREN (por defecto)']
-]
+const OPCIONES_IDS = ['sistema', 'claro', 'oscuro']
+const ICONOS_TEMA = { sistema: '⚙️', claro: '☀️', oscuro: '🌙' }
 
 export default function SelectorTema({ onBack }) {
-  const { tema, setTema } = usePreferencias()
+  const { tema, setTema, t } = usePreferencias()
+  const OPCIONES = OPCIONES_IDS.map(id => [id, ICONOS_TEMA[id], t(`st_${id}`), t(`st_${id}_desc`)])
 
   return (
     <div style={{ padding: '16px 16px 100px', maxWidth: 680, margin: '0 auto' }}>
       <div className="screen-header">
         <button onClick={onBack} className="back-button">←</button>
-        <h1>Tema</h1>
+        <h1>{t('ajustes_tema')}</h1>
       </div>
 
       {OPCIONES.map(([id, icono, titulo, descripcion]) => (

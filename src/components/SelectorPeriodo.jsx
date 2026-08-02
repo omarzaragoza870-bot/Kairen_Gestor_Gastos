@@ -1,5 +1,7 @@
 import { useState } from 'react'
 import { useScrollLock } from '../hooks/useScrollLock.js'
+import { usePreferencias } from '../context/PreferenciasContext.jsx'
+import { MESES_POR_IDIOMA } from '../i18n/translations.js'
 
 function fechaLocal(date) {
   const a = date.getFullYear()
@@ -42,17 +44,7 @@ function calcularRangoRapido(id) {
   }
 }
 
-const RANGOS_RAPIDOS = [
-  ['hoy', 'Hoy'],
-  ['semana', 'Última semana'],
-  ['30dias', 'Últimos 30 días'],
-  ['3meses', 'Últimos 3 meses'],
-  ['6meses', '6 meses'],
-  ['anio', 'Este Año']
-]
-
-const MESES = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre']
-const MESES_CORTO = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic']
+const RANGOS_RAPIDOS_IDS = ['hoy', 'semana', '30dias', '3meses', '6meses', 'anio']
 
 function generarAnios() {
   const actual = new Date().getFullYear()
@@ -80,6 +72,9 @@ const Chip = ({ activo, children, onClick }) => (
  * onAplicar(periodo) — se llama al confirmar
  */
 export default function SelectorPeriodo({ periodoActual, onAplicar, onCerrar }) {
+  const { t, idioma } = usePreferencias()
+  const MESES = MESES_POR_IDIOMA[idioma] || MESES_POR_IDIOMA.es
+  const RANGOS_RAPIDOS = RANGOS_RAPIDOS_IDS.map(id => [id, t(`sp_rango_${id === '30dias' ? '30dias' : id}`)])
   const [modo, setModo] = useState(periodoActual.tipo === 'rango' ? 'rango' : 'mes')
   const [anio, setAnio] = useState(periodoActual.anio ?? new Date().getFullYear())
   const [mes, setMes] = useState(periodoActual.mes ?? new Date().getMonth())
@@ -91,7 +86,7 @@ export default function SelectorPeriodo({ periodoActual, onAplicar, onCerrar }) 
 
   const etiquetaPreview = modo === 'mes'
     ? `${MESES[mes]} ${anio}`
-    : (desde && hasta ? `${desde} → ${hasta}` : 'Selecciona un rango')
+    : (desde && hasta ? `${desde} → ${hasta}` : t('sp_desde') + '/' + t('sp_hasta'))
 
   const etiquetaActual = periodoActual.tipo === 'rango'
     ? `${periodoActual.desde} → ${periodoActual.hasta}`
@@ -117,7 +112,7 @@ export default function SelectorPeriodo({ periodoActual, onAplicar, onCerrar }) 
         }}
       >
         <div style={{ width: 36, height: 4, background: 'var(--border-subtle)', borderRadius: 2, margin: '0 auto 16px' }} />
-        <h2 style={{ fontSize: 17, fontWeight: 700, margin: '0 0 16px' }}>Seleccionar Período</h2>
+        <h2 style={{ fontSize: 17, fontWeight: 700, margin: '0 0 16px' }}>{t('sp_titulo')}</h2>
 
         <div style={{ display: 'flex', gap: 8, marginBottom: 18 }}>
           <button
@@ -129,7 +124,7 @@ export default function SelectorPeriodo({ periodoActual, onAplicar, onCerrar }) 
               border: '1px solid ' + (modo === 'mes' ? 'transparent' : 'var(--border-subtle)')
             }}
           >
-            📅 Año/Mes
+            📅 {t('sp_anio_mes')}
           </button>
           <button
             onClick={() => setModo('rango')}
@@ -140,34 +135,34 @@ export default function SelectorPeriodo({ periodoActual, onAplicar, onCerrar }) 
               border: '1px solid ' + (modo === 'rango' ? 'transparent' : 'var(--border-subtle)')
             }}
           >
-            Personalizado
+            {t('sp_personalizado')}
           </button>
         </div>
 
         {modo === 'mes' ? (
           <>
-            <label style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-secondary)' }}>Año</label>
+            <label style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-secondary)' }}>{t('sp_anio')}</label>
             <div style={{ display: 'flex', gap: 8, overflowX: 'auto', margin: '8px 0 18px', paddingBottom: 4 }}>
               {anios.map(a => <Chip key={a} activo={a === anio} onClick={() => setAnio(a)}>{a}</Chip>)}
             </div>
 
-            <label style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-secondary)' }}>Mes de {anio}</label>
+            <label style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-secondary)' }}>{t('sp_mes_de')} {anio}</label>
             <div style={{ display: 'flex', gap: 8, overflowX: 'auto', margin: '8px 0 18px', paddingBottom: 4 }}>
               {MESES.map((nombre, i) => <Chip key={nombre} activo={i === mes} onClick={() => setMes(i)}>{nombre}</Chip>)}
             </div>
           </>
         ) : (
           <>
-            <label style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-secondary)' }}>Desde</label>
+            <label style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-secondary)' }}>{t('sp_desde')}</label>
             <div className="input-shell" style={{ marginBottom: 14 }}>
               <input type="date" value={desde} onChange={(e) => setDesde(e.target.value)} />
             </div>
-            <label style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-secondary)' }}>Hasta</label>
+            <label style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-secondary)' }}>{t('sp_hasta')}</label>
             <div className="input-shell" style={{ marginBottom: 14 }}>
               <input type="date" value={hasta} onChange={(e) => setHasta(e.target.value)} min={desde || undefined} />
             </div>
 
-            <label style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-secondary)' }}>Rangos Rápidos:</label>
+            <label style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-secondary)' }}>{t('sp_rangos_rapidos')}:</label>
             <div style={{ display: 'flex', gap: 8, overflowX: 'auto', margin: '8px 0 4px', paddingBottom: 4 }}>
               {RANGOS_RAPIDOS.map(([id, etiqueta]) => (
                 <Chip key={id} activo={false} onClick={() => {
@@ -182,12 +177,12 @@ export default function SelectorPeriodo({ periodoActual, onAplicar, onCerrar }) 
         )}
 
         <div style={{ background: 'var(--bg-surface)', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-subtle)', padding: 14, marginTop: 4, marginBottom: 10 }}>
-          <div style={{ fontSize: 11, color: 'var(--text-muted)' }}>Período a Aplicar:</div>
+          <div style={{ fontSize: 11, color: 'var(--text-muted)' }}>{t('sp_periodo_aplicar')}:</div>
           <div style={{ fontSize: 14, fontWeight: 700, marginTop: 2 }}>{etiquetaPreview}</div>
         </div>
 
         <div style={{ background: 'var(--bg-surface)', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-subtle)', padding: 14, marginBottom: 18 }}>
-          <div style={{ fontSize: 11, color: 'var(--text-muted)' }}>Período Actual:</div>
+          <div style={{ fontSize: 11, color: 'var(--text-muted)' }}>{t('sp_periodo_actual')}:</div>
           <div style={{ fontSize: 14, fontWeight: 700, marginTop: 2 }}>{etiquetaActual}</div>
         </div>
 
@@ -196,7 +191,7 @@ export default function SelectorPeriodo({ periodoActual, onAplicar, onCerrar }) 
             onClick={onCerrar}
             style={{ flex: 1, padding: 14, borderRadius: 'var(--radius-md)', background: 'var(--bg-surface)', color: 'var(--text-primary)', fontWeight: 600, fontSize: 14 }}
           >
-            Cancelar
+            {t('comun_cancelar')}
           </button>
           <button
             disabled={!puedeAplicar}
@@ -207,12 +202,10 @@ export default function SelectorPeriodo({ periodoActual, onAplicar, onCerrar }) 
               color: puedeAplicar ? '#fff' : 'var(--text-muted)'
             }}
           >
-            Aplicar Filtro
+            {t('sp_aplicar_filtro')}
           </button>
         </div>
       </div>
     </div>
   )
 }
-
-export { MESES, MESES_CORTO }

@@ -1,6 +1,9 @@
 import { supabase } from '../lib/supabaseClient.js'
+import { usePreferencias } from '../context/PreferenciasContext.jsx'
 
 export default function Login() {
+  const { t } = usePreferencias()
+
   const handleGoogleLogin = async () => {
     const { error } = await supabase.auth.signInWithOAuth({
       provider: 'google',
@@ -21,7 +24,7 @@ export default function Login() {
         Kairen Finanzas
       </h1>
       <p style={{ color: 'var(--text-secondary)', fontSize: 14, margin: '0 0 40px' }}>
-        Tu dinero, bajo control.
+        {t('login_tagline')}
       </p>
 
       <button
@@ -33,11 +36,11 @@ export default function Login() {
           border: '1px solid var(--border-subtle)', fontSize: 15, fontWeight: 600
         }}
       >
-        <span>🔵</span> Continuar con Google
+        <span>🔵</span> {t('login_boton_google')}
       </button>
 
       <p style={{ color: 'var(--text-muted)', fontSize: 12, marginTop: 20, maxWidth: 280 }}>
-        Tus datos se guardan en tu cuenta — si cambias de teléfono, solo inicia sesión y todo sigue ahí.
+        {t('login_nota')}
       </p>
     </div>
   )

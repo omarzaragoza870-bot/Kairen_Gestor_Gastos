@@ -1,8 +1,10 @@
 import { createContext, useContext, useEffect, useState } from 'react'
+import { traducciones } from '../i18n/translations.js'
 
 const CLAVE_OCULTAR = 'kairen_ocultar_saldos'
 const CLAVE_MONEDA = 'kairen_moneda'
 const CLAVE_TEMA = 'kairen_tema'
+const CLAVE_IDIOMA = 'kairen_idioma'
 
 export const MONEDAS = [
   { codigo: 'MXN', label: 'Peso Mexicano', bandera: '🇲🇽' },
@@ -18,7 +20,9 @@ export const MONEDAS = [
 const PreferenciasContext = createContext({
   ocultarSaldos: false, toggleOcultarSaldos: () => {},
   moneda: 'MXN', setMoneda: () => {},
-  tema: 'sistema', setTema: () => {}
+  tema: 'sistema', setTema: () => {},
+  idioma: 'es', setIdioma: () => {},
+  t: (clave) => clave
 })
 
 export function PreferenciasProvider({ children }) {
@@ -30,6 +34,9 @@ export function PreferenciasProvider({ children }) {
   })
   const [tema, setTema] = useState(() => {
     try { return localStorage.getItem(CLAVE_TEMA) || 'sistema' } catch { return 'sistema' }
+  })
+  const [idioma, setIdioma] = useState(() => {
+    try { return localStorage.getItem(CLAVE_IDIOMA) || 'es' } catch { return 'es' }
   })
 
   useEffect(() => {
@@ -61,10 +68,22 @@ export function PreferenciasProvider({ children }) {
     }
   }, [tema])
 
+  useEffect(() => {
+    try { localStorage.setItem(CLAVE_IDIOMA, idioma) } catch { /* noop */ }
+  }, [idioma])
+
   const toggleOcultarSaldos = () => setOcultarSaldos(v => !v)
 
+  const t = (clave) => traducciones[idioma]?.[clave] ?? traducciones.es[clave] ?? clave
+
   return (
-    <PreferenciasContext.Provider value={{ ocultarSaldos, toggleOcultarSaldos, moneda, setMoneda, tema, setTema }}>
+    <PreferenciasContext.Provider value={{
+      ocultarSaldos, toggleOcultarSaldos,
+      moneda, setMoneda,
+      tema, setTema,
+      idioma, setIdioma,
+      t
+    }}>
       {children}
     </PreferenciasContext.Provider>
   )

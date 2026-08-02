@@ -3,6 +3,7 @@ import { supabase } from '../lib/supabaseClient.js'
 import { eliminarTransaccion, obtenerTodasLasTransacciones } from '../lib/db.js'
 import { useScrollLock } from '../hooks/useScrollLock.js'
 import Monto from '../components/Monto.jsx'
+import { usePreferencias } from '../context/PreferenciasContext.jsx'
 
 const fmt = n => Number(n).toLocaleString('es-MX', { style: 'currency', currency: 'MXN' })
 const fmtFecha = f => new Date(`${f}T12:00:00`).toLocaleDateString('es-MX', { day: '2-digit', month: 'long', year: 'numeric' })
@@ -15,6 +16,7 @@ export default function Transacciones({ onBack, onEditar, refreshKey, onCambio }
   const [aEliminar, setAEliminar] = useState(null)
   useScrollLock(Boolean(aEliminar))
   const [eliminando, setEliminando] = useState(false)
+  const { t } = usePreferencias()
 
   const cargar = useCallback(async () => {
     setCargando(true)
@@ -52,30 +54,30 @@ export default function Transacciones({ onBack, onEditar, refreshKey, onCambio }
 
   return (
     <div style={{ padding: '16px 16px 40px', maxWidth: 680, margin: '0 auto' }}>
-      <div className="screen-header"><button onClick={onBack} className="back-button">←</button><h1>Todos los movimientos</h1></div>
+      <div className="screen-header"><button onClick={onBack} className="back-button">←</button><h1>{t('tx_titulo')}</h1></div>
       <div className="filter-row">
-        {[['todos', 'Todos'], ['gasto', 'Gastos'], ['ingreso', 'Ingresos']].map(([id, label]) => (
+        {[['todos', t('tx_filtro_todos')], ['gasto', t('tx_filtro_gastos')], ['ingreso', t('tx_filtro_ingresos')]].map(([id, label]) => (
           <button key={id} onClick={() => setFiltro(id)} className={filtro === id ? 'filter active' : 'filter'}>{label}</button>
         ))}
       </div>
       {error && <p className="error-message">{error}</p>}
-      {cargando && <div className="empty-state"><p>Cargando movimientos…</p></div>}
-      {!cargando && filtradas.length === 0 && <div className="empty-state"><p>No hay movimientos en este filtro.</p></div>}
+      {cargando && <div className="empty-state"><p>{t('comun_cargando')}</p></div>}
+      {!cargando && filtradas.length === 0 && <div className="empty-state"><p>{t('tx_vacio')}</p></div>}
       {filtradas.map(tx => (
         <div key={tx.id} className="transaction-card">
           <button onClick={() => onEditar(tx)} className="transaction-main">
             <div style={{ minWidth: 0, textAlign: 'left' }}><strong>{tx.categoria_nombre}</strong>{tx.descripcion && <span>{tx.descripcion}</span>}<small>{fmtFecha(tx.fecha)}</small></div>
             <div className={tx.tipo === 'gasto' ? 'amount expense' : 'amount income'}><Monto valor={tx.monto} prefijo={tx.tipo === 'gasto' ? '-' : '+'} /></div>
           </button>
-          <div className="transaction-actions"><button onClick={() => onEditar(tx)}>✏️ Editar</button><button className="danger-link" onClick={() => setAEliminar(tx)}>🗑️ Eliminar</button></div>
+          <div className="transaction-actions"><button onClick={() => onEditar(tx)}>✏️ {t('comun_editar')}</button><button className="danger-link" onClick={() => setAEliminar(tx)}>🗑️ {t('comun_eliminar')}</button></div>
         </div>
       ))}
 
       {aEliminar && <div className="modal-backdrop" onClick={() => !eliminando && setAEliminar(null)}>
         <div className="modal-card" onClick={e => e.stopPropagation()}>
-          <h3>¿Eliminar movimiento?</h3>
-          <p>Se eliminará "{aEliminar.categoria_nombre}" por <Monto valor={aEliminar.monto} /> y el saldo de la cuenta se corregirá automáticamente.</p>
-          <div className="modal-actions"><button onClick={() => setAEliminar(null)} disabled={eliminando}>Cancelar</button><button className="danger-button" onClick={confirmarEliminar} disabled={eliminando}>{eliminando ? 'Eliminando…' : 'Sí, eliminar'}</button></div>
+          <h3>{t('tx_eliminar_confirmar_titulo')}</h3>
+          <p>{t('tx_eliminar_confirmar_1')} "{aEliminar.categoria_nombre}" {t('tx_eliminar_confirmar_2')} <Monto valor={aEliminar.monto} /> {t('tx_eliminar_confirmar_3')}</p>
+          <div className="modal-actions"><button onClick={() => setAEliminar(null)} disabled={eliminando}>{t('comun_cancelar')}</button><button className="danger-button" onClick={confirmarEliminar} disabled={eliminando}>{eliminando ? t('comun_eliminando') : t('comun_si_eliminar')}</button></div>
         </div>
       </div>}
     </div>

@@ -1,18 +1,17 @@
 import { usePreferencias, MONEDAS } from '../context/PreferenciasContext.jsx'
 
 export default function SelectorMoneda({ onBack }) {
-  const { moneda, setMoneda } = usePreferencias()
+  const { moneda, setMoneda, t } = usePreferencias()
 
   return (
     <div style={{ padding: '16px 16px 100px', maxWidth: 680, margin: '0 auto' }}>
       <div className="screen-header">
         <button onClick={onBack} className="back-button">←</button>
-        <h1>Moneda</h1>
+        <h1>{t('ajustes_moneda')}</h1>
       </div>
 
       <p style={{ fontSize: 12, color: 'var(--text-muted)', margin: '0 0 16px' }}>
-        Esto solo cambia el símbolo y formato con el que se muestran tus montos —
-        no convierte tus cifras con un tipo de cambio real.
+        {t('sm_nota')}
       </p>
 
       {MONEDAS.map(m => (

@@ -1,12 +1,15 @@
+import { usePreferencias } from '../context/PreferenciasContext.jsx'
+
 const tabs = [
-  { id: 'inicio', label: 'Inicio', icon: '🏠' },
-  { id: 'analisis', label: 'Análisis', icon: '📊' },
-  { id: 'ahorro', label: 'Ahorro', icon: '🏦' },
-  { id: 'metas', label: 'Metas', icon: '🎯' },
-  { id: 'ajustes', label: 'Ajustes', icon: '⚙️' }
+  { id: 'inicio', clave: 'nav_inicio', icon: '🏠' },
+  { id: 'analisis', clave: 'nav_analisis', icon: '📊' },
+  { id: 'ahorro', clave: 'nav_ahorro', icon: '🏦' },
+  { id: 'metas', clave: 'nav_metas', icon: '🎯' },
+  { id: 'ajustes', clave: 'nav_ajustes', icon: '⚙️' }
 ]
 
 export default function BottomNav({ active, onChange }) {
+  const { t } = usePreferencias()
   return (
     <nav style={{
       position: 'fixed', bottom: 0, left: 0, right: 0,
@@ -29,7 +32,7 @@ export default function BottomNav({ active, onChange }) {
             fontSize: 10, fontWeight: 600,
             color: active === tab.id ? 'var(--accent-blue)' : 'var(--text-muted)'
           }}>
-            {tab.label}
+            {t(tab.clave)}
           </span>
         </button>
       ))}

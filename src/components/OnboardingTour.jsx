@@ -1,48 +1,14 @@
 import { useState } from 'react'
 import { useScrollLock } from '../hooks/useScrollLock.js'
+import { usePreferencias } from '../context/PreferenciasContext.jsx'
+import { pasosTour } from '../i18n/translations.js'
 
 export const TOUR_STORAGE_KEY = 'kairen_tour_completado'
 
-const pasos = [
-  {
-    icono: '👋',
-    titulo: 'Bienvenido a Kairen Finanzas',
-    texto: 'Un recorrido rápido de 30 segundos para que sepas dónde está todo. Puedes saltarlo cuando quieras.'
-  },
-  {
-    icono: '➕',
-    titulo: 'El botón (+)',
-    texto: 'Desde Inicio, este botón te deja registrar un Gasto o un Ingreso. Es la acción que más vas a usar.'
-  },
-  {
-    icono: '💵',
-    titulo: 'Cuentas: Efectivo y Tarjeta',
-    texto: 'Al registrar un movimiento eliges de dónde sale o a dónde entra el dinero. Son cuentas internas de la app — no están conectadas a tu banco real.'
-  },
-  {
-    icono: '🏷️',
-    titulo: 'Categorías',
-    texto: 'Cada movimiento se clasifica en una categoría (Alimentación, Transporte, etc.) para que Análisis pueda mostrarte en qué se te va el dinero.'
-  },
-  {
-    icono: '📊',
-    titulo: 'Análisis',
-    texto: 'Aquí ves tu Resumen (ingresos vs gastos), la Distribución por categoría, y Tendencias con hábitos e insights automáticos sobre tu mes.'
-  },
-  {
-    icono: '🏦',
-    titulo: 'Ahorro externo',
-    texto: 'Esta sección es solo para anotar cuánto llevas en tus cuentas de banco reales, como referencia. No mueve dinero real ni afecta tu Dinero Disponible.'
-  },
-  {
-    icono: '⚙️',
-    titulo: 'Ajustes',
-    texto: 'Ahí ves tu sesión de Google, puedes cerrar sesión (tus datos quedan guardados) o eliminar tu cuenta por completo. Y puedes volver a ver este tutorial cuando quieras.'
-  }
-]
-
 export default function OnboardingTour({ onFinalizar }) {
   const [paso, setPaso] = useState(0)
+  const { idioma, t } = usePreferencias()
+  const pasos = pasosTour[idioma] || pasosTour.es
   useScrollLock(true)
   const actual = pasos[paso]
   const esUltimo = paso === pasos.length - 1
@@ -83,14 +49,14 @@ export default function OnboardingTour({ onFinalizar }) {
               onClick={() => setPaso(p => p - 1)}
               style={{ flex: 1, padding: 12, borderRadius: 'var(--radius-md)', background: 'var(--bg-surface)', color: 'var(--text-primary)', fontWeight: 600, fontSize: 13 }}
             >
-              Atrás
+              {t('tour_atras')}
             </button>
           )}
           <button
             onClick={() => esUltimo ? cerrar() : setPaso(p => p + 1)}
             style={{ flex: 2, padding: 12, borderRadius: 'var(--radius-md)', background: 'var(--gradient-brand)', color: '#fff', fontWeight: 700, fontSize: 13 }}
           >
-            {esUltimo ? 'Empezar a usar Kairen' : 'Siguiente'}
+            {esUltimo ? t('tour_empezar') : t('tour_siguiente')}
           </button>
         </div>
 
@@ -99,7 +65,7 @@ export default function OnboardingTour({ onFinalizar }) {
             onClick={cerrar}
             style={{ marginTop: 14, background: 'transparent', color: 'var(--text-muted)', fontSize: 12 }}
           >
-            Saltar tutorial
+            {t('tour_saltar')}
           </button>
         )}
       </div>

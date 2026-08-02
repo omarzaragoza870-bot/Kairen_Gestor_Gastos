@@ -7,15 +7,17 @@ import { exportarTodosLosDatos, importarTodosLosDatos, reiniciarCuentaActual } f
 import Categorias from './Categorias.jsx'
 import SelectorMoneda from './SelectorMoneda.jsx'
 import SelectorTema from './SelectorTema.jsx'
+import SelectorIdioma from './SelectorIdioma.jsx'
 
 export default function Ajustes({ onVerTutorial }) {
-  const { ocultarSaldos, toggleOcultarSaldos, moneda, tema } = usePreferencias()
+  const { ocultarSaldos, toggleOcultarSaldos, moneda, tema, idioma, t } = usePreferencias()
   const [user, setUser] = useState(null)
   const [confirmando, setConfirmando] = useState(false)
   const [confirmandoReinicio, setConfirmandoReinicio] = useState(false)
   const [mostrarCategorias, setMostrarCategorias] = useState(false)
   const [mostrarMoneda, setMostrarMoneda] = useState(false)
   const [mostrarTema, setMostrarTema] = useState(false)
+  const [mostrarIdioma, setMostrarIdioma] = useState(false)
   useScrollLock(confirmando || confirmandoReinicio)
   const [eliminando, setEliminando] = useState(false)
   const [reiniciando, setReiniciando] = useState(false)
@@ -129,10 +131,13 @@ export default function Ajustes({ onVerTutorial }) {
   if (mostrarTema) {
     return <SelectorTema onBack={() => setMostrarTema(false)} />
   }
+  if (mostrarIdioma) {
+    return <SelectorIdioma onBack={() => setMostrarIdioma(false)} />
+  }
 
   return (
     <div style={{ padding: '16px 16px 100px' }}>
-      <h1 style={{ fontSize: 20, fontWeight: 700, margin: '0 0 20px' }}>Ajustes</h1>
+      <h1 style={{ fontSize: 20, fontWeight: 700, margin: '0 0 20px' }}>{t('ajustes_titulo')}</h1>
 
       {/* Perfil */}
       <section style={{
@@ -153,13 +158,13 @@ export default function Ajustes({ onVerTutorial }) {
         <div style={{ overflow: 'hidden' }}>
           <div style={{ fontWeight: 700, fontSize: 15 }}>{nombre}</div>
           <div style={{ fontSize: 12, color: 'var(--text-secondary)', overflow: 'hidden', textOverflow: 'ellipsis' }}>{email}</div>
-          <div style={{ fontSize: 11, color: 'var(--success)', marginTop: 2 }}>● Sesión iniciada con Google</div>
+          <div style={{ fontSize: 11, color: 'var(--success)', marginTop: 2 }}>● {t('ajustes_sesion_google')}</div>
         </div>
       </section>
 
       {/* Cuenta */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 6, margin: '4px 0 8px' }}>
-        <h2 style={{ fontSize: 14, fontWeight: 600, color: 'var(--text-secondary)', margin: 0 }}>Cuenta</h2>
+        <h2 style={{ fontSize: 14, fontWeight: 600, color: 'var(--text-secondary)', margin: 0 }}>{t('ajustes_seccion_cuenta')}</h2>
         <InfoTooltip
           title="Cerrar sesión vs Eliminar cuenta"
           text="Cerrar sesión solo desvincula este dispositivo — tus datos siguen guardados y puedes volver a entrar cuando quieras. Eliminar cuenta borra permanentemente tu perfil y todos tus datos, sin poder recuperarlos."
@@ -176,7 +181,7 @@ export default function Ajustes({ onVerTutorial }) {
             fontSize: 14, fontWeight: 600, display: 'flex', alignItems: 'center', gap: 10
           }}
         >
-          <span>🎓</span> Ver tutorial de nuevo
+          <span>🎓</span> {t('ajustes_ver_tutorial')}
         </button>
       )}
 
@@ -189,7 +194,7 @@ export default function Ajustes({ onVerTutorial }) {
           fontSize: 14, fontWeight: 600, display: 'flex', alignItems: 'center', gap: 10
         }}
       >
-        <span>🔓</span> Cerrar sesión
+        <span>🔓</span> {t('ajustes_cerrar_sesion')}
       </button>
 
       <button
@@ -201,7 +206,7 @@ export default function Ajustes({ onVerTutorial }) {
           fontSize: 14, fontWeight: 600, display: 'flex', alignItems: 'center', gap: 10
         }}
       >
-        <span>🗑️</span> Eliminar cuenta
+        <span>🗑️</span> {t('ajustes_eliminar_cuenta')}
       </button>
 
       {error && (
@@ -210,7 +215,7 @@ export default function Ajustes({ onVerTutorial }) {
 
       {/* Preferencias */}
       <div style={{ margin: '24px 0 8px' }}>
-        <h2 style={{ fontSize: 14, fontWeight: 600, color: 'var(--text-secondary)', margin: 0 }}>Preferencias</h2>
+        <h2 style={{ fontSize: 14, fontWeight: 600, color: 'var(--text-secondary)', margin: 0 }}>{t('ajustes_seccion_preferencias')}</h2>
       </div>
 
       <section style={{
@@ -219,27 +224,29 @@ export default function Ajustes({ onVerTutorial }) {
       }}>
         <button onClick={() => setMostrarMoneda(true)} style={{ width: '100%', textAlign: 'left', background: 'transparent' }}>
           <FilaAjuste
-            icono="💱" titulo="Moneda"
+            icono="💱" titulo={t('ajustes_moneda')}
             subtitulo={`${MONEDAS.find(m => m.codigo === moneda)?.bandera || ''} ${moneda} - ${MONEDAS.find(m => m.codigo === moneda)?.label || ''}`}
             flecha
           />
         </button>
-        <FilaAjuste icono="🌐" titulo="Idioma" subtitulo="Español" />
+        <button onClick={() => setMostrarIdioma(true)} style={{ width: '100%', textAlign: 'left', background: 'transparent' }}>
+          <FilaAjuste icono="🌐" titulo={t('ajustes_idioma')} subtitulo={idioma === 'es' ? 'Español' : 'English'} flecha />
+        </button>
         <button onClick={() => setMostrarTema(true)} style={{ width: '100%', textAlign: 'left', background: 'transparent' }}>
           <FilaAjuste
-            icono="🎨" titulo="Tema"
+            icono="🎨" titulo={t('ajustes_tema')}
             subtitulo={tema === 'sistema' ? 'Sistema' : tema === 'claro' ? 'Claro' : 'Oscuro'}
             flecha
           />
         </button>
         <button onClick={() => setMostrarCategorias(true)} style={{ width: '100%', textAlign: 'left', background: 'transparent' }}>
-          <FilaAjuste icono="🏷️" titulo="Administrar categorías" subtitulo="Personalizar categorías" flecha />
+          <FilaAjuste icono="🏷️" titulo={t('ajustes_administrar_categorias')} subtitulo={t('ajustes_personalizar_categorias')} flecha />
         </button>
         <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '14px 16px' }}>
           <span style={{ fontSize: 18 }}>👁️</span>
           <div style={{ flex: 1 }}>
-            <div style={{ fontSize: 14, fontWeight: 600 }}>Ocultar saldos</div>
-            <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>Oculta las cifras de tu balance general y cuentas</div>
+            <div style={{ fontSize: 14, fontWeight: 600 }}>{t('ajustes_ocultar_saldos')}</div>
+            <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>{t('ajustes_ocultar_saldos_desc')}</div>
           </div>
           <button
             onClick={toggleOcultarSaldos}
@@ -264,7 +271,7 @@ export default function Ajustes({ onVerTutorial }) {
 
       {/* Datos */}
       <div style={{ margin: '24px 0 8px' }}>
-        <h2 style={{ fontSize: 14, fontWeight: 600, color: 'var(--text-secondary)', margin: 0 }}>Datos</h2>
+        <h2 style={{ fontSize: 14, fontWeight: 600, color: 'var(--text-secondary)', margin: 0 }}>{t('ajustes_seccion_datos')}</h2>
       </div>
 
       <section style={{
@@ -272,20 +279,20 @@ export default function Ajustes({ onVerTutorial }) {
         border: '1px solid var(--border-subtle)', overflow: 'hidden', marginBottom: 16
       }}>
         <button onClick={handleExportar} disabled={exportando} style={{ width: '100%', textAlign: 'left', background: 'transparent' }}>
-          <FilaAjuste icono="⬇️" titulo="Exportar Datos" subtitulo={exportando ? 'Generando archivo…' : 'Guarda una copia de tus datos actuales'} />
+          <FilaAjuste icono="⬇️" titulo={t('ajustes_exportar')} subtitulo={exportando ? t('ajustes_exportar_generando') : t('ajustes_exportar_desc')} />
         </button>
         <button onClick={handleSeleccionarArchivoImportar} disabled={importando} style={{ width: '100%', textAlign: 'left', background: 'transparent' }}>
-          <FilaAjuste icono="⬆️" titulo="Importar Datos" subtitulo={importando ? 'Importando…' : 'Carga datos desde un archivo exportado anteriormente'} />
+          <FilaAjuste icono="⬆️" titulo={t('ajustes_importar')} subtitulo={importando ? t('ajustes_importar_cargando') : t('ajustes_importar_desc')} />
         </button>
         <input ref={inputImportarRef} type="file" accept="application/json" onChange={handleImportar} style={{ display: 'none' }} />
         <button onClick={() => setConfirmandoReinicio(true)} style={{ width: '100%', textAlign: 'left', background: 'transparent' }}>
-          <FilaAjuste icono="⏱️" titulo="Reiniciar Cuenta Actual" subtitulo="Volver tu cuenta a su estado inicial" />
+          <FilaAjuste icono="⏱️" titulo={t('ajustes_reiniciar')} subtitulo={t('ajustes_reiniciar_desc')} />
         </button>
       </section>
 
       {/* Acerca de la App */}
       <div style={{ margin: '24px 0 8px' }}>
-        <h2 style={{ fontSize: 14, fontWeight: 600, color: 'var(--text-secondary)', margin: 0 }}>Acerca de la App</h2>
+        <h2 style={{ fontSize: 14, fontWeight: 600, color: 'var(--text-secondary)', margin: 0 }}>{t('ajustes_acerca')}</h2>
       </div>
 
       <section style={{
@@ -294,8 +301,8 @@ export default function Ajustes({ onVerTutorial }) {
       }}>
         <div style={{ fontSize: 28, marginBottom: 6 }}>💜</div>
         <div style={{ fontWeight: 700, fontSize: 15 }}>Kairen Finanzas</div>
-        <div style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 2 }}>Versión 1.0.0</div>
-        <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 8 }}>Parte del ecosistema KAIREN</div>
+        <div style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 2 }}>{t('ajustes_version')}</div>
+        <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 8 }}>{t('ajustes_ecosistema')}</div>
       </section>
 
       {/* Modal de confirmación para eliminar cuenta */}
@@ -327,7 +334,7 @@ export default function Ajustes({ onVerTutorial }) {
                   background: 'var(--bg-surface)', color: 'var(--text-primary)', fontWeight: 600, fontSize: 13
                 }}
               >
-                Cancelar
+                {t('comun_cancelar')}
               </button>
               <button
                 onClick={handleDeleteAccount}
@@ -337,7 +344,7 @@ export default function Ajustes({ onVerTutorial }) {
                   background: 'var(--danger)', color: '#fff', fontWeight: 700, fontSize: 13
                 }}
               >
-                {eliminando ? 'Eliminando…' : 'Sí, eliminar'}
+                {eliminando ? t('comun_eliminando') : t('comun_si_eliminar')}
               </button>
             </div>
           </div>
@@ -374,7 +381,7 @@ export default function Ajustes({ onVerTutorial }) {
                   background: 'var(--bg-surface)', color: 'var(--text-primary)', fontWeight: 600, fontSize: 13
                 }}
               >
-                Cancelar
+                {t('comun_cancelar')}
               </button>
               <button
                 onClick={handleReiniciarCuenta}
@@ -384,7 +391,7 @@ export default function Ajustes({ onVerTutorial }) {
                   background: 'var(--warning)', color: '#1a1500', fontWeight: 700, fontSize: 13
                 }}
               >
-                {reiniciando ? 'Reiniciando…' : 'Sí, reiniciar'}
+                {reiniciando ? t('comun_reiniciando') : t('comun_si_reiniciar')}
               </button>
             </div>
           </div>

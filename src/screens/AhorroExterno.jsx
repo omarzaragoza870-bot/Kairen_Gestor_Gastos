@@ -4,6 +4,7 @@ import { obtenerAhorroExterno, crearAhorroExterno, editarAhorroExterno, eliminar
 import InfoTooltip from '../components/InfoTooltip.jsx'
 import { useScrollLock } from '../hooks/useScrollLock.js'
 import Monto from '../components/Monto.jsx'
+import { usePreferencias } from '../context/PreferenciasContext.jsx'
 
 const fmt = (n) => Number(n).toLocaleString('es-MX', { style: 'currency', currency: 'MXN' })
 const hoy = () => {
@@ -24,6 +25,7 @@ export default function AhorroExterno() {
   const [aEliminar, setAEliminar] = useState(null)
   useScrollLock(editando !== null || Boolean(aEliminar))
   const [procesando, setProcesando] = useState(false)
+  const { t } = usePreferencias()
 
   const cargar = useCallback(async (uid) => {
     setCargando(true)
@@ -83,21 +85,21 @@ export default function AhorroExterno() {
   return (
     <div style={{ padding: '16px 16px 100px', maxWidth: 680, margin: '0 auto' }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 4 }}>
-        <h1 style={{ fontSize: 20, fontWeight: 700, margin: 0 }}>Ahorro externo</h1>
+        <h1 style={{ fontSize: 20, fontWeight: 700, margin: 0 }}>{t('ae_titulo')}</h1>
         <InfoTooltip
-          title="Ahorro externo"
-          text="Aquí solo anotas cuánto llevas en tus cuentas de banco reales (fuera de la app), como referencia visual. No afecta tu Dinero Disponible ni tus Metas — es 100% informativo."
+          title={t('ae_titulo')}
+          text={t('ae_info')}
         />
       </div>
       <p style={{ fontSize: 13, color: 'var(--text-muted)', margin: '0 0 20px' }}>
-        Solo para llevar el registro — no mueve dinero real ni afecta tus otras cuentas.
+        {t('ae_subtitulo')}
       </p>
 
       <div style={{
         background: 'var(--bg-surface)', borderRadius: 'var(--radius-lg)',
         border: '1px solid var(--border-subtle)', padding: 20, marginBottom: 20
       }}>
-        <span style={{ fontSize: 13, color: 'var(--text-secondary)' }}>Total registrado</span>
+        <span style={{ fontSize: 13, color: 'var(--text-secondary)' }}>{t('ae_total')}</span>
         <div style={{
           fontSize: 28, fontWeight: 800, marginTop: 4,
           backgroundImage: 'var(--gradient-brand)', WebkitBackgroundClip: 'text', color: 'transparent'
@@ -114,8 +116,8 @@ export default function AhorroExterno() {
           background: 'var(--bg-surface)', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-subtle)', marginBottom: 16
         }}>
           <div style={{ fontSize: 32, marginBottom: 8 }}>🏦</div>
-          <p style={{ fontSize: 14, margin: 0 }}>Aún no tienes registros.</p>
-          <p style={{ fontSize: 13, margin: '4px 0 0' }}>Agrega el saldo que llevas en tu banco.</p>
+          <p style={{ fontSize: 14, margin: 0 }}>{t('ae_vacio_titulo')}</p>
+          <p style={{ fontSize: 13, margin: '4px 0 0' }}>{t('ae_vacio_subtitulo')}</p>
         </div>
       )}
 
@@ -133,8 +135,8 @@ export default function AhorroExterno() {
             <div style={{ fontWeight: 700, fontSize: 15 }}><Monto valor={r.monto} /></div>
           </div>
           <div style={{ display: 'flex', gap: 8, marginTop: 10, borderTop: '1px solid var(--border-subtle)', paddingTop: 8 }}>
-            <button onClick={() => setEditando(r)} style={{ flex: 1, background: 'transparent', color: 'var(--text-secondary)', fontSize: 12, padding: 6 }}>✏️ Editar</button>
-            <button onClick={() => setAEliminar(r)} style={{ flex: 1, background: 'transparent', color: 'var(--danger)', fontSize: 12, padding: 6 }}>🗑️ Eliminar</button>
+            <button onClick={() => setEditando(r)} style={{ flex: 1, background: 'transparent', color: 'var(--text-secondary)', fontSize: 12, padding: 6 }}>✏️ {t('comun_editar')}</button>
+            <button onClick={() => setAEliminar(r)} style={{ flex: 1, background: 'transparent', color: 'var(--danger)', fontSize: 12, padding: 6 }}>🗑️ {t('comun_eliminar')}</button>
           </div>
         </div>
       ))}
@@ -164,12 +166,12 @@ export default function AhorroExterno() {
       {aEliminar && (
         <div onClick={() => !procesando && setAEliminar(null)} className="modal-backdrop">
           <div onClick={(e) => e.stopPropagation()} className="modal-card">
-            <h3>¿Eliminar este registro?</h3>
-            <p>Se eliminará "{aEliminar.nombre_banco}" por <Monto valor={aEliminar.monto} />. Esto no afecta tu Dinero Disponible ni tus Metas.</p>
+            <h3>{t('ae_eliminar_titulo')}</h3>
+            <p>{t('tx_eliminar_confirmar_1')} "{aEliminar.nombre_banco}" {t('tx_eliminar_confirmar_2')} <Monto valor={aEliminar.monto} />. {t('ae_no_afecta')}</p>
             <div className="modal-actions">
-              <button onClick={() => setAEliminar(null)} disabled={procesando}>Cancelar</button>
+              <button onClick={() => setAEliminar(null)} disabled={procesando}>{t('comun_cancelar')}</button>
               <button className="danger-button" onClick={confirmarEliminar} disabled={procesando}>
-                {procesando ? 'Eliminando…' : 'Sí, eliminar'}
+                {procesando ? t('comun_eliminando') : t('comun_si_eliminar')}
               </button>
             </div>
           </div>
@@ -180,6 +182,7 @@ export default function AhorroExterno() {
 }
 
 function FormularioAhorro({ registro, onCancelar, onGuardar, guardando }) {
+  const { t } = usePreferencias()
   const [nombreBanco, setNombreBanco] = useState(registro.nombre_banco || '')
   const [monto, setMonto] = useState(registro.monto ? String(registro.monto) : '')
   const [fechaRegistro, setFechaRegistro] = useState(registro.fecha_registro || hoy())
@@ -191,37 +194,37 @@ function FormularioAhorro({ registro, onCancelar, onGuardar, guardando }) {
   return (
     <div onClick={onCancelar} className="modal-backdrop">
       <div onClick={(e) => e.stopPropagation()} className="modal-card" style={{ maxWidth: 400 }}>
-        <h3>{registro.id ? 'Editar registro' : 'Nuevo registro de ahorro'}</h3>
+        <h3>{registro.id ? t('ae_form_editar') : t('ae_form_nuevo')}</h3>
 
-        <label className="field-label">Banco / Institución</label>
+        <label className="field-label">{t('ae_banco')}</label>
         <div className="input-shell">
-          <input value={nombreBanco} onChange={(e) => setNombreBanco(e.target.value)} placeholder="Ej. Nu, BBVA, Efectivo en casa…" maxLength={60} />
+          <input value={nombreBanco} onChange={(e) => setNombreBanco(e.target.value)} placeholder={t('ae_banco_placeholder')} maxLength={60} />
         </div>
 
-        <label className="field-label">Monto que llevas</label>
+        <label className="field-label">{t('ae_monto')}</label>
         <div className="input-shell">
           <span style={{ color: 'var(--text-muted)' }}>$</span>
           <input inputMode="decimal" value={monto} onChange={(e) => setMonto(e.target.value.replace(',', '.'))} placeholder="0.00" />
         </div>
 
-        <label className="field-label">Fecha</label>
+        <label className="field-label">{t('ae_fecha')}</label>
         <div className="input-shell">
           <input type="date" value={fechaRegistro} onChange={(e) => setFechaRegistro(e.target.value)} />
         </div>
 
-        <label className="field-label">Nota (opcional)</label>
+        <label className="field-label">{t('ae_nota')}</label>
         <div className="input-shell">
-          <input value={nota} onChange={(e) => setNota(e.target.value)} maxLength={100} placeholder="Ej. Fondo de emergencia" />
+          <input value={nota} onChange={(e) => setNota(e.target.value)} maxLength={100} placeholder={t('ae_nota_placeholder')} />
         </div>
 
         <div className="modal-actions" style={{ marginTop: 4 }}>
-          <button onClick={onCancelar} disabled={guardando}>Cancelar</button>
+          <button onClick={onCancelar} disabled={guardando}>{t('comun_cancelar')}</button>
           <button
             disabled={!valido || guardando}
             onClick={() => onGuardar({ id: registro.id, nombreBanco: nombreBanco.trim(), monto: montoNumerico, fechaRegistro, nota: nota.trim() })}
             style={{ background: valido ? 'var(--gradient-brand)' : 'var(--bg-surface-2)', color: valido ? '#fff' : 'var(--text-muted)' }}
           >
-            {guardando ? 'Guardando…' : 'Guardar'}
+            {guardando ? t('comun_guardando') : t('comun_guardar')}
           </button>
         </div>
       </div>

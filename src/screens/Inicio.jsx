@@ -2,8 +2,10 @@ import { useCallback, useEffect, useState } from 'react'
 import { supabase } from '../lib/supabaseClient.js'
 import { obtenerTransaccionesPorMes, obtenerTransaccionesEnRango } from '../lib/db.js'
 import InfoTooltip from '../components/InfoTooltip.jsx'
-import SelectorPeriodo, { MESES } from '../components/SelectorPeriodo.jsx'
+import SelectorPeriodo from '../components/SelectorPeriodo.jsx'
+import { MESES_POR_IDIOMA } from '../i18n/translations.js'
 import Monto from '../components/Monto.jsx'
+import { usePreferencias } from '../context/PreferenciasContext.jsx'
 
 const fmt = n => Number(n).toLocaleString('es-MX', { style: 'currency', currency: 'MXN' })
 const fmtFecha = fechaISO => new Date(`${fechaISO}T12:00:00`).toLocaleDateString('es-MX', { day: '2-digit', month: 'short', year: 'numeric' })
@@ -16,6 +18,8 @@ export default function Inicio({ onNuevo, onEditar, onVerTodas, refreshKey }) {
   const hoy = new Date()
   const [periodo, setPeriodo] = useState({ tipo: 'mes', anio: hoy.getFullYear(), mes: hoy.getMonth() })
   const [mostrarSelector, setMostrarSelector] = useState(false)
+  const { t, idioma } = usePreferencias()
+  const MESES = MESES_POR_IDIOMA[idioma] || MESES_POR_IDIOMA.es
 
   const cargarDatos = useCallback(async uid => {
     setCargando(true)
@@ -78,24 +82,24 @@ export default function Inicio({ onNuevo, onEditar, onVerTodas, refreshKey }) {
 
       <section className="summary-card">
         <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-          <span style={{ fontSize: 13, color: 'var(--text-secondary)' }}>Dinero Disponible</span>
-          <InfoTooltip title="Dinero Disponible" text="Ingresos menos gastos del período seleccionado. No incluye el ahorro externo." />
+          <span style={{ fontSize: 13, color: 'var(--text-secondary)' }}>{t('inicio_dinero_disponible')}</span>
+          <InfoTooltip title={t('inicio_dinero_disponible')} text={t('inicio_dinero_disponible_info')} />
         </div>
         <div className="available-amount">{cargando ? '…' : <Monto valor={disponible} />}</div>
         <div className="summary-grid">
-          <div><span className="income-label">↑ Ingresos</span><div>{cargando ? '…' : <Monto valor={ingresos} prefijo="+" />}</div></div>
-          <div><span className="expense-label">↓ Gastos</span><div>{cargando ? '…' : <Monto valor={gastos} prefijo="-" />}</div></div>
+          <div><span className="income-label">↑ {t('inicio_ingresos')}</span><div>{cargando ? '…' : <Monto valor={ingresos} prefijo="+" />}</div></div>
+          <div><span className="expense-label">↓ {t('inicio_gastos')}</span><div>{cargando ? '…' : <Monto valor={gastos} prefijo="-" />}</div></div>
         </div>
       </section>
 
       <div className="section-heading">
-        <h2>Transacciones</h2>
-        {transacciones.length > 0 && <button onClick={onVerTodas} className="link-button">Ver todas</button>}
+        <h2>{t('inicio_transacciones')}</h2>
+        {transacciones.length > 0 && <button onClick={onVerTodas} className="link-button">{t('inicio_ver_todas')}</button>}
       </div>
 
       {error && <p className="error-message">{error}</p>}
       {!cargando && !error && transacciones.length === 0 && (
-        <div className="empty-state"><div style={{ fontSize: 32, marginBottom: 8 }}>📭</div><p>No hay transacciones en este período.</p><small>Toca el botón + para registrar la primera.</small></div>
+        <div className="empty-state"><div style={{ fontSize: 32, marginBottom: 8 }}>📭</div><p>{t('inicio_vacio_titulo')}</p><small>{t('inicio_vacio_subtitulo')}</small></div>
       )}
 
       {visibles.map(tx => (

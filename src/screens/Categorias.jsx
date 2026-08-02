@@ -1,6 +1,7 @@
 import { useEffect, useState, useCallback, useMemo } from 'react'
 import { obtenerCategorias, crearCategoria, eliminarCategoria } from '../lib/db.js'
 import { useScrollLock } from '../hooks/useScrollLock.js'
+import { usePreferencias } from '../context/PreferenciasContext.jsx'
 
 const ICONOS = ['🏷️', '🍔', '🚗', '💡', '🎬', '👕', '🏥', '📚', '✈️', '🐾', '💰', '📈', '💼', '🎁', '↩️']
 
@@ -13,6 +14,7 @@ export default function Categorias({ userId, onBack }) {
   const [aEliminar, setAEliminar] = useState(null)
   const [procesando, setProcesando] = useState(false)
   useScrollLock(creando || Boolean(aEliminar))
+  const { t } = usePreferencias()
 
   const cargar = useCallback(async () => {
     setCargando(true)
@@ -20,7 +22,7 @@ export default function Categorias({ userId, onBack }) {
     try {
       setLista(await obtenerCategorias(userId))
     } catch (err) {
-      setError(err.message || 'No se pudieron cargar las categorías.')
+      setError(err.message)
     } finally {
       setCargando(false)
     }
@@ -38,7 +40,7 @@ export default function Categorias({ userId, onBack }) {
       setCreando(false)
       await cargar()
     } catch (err) {
-      setError(err.message || 'No se pudo crear la categoría.')
+      setError(err.message)
     } finally {
       setProcesando(false)
     }
@@ -52,7 +54,7 @@ export default function Categorias({ userId, onBack }) {
       setAEliminar(null)
       await cargar()
     } catch (err) {
-      setError(err.message || 'No se pudo eliminar.')
+      setError(err.message)
     } finally {
       setProcesando(false)
     }
@@ -62,15 +64,15 @@ export default function Categorias({ userId, onBack }) {
     <div style={{ padding: '16px 16px 100px', maxWidth: 680, margin: '0 auto' }}>
       <div className="screen-header">
         <button onClick={onBack} className="back-button">←</button>
-        <h1>Administrar categorías</h1>
+        <h1>{t('cat_titulo')}</h1>
       </div>
 
       <p style={{ fontSize: 12, color: 'var(--text-muted)', margin: '0 0 16px' }}>
-        Si borras una categoría, tus transacciones anteriores conservan su nombre — no se rompen.
+        {t('cat_info')}
       </p>
 
       <div style={{ display: 'flex', gap: 8, marginBottom: 20 }}>
-        {[['gasto', 'Gasto'], ['ingreso', 'Ingreso']].map(([id, label]) => (
+        {[['gasto', t('cat_tab_gasto')], ['ingreso', t('cat_tab_ingreso')]].map(([id, label]) => (
           <button
             key={id}
             onClick={() => setTab(id)}
@@ -89,7 +91,7 @@ export default function Categorias({ userId, onBack }) {
       {error && <p className="error-message">{error}</p>}
 
       {!cargando && filtradas.length === 0 && (
-        <div className="empty-state"><p>No tienes categorías de {tab} todavía.</p></div>
+        <div className="empty-state"><p>{t('cat_vacio')}</p></div>
       )}
 
       {filtradas.map(cat => (
@@ -112,7 +114,7 @@ export default function Categorias({ userId, onBack }) {
           color: 'var(--accent-blue)', fontWeight: 600, fontSize: 14
         }}
       >
-        + Agregar categoría de {tab === 'gasto' ? 'gasto' : 'ingreso'}
+        + {t('cat_agregar')} ({tab === 'gasto' ? t('cat_tab_gasto') : t('cat_tab_ingreso')})
       </button>
 
       {creando && (
@@ -126,12 +128,12 @@ export default function Categorias({ userId, onBack }) {
       {aEliminar && (
         <div onClick={() => !procesando && setAEliminar(null)} className="modal-backdrop">
           <div onClick={(e) => e.stopPropagation()} className="modal-card">
-            <h3>¿Eliminar "{aEliminar.nombre}"?</h3>
-            <p>Tus transacciones pasadas con esta categoría no se ven afectadas, pero ya no podrás elegirla en nuevos movimientos.</p>
+            <h3>{t('cat_eliminar_titulo')}</h3>
+            <p>{t('cat_eliminar_info')}</p>
             <div className="modal-actions">
-              <button onClick={() => setAEliminar(null)} disabled={procesando}>Cancelar</button>
+              <button onClick={() => setAEliminar(null)} disabled={procesando}>{t('comun_cancelar')}</button>
               <button className="danger-button" onClick={confirmarEliminar} disabled={procesando}>
-                {procesando ? 'Eliminando…' : 'Sí, eliminar'}
+                {procesando ? t('comun_eliminando') : t('comun_si_eliminar')}
               </button>
             </div>
           </div>
@@ -142,6 +144,7 @@ export default function Categorias({ userId, onBack }) {
 }
 
 function FormularioCategoria({ onCancelar, onGuardar, procesando }) {
+  const { t } = usePreferencias()
   const [nombre, setNombre] = useState('')
   const [icono, setIcono] = useState(ICONOS[0])
   const valido = nombre.trim().length > 0
@@ -149,9 +152,9 @@ function FormularioCategoria({ onCancelar, onGuardar, procesando }) {
   return (
     <div onClick={onCancelar} className="modal-backdrop">
       <div onClick={(e) => e.stopPropagation()} className="modal-card" style={{ maxWidth: 380 }}>
-        <h3>Nueva categoría</h3>
+        <h3>{t('cat_nueva')}</h3>
 
-        <label className="field-label">Icono</label>
+        <label className="field-label">{t('metas_icono')}</label>
         <div style={{ display: 'flex', gap: 8, overflowX: 'auto', margin: '8px 0 16px', paddingBottom: 4 }}>
           {ICONOS.map(ic => (
             <button
@@ -168,19 +171,19 @@ function FormularioCategoria({ onCancelar, onGuardar, procesando }) {
           ))}
         </div>
 
-        <label className="field-label">Nombre</label>
+        <label className="field-label">{t('cat_nombre')}</label>
         <div className="input-shell">
-          <input value={nombre} onChange={(e) => setNombre(e.target.value)} placeholder="Ej. Mascotas, Suscripciones…" maxLength={30} autoFocus />
+          <input value={nombre} onChange={(e) => setNombre(e.target.value)} placeholder={t('cat_nombre_placeholder')} maxLength={30} autoFocus />
         </div>
 
         <div className="modal-actions" style={{ marginTop: 4 }}>
-          <button onClick={onCancelar} disabled={procesando}>Cancelar</button>
+          <button onClick={onCancelar} disabled={procesando}>{t('comun_cancelar')}</button>
           <button
             disabled={!valido || procesando}
             onClick={() => onGuardar(nombre.trim(), icono)}
             style={{ background: valido ? 'var(--gradient-brand)' : 'var(--bg-surface-2)', color: valido ? '#fff' : 'var(--text-muted)' }}
           >
-            {procesando ? 'Guardando…' : 'Guardar'}
+            {procesando ? t('comun_guardando') : t('comun_guardar')}
           </button>
         </div>
       </div>
