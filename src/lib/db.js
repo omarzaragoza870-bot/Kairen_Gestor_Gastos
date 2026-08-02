@@ -148,7 +148,7 @@ export async function obtenerTransferencias(userId, limite = 20) {
     if (error) throw error
     return data || []
   } catch (err) {
-    console.warn('[Kairen Finanzas] Transferencias no disponibles aún:', err.message)
+    console.warn('[Kairen Finanzas] Transferencias no disponibles aún:', { timestamp: new Date().toISOString(), detalle: err.message })
     return []
   }
 }
@@ -175,7 +175,7 @@ export async function obtenerPresupuestos(userId) {
     if (error) throw error
     return data || []
   } catch (err) {
-    console.warn('[Kairen Finanzas] Presupuestos no disponibles aún:', err.message)
+    console.warn('[Kairen Finanzas] Presupuestos no disponibles aún:', { timestamp: new Date().toISOString(), detalle: err.message })
     return []
   }
 }

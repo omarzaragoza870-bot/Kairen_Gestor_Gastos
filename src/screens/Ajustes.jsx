@@ -4,6 +4,7 @@ import InfoTooltip from '../components/InfoTooltip.jsx'
 import { useScrollLock } from '../hooks/useScrollLock.js'
 import { usePreferencias, MONEDAS } from '../context/PreferenciasContext.jsx'
 import { exportarTodosLosDatos, importarTodosLosDatos, reiniciarCuentaActual } from '../lib/db.js'
+import { logError } from '../lib/logger.js'
 import Categorias from './Categorias.jsx'
 import Presupuestos from './Presupuestos.jsx'
 import SelectorMoneda from './SelectorMoneda.jsx'
@@ -52,7 +53,7 @@ export default function Ajustes({ onVerTutorial }) {
       await supabase.auth.signOut({ scope: 'global' }) // invalida el refresh token en todos los dispositivos, no solo este
     } catch (err) {
       setError('No se pudo eliminar la cuenta. Intenta de nuevo o contáctanos.')
-      console.error('[Kairen Finanzas] Error al eliminar cuenta:', err)
+      logError('Error al eliminar cuenta', err)
       setEliminando(false)
     }
   }
@@ -121,7 +122,7 @@ export default function Ajustes({ onVerTutorial }) {
       setMensaje('Datos importados correctamente. Los verás reflejados en Inicio, Análisis, etc.')
     } catch (err) {
       setError('No se pudo importar el archivo. Verifica que sea un respaldo válido de Kairen Finanzas.')
-      console.error('[Kairen Finanzas] Error al importar:', err)
+      logError('Error al importar datos', err)
     } finally {
       setImportando(false)
     }

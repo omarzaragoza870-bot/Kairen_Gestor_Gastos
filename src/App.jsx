@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { supabase } from './lib/supabaseClient.js'
 import { asegurarCuentasPorDefecto, asegurarCategoriasPorDefecto } from './lib/db.js'
+import { logError } from './lib/logger.js'
 import BottomNav from './components/BottomNav.jsx'
 import Inicio from './screens/Inicio.jsx'
 import NuevaTransaccion from './screens/NuevaTransaccion.jsx'
@@ -30,16 +31,16 @@ function AppInner() {
     supabase.auth.getSession().then(({ data }) => {
       setSession(data.session)
       if (data.session) {
-        asegurarCuentasPorDefecto(data.session.user.id).catch(console.error)
-        asegurarCategoriasPorDefecto(data.session.user.id).catch(console.error)
+        asegurarCuentasPorDefecto(data.session.user.id).catch(err => logError('Error creando cuentas por defecto', err))
+        asegurarCategoriasPorDefecto(data.session.user.id).catch(err => logError('Error creando categorías por defecto', err))
         if (!yaVistoAntes) setMostrarTour(true)
       }
     })
     const { data: listener } = supabase.auth.onAuthStateChange((_event, nueva) => {
       setSession(nueva)
       if (nueva) {
-        asegurarCuentasPorDefecto(nueva.user.id).catch(console.error)
-        asegurarCategoriasPorDefecto(nueva.user.id).catch(console.error)
+        asegurarCuentasPorDefecto(nueva.user.id).catch(err => logError('Error creando cuentas por defecto', err))
+        asegurarCategoriasPorDefecto(nueva.user.id).catch(err => logError('Error creando categorías por defecto', err))
         if (!yaVistoAntes) setMostrarTour(true)
       }
     })

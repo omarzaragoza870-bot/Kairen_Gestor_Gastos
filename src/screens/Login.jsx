@@ -1,5 +1,6 @@
 import { supabase } from '../lib/supabaseClient.js'
 import { usePreferencias } from '../context/PreferenciasContext.jsx'
+import { logError } from '../lib/logger.js'
 
 export default function Login() {
   const { t } = usePreferencias()
@@ -9,7 +10,7 @@ export default function Login() {
       provider: 'google',
       options: { redirectTo: window.location.origin }
     })
-    if (error) console.error('[Kairen Finanzas] Error al iniciar sesión:', error.message)
+    if (error) logError('Error al iniciar sesión', error)
   }
 
   return (

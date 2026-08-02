@@ -10,6 +10,7 @@ import {
 } from '../lib/db.js'
 import InfoTooltip from '../components/InfoTooltip.jsx'
 import Monto from '../components/Monto.jsx'
+import { logError } from '../lib/logger.js'
 import { usePreferencias } from '../context/PreferenciasContext.jsx'
 
 const hoy = () => {
@@ -59,7 +60,7 @@ export default function NuevaTransaccion({ onBack, onGuardada, transaccionEditar
         if (!cuentaId && lista.length > 0) setCuentaId(lista[0].id)
         if (lista.length === 0) throw new Error('No se pudieron cargar las cuentas Efectivo y Tarjeta.')
       } catch (err) {
-        console.error('[Kairen Finanzas] Error cargando cuentas:', err)
+        logError('Error cargando cuentas', err)
         setError(err.message || 'No se pudieron cargar tus cuentas.')
       }
     }
@@ -103,7 +104,7 @@ export default function NuevaTransaccion({ onBack, onGuardada, transaccionEditar
       }
       onGuardada?.()
     } catch (err) {
-      console.error('[Kairen Finanzas] Error guardando transacción:', err)
+      logError('Error guardando transacción', err)
       setError(err.message || 'No se pudo guardar. Intenta de nuevo.')
       setGuardando(false)
     }
