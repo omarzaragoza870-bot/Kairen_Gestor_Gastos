@@ -22,8 +22,14 @@ export async function asegurarCuentasPorDefecto(userId) {
   }
 }
 
-const CATEGORIAS_GASTO_DEFECTO = ['Alimentación', 'Transporte', 'Servicios', 'Entretenimiento', 'Ropa', 'Salud', 'Otros']
-const CATEGORIAS_INGRESO_DEFECTO = ['Salario', 'Inversiones', 'Negocios', 'Reembolsos', 'Regalos', 'Otros']
+const CATEGORIAS_GASTO_DEFECTO = [
+  ['Alimentación', '🍔'], ['Transporte', '🚗'], ['Servicios', '💡'],
+  ['Entretenimiento', '🎬'], ['Ropa', '👕'], ['Salud', '🏥'], ['Otros', '📦']
+]
+const CATEGORIAS_INGRESO_DEFECTO = [
+  ['Salario', '💰'], ['Inversiones', '📈'], ['Negocios', '💼'],
+  ['Reembolsos', '↩️'], ['Regalos', '🎁'], ['Otros', '📦']
+]
 
 export async function asegurarCategoriasPorDefecto(userId) {
   const { data: existentes, error } = await supabase
@@ -35,8 +41,8 @@ export async function asegurarCategoriasPorDefecto(userId) {
 
   if (!existentes || existentes.length === 0) {
     const filas = [
-      ...CATEGORIAS_GASTO_DEFECTO.map(nombre => ({ user_id: userId, nombre, tipo: 'gasto' })),
-      ...CATEGORIAS_INGRESO_DEFECTO.map(nombre => ({ user_id: userId, nombre, tipo: 'ingreso' }))
+      ...CATEGORIAS_GASTO_DEFECTO.map(([nombre, icono]) => ({ user_id: userId, nombre, tipo: 'gasto', icono })),
+      ...CATEGORIAS_INGRESO_DEFECTO.map(([nombre, icono]) => ({ user_id: userId, nombre, tipo: 'ingreso', icono }))
     ]
     const { error: insertError } = await supabase.from('categorias').insert(filas)
     if (insertError) throw insertError

@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from 'react'
 import { supabase } from '../lib/supabaseClient.js'
-import { obtenerTransaccionesPorMes, obtenerTransaccionesEnRango } from '../lib/db.js'
+import { obtenerTransaccionesPorMes, obtenerTransaccionesEnRango, obtenerCategorias } from '../lib/db.js'
 import InfoTooltip from '../components/InfoTooltip.jsx'
 import SelectorPeriodo from '../components/SelectorPeriodo.jsx'
 import { MESES_POR_IDIOMA } from '../i18n/translations.js'
@@ -20,6 +20,7 @@ export default function Inicio({ onNuevo, onNuevaTransferencia, onEditar, onVerT
   const [userId, setUserId] = useState(null)
   const [mostrarCuentas, setMostrarCuentas] = useState(false)
   const [mostrarOpciones, setMostrarOpciones] = useState(false)
+  const [iconosPorCategoria, setIconosPorCategoria] = useState({})
   const hoy = new Date()
   const [periodo, setPeriodo] = useState({ tipo: 'mes', anio: hoy.getFullYear(), mes: hoy.getMonth() })
   const [mostrarSelector, setMostrarSelector] = useState(false)
@@ -51,6 +52,11 @@ export default function Inicio({ onNuevo, onNuevaTransferencia, onEditar, onVerT
       if (data.user) {
         setUserId(data.user.id)
         cargarDatos(data.user.id)
+        obtenerCategorias(data.user.id).then(cats => {
+          const mapa = {}
+          cats.forEach(c => { mapa[`${c.tipo}:${c.nombre}`] = c.icono || '🏷️' })
+          setIconosPorCategoria(mapa)
+        }).catch(() => {})
       }
     })
   }, [cargarDatos, refreshKey])
@@ -135,10 +141,13 @@ export default function Inicio({ onNuevo, onNuevaTransferencia, onEditar, onVerT
 
       {visibles.map(tx => (
         <button key={tx.id} onClick={() => onEditar(tx)} className="transaction-row">
-          <div style={{ minWidth: 0, textAlign: 'left' }}>
-            <div className="transaction-category">{tx.categoria_nombre}</div>
-            {tx.descripcion && <div className="transaction-description">{tx.descripcion}</div>}
-            <div className="transaction-date">{fmtFecha(tx.fecha)}</div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10, minWidth: 0, textAlign: 'left' }}>
+            <span style={{ fontSize: 20, flexShrink: 0 }}>{iconosPorCategoria[`${tx.tipo}:${tx.categoria_nombre}`] || '🏷️'}</span>
+            <div style={{ minWidth: 0 }}>
+              <div className="transaction-category">{tx.categoria_nombre}</div>
+              {tx.descripcion && <div className="transaction-description">{tx.descripcion}</div>}
+              <div className="transaction-date">{fmtFecha(tx.fecha)}</div>
+            </div>
           </div>
           <div className={tx.tipo === 'gasto' ? 'amount expense' : 'amount income'}><Monto valor={tx.monto} prefijo={tx.tipo === 'gasto' ? '-' : '+'} /></div>
         </button>

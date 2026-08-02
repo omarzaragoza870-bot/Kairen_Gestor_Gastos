@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { supabase } from '../lib/supabaseClient.js'
-import { eliminarTransaccion, obtenerTodasLasTransacciones, obtenerCuentas } from '../lib/db.js'
+import { eliminarTransaccion, obtenerTodasLasTransacciones, obtenerCuentas, obtenerCategorias } from '../lib/db.js'
 import { useScrollLock } from '../hooks/useScrollLock.js'
 import Monto from '../components/Monto.jsx'
 import { usePreferencias } from '../context/PreferenciasContext.jsx'
@@ -19,6 +19,7 @@ export default function Transacciones({ onBack, onEditar, refreshKey, onCambio }
   const [aEliminar, setAEliminar] = useState(null)
   useScrollLock(Boolean(aEliminar))
   const [eliminando, setEliminando] = useState(false)
+  const [iconosPorCategoria, setIconosPorCategoria] = useState({})
   const { t } = usePreferencias()
 
   const cargar = useCallback(async () => {
@@ -27,12 +28,16 @@ export default function Transacciones({ onBack, onEditar, refreshKey, onCambio }
     try {
       const { data } = await supabase.auth.getUser()
       if (!data.user) throw new Error('Sesión no disponible.')
-      const [tx, ctas] = await Promise.all([
+      const [tx, ctas, cats] = await Promise.all([
         obtenerTodasLasTransacciones(data.user.id),
-        obtenerCuentas(data.user.id)
+        obtenerCuentas(data.user.id),
+        obtenerCategorias(data.user.id)
       ])
       setLista(tx)
       setCuentas(ctas)
+      const mapa = {}
+      cats.forEach(c => { mapa[`${c.tipo}:${c.nombre}`] = c.icono || '🏷️' })
+      setIconosPorCategoria(mapa)
     } catch (err) {
       setError(err.message || 'No se pudieron cargar las transacciones.')
     } finally {
@@ -119,7 +124,10 @@ export default function Transacciones({ onBack, onEditar, refreshKey, onCambio }
       {filtradas.map(tx => (
         <div key={tx.id} className="transaction-card">
           <button onClick={() => onEditar(tx)} className="transaction-main">
-            <div style={{ minWidth: 0, textAlign: 'left' }}><strong>{tx.categoria_nombre}</strong>{tx.descripcion && <span>{tx.descripcion}</span>}<small>{fmtFecha(tx.fecha)}</small></div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10, minWidth: 0 }}>
+              <span style={{ fontSize: 20, flexShrink: 0 }}>{iconosPorCategoria[`${tx.tipo}:${tx.categoria_nombre}`] || '🏷️'}</span>
+              <div style={{ minWidth: 0, textAlign: 'left' }}><strong>{tx.categoria_nombre}</strong>{tx.descripcion && <span>{tx.descripcion}</span>}<small>{fmtFecha(tx.fecha)}</small></div>
+            </div>
             <div className={tx.tipo === 'gasto' ? 'amount expense' : 'amount income'}><Monto valor={tx.monto} prefijo={tx.tipo === 'gasto' ? '-' : '+'} /></div>
           </button>
           <div className="transaction-actions"><button onClick={() => onEditar(tx)}>✏️ {t('comun_editar')}</button><button className="danger-link" onClick={() => setAEliminar(tx)}>🗑️ {t('comun_eliminar')}</button></div>
