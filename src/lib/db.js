@@ -112,6 +112,53 @@ export async function eliminarCuenta(id, userId) {
   if (error) throw error
 }
 
+export async function crearTransferencia({ cuentaOrigenId, cuentaDestinoId, monto, descripcion, fecha }) {
+  const { data, error } = await supabase.rpc('crear_transferencia_segura', {
+    p_cuenta_origen_id: cuentaOrigenId,
+    p_cuenta_destino_id: cuentaDestinoId,
+    p_monto: monto,
+    p_descripcion: descripcion || null,
+    p_fecha: fecha
+  })
+  if (error) {
+    if (esFuncionNoDisponible(error)) {
+      throw new Error('Falta ejecutar src/sql/upgrade_v1_5_transferencias.sql en Supabase para poder transferir entre cuentas.')
+    }
+    throw error
+  }
+  return data
+}
+
+export async function obtenerTransferencias(userId, limite = 20) {
+  try {
+    const { data, error } = await supabase
+      .from('transferencias')
+      .select('*')
+      .eq('user_id', userId)
+      .order('fecha', { ascending: false })
+      .order('created_at', { ascending: false })
+      .limit(limite)
+
+    if (error) throw error
+    return data || []
+  } catch (err) {
+    console.warn('[Kairen Finanzas] Transferencias no disponibles aún:', err.message)
+    return []
+  }
+}
+
+export async function eliminarTransferencia(transferenciaId) {
+  const { error } = await supabase.rpc('eliminar_transferencia_segura', {
+    p_transferencia_id: transferenciaId
+  })
+  if (error) {
+    if (esFuncionNoDisponible(error)) {
+      throw new Error('Falta ejecutar src/sql/upgrade_v1_5_transferencias.sql en Supabase para poder eliminar transferencias.')
+    }
+    throw error
+  }
+}
+
 export async function obtenerTransaccionesPorMes(userId, fechaReferencia = new Date()) {
   const inicioMes = new Date(fechaReferencia.getFullYear(), fechaReferencia.getMonth(), 1)
   const inicioSiguiente = new Date(fechaReferencia.getFullYear(), fechaReferencia.getMonth() + 1, 1)

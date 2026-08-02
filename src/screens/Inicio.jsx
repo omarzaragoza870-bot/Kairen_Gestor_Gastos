@@ -7,17 +7,19 @@ import { MESES_POR_IDIOMA } from '../i18n/translations.js'
 import Monto from '../components/Monto.jsx'
 import { usePreferencias } from '../context/PreferenciasContext.jsx'
 import AdministrarCuentas from './AdministrarCuentas.jsx'
+import NuevaOperacion from '../components/NuevaOperacion.jsx'
 
 const fmt = n => Number(n).toLocaleString('es-MX', { style: 'currency', currency: 'MXN' })
 const fmtFecha = fechaISO => new Date(`${fechaISO}T12:00:00`).toLocaleDateString('es-MX', { day: '2-digit', month: 'short', year: 'numeric' })
 const fmtFechaCorta = iso => new Date(`${iso}T12:00:00`).toLocaleDateString('es-MX', { day: '2-digit', month: 'short' })
 
-export default function Inicio({ onNuevo, onEditar, onVerTodas, refreshKey }) {
+export default function Inicio({ onNuevo, onNuevaTransferencia, onEditar, onVerTodas, refreshKey }) {
   const [cargando, setCargando] = useState(true)
   const [error, setError] = useState(null)
   const [transacciones, setTransacciones] = useState([])
   const [userId, setUserId] = useState(null)
   const [mostrarCuentas, setMostrarCuentas] = useState(false)
+  const [mostrarOpciones, setMostrarOpciones] = useState(false)
   const hoy = new Date()
   const [periodo, setPeriodo] = useState({ tipo: 'mes', anio: hoy.getFullYear(), mes: hoy.getMonth() })
   const [mostrarSelector, setMostrarSelector] = useState(false)
@@ -142,7 +144,15 @@ export default function Inicio({ onNuevo, onEditar, onVerTodas, refreshKey }) {
         </button>
       ))}
 
-      <button onClick={onNuevo} aria-label="Nueva operación" className="floating-button">+</button>
+      <button onClick={() => setMostrarOpciones(true)} aria-label="Nueva operación" className="floating-button">+</button>
+
+      {mostrarOpciones && (
+        <NuevaOperacion
+          onCerrar={() => setMostrarOpciones(false)}
+          onTransaccion={() => { setMostrarOpciones(false); onNuevo() }}
+          onTransferencia={() => { setMostrarOpciones(false); onNuevaTransferencia() }}
+        />
+      )}
 
       {mostrarSelector && (
         <SelectorPeriodo

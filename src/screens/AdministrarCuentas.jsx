@@ -1,5 +1,5 @@
 import { useEffect, useState, useCallback } from 'react'
-import { obtenerCuentas, crearCuenta, editarCuenta, eliminarCuenta } from '../lib/db.js'
+import { obtenerCuentas, crearCuenta, editarCuenta, eliminarCuenta, obtenerTransferencias, eliminarTransferencia } from '../lib/db.js'
 import { useScrollLock } from '../hooks/useScrollLock.js'
 import { usePreferencias } from '../context/PreferenciasContext.jsx'
 import Monto from '../components/Monto.jsx'
@@ -15,13 +15,16 @@ export default function AdministrarCuentas({ userId, onBack, onCambio }) {
   const [editando, setEditando] = useState(null) // null cerrado, {} nueva, {...cuenta} editar
   const [aEliminar, setAEliminar] = useState(null)
   const [procesando, setProcesando] = useState(false)
+  const [transferencias, setTransferencias] = useState([])
   useScrollLock(editando !== null || Boolean(aEliminar))
 
   const cargar = useCallback(async () => {
     setCargando(true)
     setError(null)
     try {
-      setLista(await obtenerCuentas(userId))
+      const [cuentasList, tfs] = await Promise.all([obtenerCuentas(userId), obtenerTransferencias(userId)])
+      setLista(cuentasList)
+      setTransferencias(tfs)
     } catch (err) {
       setError(err.message)
     } finally {
@@ -65,6 +68,16 @@ export default function AdministrarCuentas({ userId, onBack, onCambio }) {
     }
   }
 
+  const handleEliminarTransferencia = async (id) => {
+    try {
+      await eliminarTransferencia(id)
+      await cargar()
+      onCambio?.()
+    } catch (err) {
+      setError(err.message)
+    }
+  }
+
   return (
     <div style={{ padding: '16px 16px 100px', maxWidth: 680, margin: '0 auto' }}>
       <div className="screen-header">
@@ -104,6 +117,32 @@ export default function AdministrarCuentas({ userId, onBack, onCambio }) {
       >
         + {t('cu_agregar')}
       </button>
+
+      <div style={{ margin: '24px 0 8px' }}>
+        <h2 style={{ fontSize: 14, fontWeight: 600, color: 'var(--text-secondary)', margin: 0 }}>{t('tf_recientes')}</h2>
+      </div>
+
+      {!cargando && transferencias.length === 0 && (
+        <p style={{ fontSize: 13, color: 'var(--text-muted)' }}>{t('tf_vacio')}</p>
+      )}
+
+      {transferencias.map(tf => (
+        <div key={tf.id} style={{
+          display: 'flex', alignItems: 'center', gap: 10, padding: '10px 14px',
+          background: 'var(--bg-surface)', borderRadius: 'var(--radius-md)',
+          border: '1px solid var(--border-subtle)', marginBottom: 6
+        }}>
+          <span style={{ fontSize: 16 }}>🔁</span>
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div style={{ fontSize: 13, fontWeight: 600 }}>
+              {tf.cuenta_origen_nombre} → {tf.cuenta_destino_nombre}
+            </div>
+            <div style={{ fontSize: 11, color: 'var(--text-muted)' }}>{tf.fecha}</div>
+          </div>
+          <div style={{ fontWeight: 700, fontSize: 13 }}><Monto valor={tf.monto} /></div>
+          <button onClick={() => handleEliminarTransferencia(tf.id)} style={{ background: 'transparent', color: 'var(--danger)', fontSize: 14 }}>🗑️</button>
+        </div>
+      ))}
 
       {editando !== null && (
         <FormularioCuenta

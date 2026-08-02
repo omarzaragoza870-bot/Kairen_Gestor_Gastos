@@ -4,6 +4,7 @@ import { asegurarCuentasPorDefecto, asegurarCategoriasPorDefecto } from './lib/d
 import BottomNav from './components/BottomNav.jsx'
 import Inicio from './screens/Inicio.jsx'
 import NuevaTransaccion from './screens/NuevaTransaccion.jsx'
+import NuevaTransferencia from './screens/NuevaTransferencia.jsx'
 import Transacciones from './screens/Transacciones.jsx'
 import Analisis from './screens/Analisis.jsx'
 import AhorroExterno from './screens/AhorroExterno.jsx'
@@ -51,11 +52,17 @@ function AppInner() {
   const abrirNueva = () => { setTransaccionEditar(null); setVista('formulario') }
   const abrirEdicion = tx => { setTransaccionEditar(tx); setVista('formulario') }
   const guardada = () => { setRefreshKey(k => k + 1); setVista(transaccionEditar ? 'lista' : 'principal'); setTransaccionEditar(null) }
+  const abrirTransferencia = () => setVista('transferencia')
+  const transferenciaGuardada = () => { setRefreshKey(k => k + 1); setVista('principal') }
 
   return (
     <div id="app-scroll" style={{ height: '100dvh', overflowY: 'auto', WebkitOverflowScrolling: 'touch', paddingTop: 'var(--safe-top)' }}>
       {vista === 'formulario' && (
         <NuevaTransaccion transaccionEditar={transaccionEditar} onBack={() => setVista(transaccionEditar ? 'lista' : 'principal')} onGuardada={guardada} />
+      )}
+
+      {vista === 'transferencia' && (
+        <NuevaTransferencia onBack={() => setVista('principal')} onGuardada={transferenciaGuardada} />
       )}
 
       {vista === 'lista' && (
@@ -64,7 +71,7 @@ function AppInner() {
 
       {vista === 'principal' && (
         <>
-          {tab === 'inicio' && <Inicio onNuevo={abrirNueva} onEditar={abrirEdicion} onVerTodas={() => setVista('lista')} refreshKey={refreshKey} />}
+          {tab === 'inicio' && <Inicio onNuevo={abrirNueva} onNuevaTransferencia={abrirTransferencia} onEditar={abrirEdicion} onVerTodas={() => setVista('lista')} refreshKey={refreshKey} />}
           {tab === 'analisis' && <Analisis />}
           {tab === 'ahorro' && <AhorroExterno />}
           {tab === 'metas' && <Metas />}
