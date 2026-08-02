@@ -9,8 +9,8 @@ export function useScrollLock(locked) {
   useEffect(() => {
     if (!locked) return
     const el = document.getElementById('app-scroll') || document.body
-    const anterior = el.style.overflow
-    el.style.overflow = 'hidden'
-    return () => { el.style.overflow = anterior }
+    const anterior = el.style.overflowY
+    el.style.overflowY = 'hidden'
+    return () => { el.style.overflowY = anterior || 'auto' }
   }, [locked])
 }
