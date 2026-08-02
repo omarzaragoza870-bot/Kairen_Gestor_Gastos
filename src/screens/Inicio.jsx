@@ -1,186 +1,182 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { supabase } from '../lib/supabaseClient.js'
-import {
-  asegurarCuentasPorDefecto,
-  asegurarCategoriasPorDefecto,
-  crearTransaccion,
-  editarTransaccion,
-  obtenerCuentas,
-  obtenerCategorias
-} from '../lib/db.js'
+import { obtenerTransaccionesPorMes, obtenerTransaccionesEnRango, obtenerCategorias } from '../lib/db.js'
 import InfoTooltip from '../components/InfoTooltip.jsx'
+import SelectorPeriodo from '../components/SelectorPeriodo.jsx'
+import { MESES_POR_IDIOMA } from '../i18n/translations.js'
 import Monto from '../components/Monto.jsx'
-import { logError } from '../lib/logger.js'
 import { usePreferencias } from '../context/PreferenciasContext.jsx'
+import AdministrarCuentas from './AdministrarCuentas.jsx'
+import { logError, logWarn } from '../lib/logger.js'
+import { conRespaldoOffline } from '../lib/offline.js'
+import NuevaOperacion from '../components/NuevaOperacion.jsx'
 
-const hoy = () => {
-  const fecha = new Date()
+const fmt = n => Number(n).toLocaleString('es-MX', { style: 'currency', currency: 'MXN' })
+const fmtFecha = fechaISO => new Date(`${fechaISO}T12:00:00`).toLocaleDateString('es-MX', { day: '2-digit', month: 'short', year: 'numeric' })
+const fmtFechaCorta = iso => new Date(`${iso}T12:00:00`).toLocaleDateString('es-MX', { day: '2-digit', month: 'short' })
 
-  const año = fecha.getFullYear()
-  const mes = String(fecha.getMonth() + 1).padStart(2, "0")
-  const dia = String(fecha.getDate()).padStart(2, "0")
-
-  return `${año}-${mes}-${dia}`
-}
-export default function NuevaTransaccion({ onBack, onGuardada, transaccionEditar = null }) {
-  const editando = Boolean(transaccionEditar)
-  const [tipo, setTipo] = useState(transaccionEditar?.tipo || 'gasto')
-  const [cuentas, setCuentas] = useState([])
-  const [cuentaId, setCuentaId] = useState(transaccionEditar?.cuenta_id || null)
-  const [monto, setMonto] = useState(transaccionEditar ? String(transaccionEditar.monto) : '')
-  const [categoria, setCategoria] = useState(transaccionEditar?.categoria_nombre || null)
-  const [descripcion, setDescripcion] = useState(transaccionEditar?.descripcion || '')
-  const [fecha, setFecha] = useState(transaccionEditar?.fecha || hoy())
-  const [userId, setUserId] = useState(null)
-  const [categoriasGasto, setCategoriasGasto] = useState([])
-  const [categoriasIngreso, setCategoriasIngreso] = useState([])
-  const [guardando, setGuardando] = useState(false)
+export default function Inicio({ onNuevo, onNuevaTransferencia, onEditar, onVerTodas, refreshKey }) {
+  const [cargando, setCargando] = useState(true)
   const [error, setError] = useState(null)
-  const { t } = usePreferencias()
+  const [transacciones, setTransacciones] = useState([])
+  const [userId, setUserId] = useState(null)
+  const [mostrarCuentas, setMostrarCuentas] = useState(false)
+  const [mostrarOpciones, setMostrarOpciones] = useState(false)
+  const [iconosPorCategoria, setIconosPorCategoria] = useState({})
+  const hoy = new Date()
+  const [periodo, setPeriodo] = useState({ tipo: 'mes', anio: hoy.getFullYear(), mes: hoy.getMonth() })
+  const [mostrarSelector, setMostrarSelector] = useState(false)
+  const { t, idioma } = usePreferencias()
+  const MESES = MESES_POR_IDIOMA[idioma] || MESES_POR_IDIOMA.es
+
+  const cargarDatos = useCallback(async uid => {
+    setCargando(true)
+    setError(null)
+    try {
+      if (periodo.tipo === 'mes') {
+        const clave = `inicio:${uid}:${periodo.anio}-${periodo.mes}`
+        const datos = await conRespaldoOffline(clave, () => obtenerTransaccionesPorMes(uid, new Date(periodo.anio, periodo.mes, 1)))
+        setTransacciones(datos)
+      } else {
+        // "hasta" es exclusivo en la consulta, así que se le suma un día para incluir el día final
+        const hastaExclusivo = new Date(`${periodo.hasta}T00:00:00`)
+        hastaExclusivo.setDate(hastaExclusivo.getDate() + 1)
+        const hastaStr = hastaExclusivo.toISOString().slice(0, 10)
+        const clave = `inicio:${uid}:${periodo.desde}_${hastaStr}`
+        const datos = await conRespaldoOffline(clave, () => obtenerTransaccionesEnRango(uid, periodo.desde, hastaStr))
+        setTransacciones(datos)
+      }
+    } catch (err) {
+      logError('Error cargando inicio', err)
+      setError('No se pudieron cargar los movimientos.')
+    } finally {
+      setCargando(false)
+    }
+  }, [periodo])
 
   useEffect(() => {
-    const cargarCuentas = async () => {
-      setError(null)
-      try {
-        const { data, error: authError } = await supabase.auth.getUser()
-        if (authError) throw authError
-        if (!data.user) throw new Error('No encontramos una sesión activa.')
-
+    supabase.auth.getUser().then(({ data }) => {
+      if (data.user) {
         setUserId(data.user.id)
-        await asegurarCuentasPorDefecto(data.user.id)
-        await asegurarCategoriasPorDefecto(data.user.id)
-        const [lista, todasCategorias] = await Promise.all([
-          obtenerCuentas(data.user.id),
-          obtenerCategorias(data.user.id)
-        ])
-        setCuentas(lista)
-        setCategoriasGasto(todasCategorias.filter(c => c.tipo === 'gasto').map(c => c.nombre))
-        setCategoriasIngreso(todasCategorias.filter(c => c.tipo === 'ingreso').map(c => c.nombre))
-
-        if (!cuentaId && lista.length > 0) setCuentaId(lista[0].id)
-        if (lista.length === 0) throw new Error('No se pudieron cargar las cuentas Efectivo y Tarjeta.')
-      } catch (err) {
-        logError('Error cargando cuentas', err)
-        setError(err.message || 'No se pudieron cargar tus cuentas.')
+        cargarDatos(data.user.id)
+        obtenerCategorias(data.user.id).then(cats => {
+          const mapa = {}
+          cats.forEach(c => { mapa[`${c.tipo}:${c.nombre}`] = c.icono || '🏷️' })
+          setIconosPorCategoria(mapa)
+        }).catch(err => logWarn('No se pudieron cargar los íconos de categoría', err))
       }
+    })
+  }, [cargarDatos, refreshKey])
+
+  const moverMes = cantidad => setPeriodo(p => {
+    if (p.tipo !== 'mes') {
+      const base = new Date(hoy.getFullYear(), hoy.getMonth() + cantidad, 1)
+      return { tipo: 'mes', anio: base.getFullYear(), mes: base.getMonth() }
     }
-    cargarCuentas()
-  }, [])
+    const base = new Date(p.anio, p.mes + cantidad, 1)
+    return { tipo: 'mes', anio: base.getFullYear(), mes: base.getMonth() }
+  })
 
-  const categorias = tipo === 'gasto' ? categoriasGasto : categoriasIngreso
-  const cuentaSeleccionada = cuentas.find(c => c.id === cuentaId)
-  const montoNumerico = Number(monto)
-  const valido = Number.isFinite(montoNumerico) && montoNumerico > 0 && Boolean(categoria) && Boolean(cuentaId) && Boolean(userId) && Boolean(cuentaSeleccionada) && Boolean(fecha)
+  const irAHoy = () => setPeriodo({ tipo: 'mes', anio: hoy.getFullYear(), mes: hoy.getMonth() })
 
-  const etiquetaBoton = useMemo(() => {
-    if (guardando) return editando ? t('nt_guardando_cambios') : t('nt_guardando')
-    if (!valido) return t('nt_completa_datos')
-    return editando ? t('nt_boton_actualizar') : t('nt_boton_guardar')
-  }, [editando, guardando, valido, t])
+  const ingresos = transacciones.filter(t => t.tipo === 'ingreso').reduce((s, t) => s + Number(t.monto), 0)
+  const gastos = transacciones.filter(t => t.tipo === 'gasto').reduce((s, t) => s + Number(t.monto), 0)
+  const disponible = ingresos - gastos
+  const visibles = transacciones.slice(0, 6)
 
-  const handleGuardar = async () => {
-    if (!valido || guardando) return
-    setGuardando(true)
-    setError(null)
+  const etiquetaPeriodo = periodo.tipo === 'mes'
+    ? `${MESES[periodo.mes]} ${periodo.anio}`
+    : `${fmtFechaCorta(periodo.desde)} – ${fmtFechaCorta(periodo.hasta)}`
 
-    try {
-      const comunes = {
-        cuentaId,
-        categoriaNombre: categoria,
-        tipo,
-        monto: montoNumerico,
-        descripcion: descripcion.trim() || null,
-        fecha
-      }
-
-      if (editando) {
-        await editarTransaccion({ transaccionId: transaccionEditar.id, ...comunes })
-      } else {
-        await crearTransaccion({
-          userId,
-          cuentaSaldoActual: Number(cuentaSeleccionada.saldo),
-          ...comunes
-        })
-      }
-      onGuardada?.()
-    } catch (err) {
-      logError('Error guardando transacción', err)
-      setError(err.message || 'No se pudo guardar. Intenta de nuevo.')
-      setGuardando(false)
-    }
+  if (mostrarCuentas && userId) {
+    return (
+      <AdministrarCuentas
+        userId={userId}
+        onBack={() => setMostrarCuentas(false)}
+        onCambio={() => cargarDatos(userId)}
+      />
+    )
   }
 
   return (
-    <div style={{ padding: '16px 16px 40px', maxWidth: 680, margin: '0 auto' }}>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 20 }}>
-        <button onClick={onBack} aria-label="Volver" style={{ background: 'transparent', color: 'var(--text-primary)', fontSize: 20 }}>←</button>
-        <h1 style={{ fontSize: 17, fontWeight: 700, margin: 0 }}>{editando ? t('nt_titulo_editar') : t('nt_titulo_nueva')}</h1>
-      </div>
+    <div style={{ padding: '16px 16px 100px', maxWidth: 680, margin: '0 auto' }}>
+      <header style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 16 }}>
+        <button onClick={irAHoy} className="month-title" style={{ flex: 1, textAlign: 'left' }}>
+          <span>{etiquetaPeriodo}</span>
+        </button>
+        {periodo.tipo === 'mes' && (
+          <>
+            <button onClick={() => moverMes(-1)} aria-label="Período anterior" className="icon-button">‹</button>
+            <button onClick={() => moverMes(1)} aria-label="Período siguiente" className="icon-button">›</button>
+          </>
+        )}
+        <button onClick={() => setMostrarSelector(true)} aria-label="Seleccionar período" className="icon-button">📅</button>
+      </header>
 
-      <div style={{ display: 'flex', gap: 10, marginBottom: 20 }}>
-        {['gasto', 'ingreso'].map(opcion => (
-          <button key={opcion} onClick={() => { setTipo(opcion); setCategoria(null) }} style={{
-            flex: 1, padding: 14, borderRadius: 'var(--radius-md)',
-            background: tipo === opcion ? 'var(--gradient-brand)' : 'var(--bg-surface)',
-            color: tipo === opcion ? '#fff' : 'var(--text-secondary)', fontWeight: 600, fontSize: 14,
-            border: '1px solid ' + (tipo === opcion ? 'transparent' : 'var(--border-subtle)')
-          }}>
-            {opcion === 'gasto' ? `⊖ ${t('nt_gasto')}` : `⊕ ${t('nt_ingreso')}`}
-          </button>
-        ))}
-      </div>
+      <section className="summary-card">
+        <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+          <span style={{ fontSize: 13, color: 'var(--text-secondary)' }}>{t('inicio_dinero_disponible')}</span>
+          <InfoTooltip title={t('inicio_dinero_disponible')} text={t('inicio_dinero_disponible_info')} />
+        </div>
+        <div className="available-amount">{cargando ? '…' : <Monto valor={disponible} />}</div>
+        <div className="summary-grid">
+          <div><span className="income-label">↑ {t('inicio_ingresos')}</span><div>{cargando ? '…' : <Monto valor={ingresos} prefijo="+" />}</div></div>
+          <div><span className="expense-label">↓ {t('inicio_gastos')}</span><div>{cargando ? '…' : <Monto valor={gastos} prefijo="-" />}</div></div>
+        </div>
+        <button
+          onClick={() => setMostrarCuentas(true)}
+          style={{
+            width: '100%', background: 'transparent', color: 'var(--text-secondary)',
+            fontSize: 13, fontWeight: 600, display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+            padding: '10px 0 0', marginTop: 8, borderTop: '1px solid var(--border-subtle)'
+          }}
+        >
+          <span>📇 {t('inicio_administrar_cuentas')}</span>
+          <span>›</span>
+        </button>
+      </section>
 
-      <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 8 }}>
-        <label style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-secondary)' }}>{t('nt_cuenta')}</label>
-        <InfoTooltip title={t('nt_cuenta')} text={t('nt_cuenta_info')} />
-      </div>
-      <div style={{ display: 'flex', gap: 10, marginBottom: 20 }}>
-        {cuentas.length === 0 && <div className="empty-inline">{t('nt_cargando_cuentas')}</div>}
-        {cuentas.map(c => (
-          <button key={c.id} onClick={() => setCuentaId(c.id)} style={{
-            flex: 1, padding: 12, borderRadius: 'var(--radius-md)', background: 'var(--bg-surface)',
-            border: '1.5px solid ' + (cuentaId === c.id ? 'var(--accent-blue)' : 'var(--border-subtle)'), textAlign: 'left'
-          }}>
-            <div style={{ fontSize: 13, fontWeight: 600 }}>{c.tipo === 'tarjeta' ? '💳' : '💵'} {c.nombre}</div>
-            <div style={{ fontSize: 12, color: 'var(--success)' }}><Monto valor={c.saldo} /></div>
-          </button>
-        ))}
-      </div>
-
-      <label className="field-label">{t('nt_monto')}</label>
-      <div className="input-shell">
-        <span style={{ color: 'var(--text-muted)' }}>$</span>
-        <input inputMode="decimal" value={monto} onChange={e => setMonto(e.target.value.replace(',', '.'))} placeholder="0.00" />
-      </div>
-
-      <label className="field-label">{t('nt_categoria')}</label>
-      <div style={{ display: 'flex', gap: 8, overflowX: 'auto', margin: '8px 0 20px', paddingBottom: 4 }}>
-        {categorias.map(cat => (
-          <button key={cat} onClick={() => setCategoria(cat)} style={{
-            flexShrink: 0, padding: '10px 16px', borderRadius: 999,
-            background: categoria === cat ? 'var(--gradient-brand)' : 'var(--bg-surface)',
-            color: categoria === cat ? '#fff' : 'var(--text-secondary)', fontSize: 13, fontWeight: 600,
-            border: '1px solid ' + (categoria === cat ? 'transparent' : 'var(--border-subtle)')
-          }}>{cat}</button>
-        ))}
-      </div>
-
-      <label className="field-label">{t('nt_descripcion').split(' (')[0]} <span style={{ fontWeight: 400, color: 'var(--text-muted)' }}>{t('nt_opcional')}</span></label>
-      <div className="input-shell" style={{ marginTop: 8 }}>
-        <input value={descripcion} onChange={e => setDescripcion(e.target.value)} maxLength={120} placeholder={t('nt_descripcion_placeholder')} />
-      </div>
-
-      <label className="field-label">{t('nt_fecha')}</label>
-      <div className="input-shell" style={{ marginTop: 8 }}>
-        <input type="date" value={fecha} onChange={e => setFecha(e.target.value)} />
+      <div className="section-heading">
+        <h2>{t('inicio_transacciones')}</h2>
+        {transacciones.length > 0 && <button onClick={onVerTodas} className="link-button">{t('inicio_ver_todas')}</button>}
       </div>
 
       {error && <p className="error-message">{error}</p>}
+      {!cargando && !error && transacciones.length === 0 && (
+        <div className="empty-state"><div style={{ fontSize: 32, marginBottom: 8 }}>📭</div><p>{t('inicio_vacio_titulo')}</p><small>{t('inicio_vacio_subtitulo')}</small></div>
+      )}
 
-      <button disabled={!valido || guardando} onClick={handleGuardar} className="primary-button" style={{
-        background: valido ? 'var(--gradient-brand)' : 'var(--bg-surface-2)',
-        color: valido ? '#fff' : 'var(--text-muted)'
-      }}>{etiquetaBoton}</button>
+      {visibles.map(tx => (
+        <button key={tx.id} onClick={() => onEditar(tx)} className="transaction-row">
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10, minWidth: 0, textAlign: 'left' }}>
+            <span style={{ fontSize: 20, flexShrink: 0 }}>{iconosPorCategoria[`${tx.tipo}:${tx.categoria_nombre}`] || '🏷️'}</span>
+            <div style={{ minWidth: 0 }}>
+              <div className="transaction-category">{tx.categoria_nombre}</div>
+              {tx.descripcion && <div className="transaction-description">{tx.descripcion}</div>}
+              <div className="transaction-date">{fmtFecha(tx.fecha)}</div>
+            </div>
+          </div>
+          <div className={tx.tipo === 'gasto' ? 'amount expense' : 'amount income'}><Monto valor={tx.monto} prefijo={tx.tipo === 'gasto' ? '-' : '+'} /></div>
+        </button>
+      ))}
+
+      <button onClick={() => setMostrarOpciones(true)} aria-label="Nueva operación" className="floating-button">+</button>
+
+      {mostrarOpciones && (
+        <NuevaOperacion
+          onCerrar={() => setMostrarOpciones(false)}
+          onTransaccion={() => { setMostrarOpciones(false); onNuevo() }}
+          onTransferencia={() => { setMostrarOpciones(false); onNuevaTransferencia() }}
+        />
+      )}
+
+      {mostrarSelector && (
+        <SelectorPeriodo
+          periodoActual={periodo}
+          onCerrar={() => setMostrarSelector(false)}
+          onAplicar={(nuevo) => { setPeriodo(nuevo); setMostrarSelector(false) }}
+        />
+      )}
     </div>
   )
 }

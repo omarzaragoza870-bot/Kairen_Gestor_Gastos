@@ -30,7 +30,7 @@ export default defineConfig({
             options: { cacheName: 'kairen-finanzas-pages' }
           },
           {
-            urlPattern: /\/api\//,
+            urlPattern: /^https:\/\/.*\.supabase\.co\/rest\//,
             handler: 'NetworkFirst',
             options: { cacheName: 'kairen-finanzas-api', networkTimeoutSeconds: 5 }
           }

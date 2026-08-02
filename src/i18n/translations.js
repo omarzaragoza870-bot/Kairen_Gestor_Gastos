@@ -87,6 +87,14 @@ export const traducciones = {
     tf_vacio: 'Aún no has hecho transferencias.',
     tf_de_a: 'de {origen} a {destino}',
 
+    // Offline
+    offline_sin_conexion: 'Sin conexión — mostrando datos guardados',
+    offline_pendiente_singular: 'movimiento pendiente de sincronizar',
+    offline_pendiente_plural: 'movimientos pendientes de sincronizar',
+    offline_guardado_local: 'Sin conexión — se guardó en tu dispositivo y se sincronizará cuando vuelva el internet.',
+    offline_sincronizando: 'Sincronizando movimientos pendientes…',
+    offline_sincronizado: 'Ya se sincronizaron tus movimientos pendientes.',
+
     // Transacciones (lista completa)
     tx_titulo: 'Transacciones',
     tx_filtro_todos: 'Todos',
@@ -364,6 +372,13 @@ export const traducciones = {
     tf_recientes: 'Recent transfers',
     tf_vacio: "You haven't made any transfers yet.",
     tf_de_a: 'from {origen} to {destino}',
+
+    offline_sin_conexion: 'No connection — showing saved data',
+    offline_pendiente_singular: 'transaction pending sync',
+    offline_pendiente_plural: 'transactions pending sync',
+    offline_guardado_local: 'No connection — saved on your device and will sync once you\'re back online.',
+    offline_sincronizando: 'Syncing pending transactions…',
+    offline_sincronizado: 'Your pending transactions are now synced.',
 
     tx_titulo: 'Transactions',
     tx_filtro_todos: 'All',

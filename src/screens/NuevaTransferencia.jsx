@@ -4,6 +4,7 @@ import { obtenerCuentas, crearTransferencia } from '../lib/db.js'
 import { usePreferencias } from '../context/PreferenciasContext.jsx'
 import Monto from '../components/Monto.jsx'
 import { mensajeAmigable } from '../lib/errores.js'
+import { encolarOperacion } from '../lib/offline.js'
 
 const hoy = () => {
   const fecha = new Date()
@@ -41,14 +42,28 @@ export default function NuevaTransferencia({ onBack, onGuardada }) {
     }
     setGuardando(true)
     setError(null)
+
+    const datosTransferencia = {
+      cuentaOrigenId: origenId,
+      cuentaDestinoId: destinoId,
+      monto: montoNum,
+      descripcion,
+      fecha
+    }
+
+    if (!navigator.onLine) {
+      try {
+        await encolarOperacion({ accion: 'crearTransferencia', datos: datosTransferencia })
+        onGuardada ? onGuardada() : onBack()
+      } catch (err) {
+        setError('No se pudo guardar localmente. Intenta de nuevo.')
+        setGuardando(false)
+      }
+      return
+    }
+
     try {
-      await crearTransferencia({
-        cuentaOrigenId: origenId,
-        cuentaDestinoId: destinoId,
-        monto: montoNum,
-        descripcion,
-        fecha
-      })
+      await crearTransferencia(datosTransferencia)
       onGuardada ? onGuardada() : onBack()
     } catch (err) {
       setError(mensajeAmigable(err))

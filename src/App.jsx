@@ -1,7 +1,10 @@
 import { useEffect, useState } from 'react'
 import { supabase } from './lib/supabaseClient.js'
-import { asegurarCuentasPorDefecto, asegurarCategoriasPorDefecto } from './lib/db.js'
+import { asegurarCuentasPorDefecto, asegurarCategoriasPorDefecto, crearTransaccion, editarTransaccion, crearTransferencia } from './lib/db.js'
 import { logError } from './lib/logger.js'
+import { useEnLinea } from './hooks/useEnLinea.js'
+import { obtenerColaPendiente, sincronizarCola } from './lib/offline.js'
+import BannerSinConexion from './components/BannerSinConexion.jsx'
 import BottomNav from './components/BottomNav.jsx'
 import Inicio from './screens/Inicio.jsx'
 import NuevaTransaccion from './screens/NuevaTransaccion.jsx'
@@ -23,6 +26,36 @@ function AppInner() {
   const [session, setSession] = useState(undefined)
   const [refreshKey, setRefreshKey] = useState(0)
   const [mostrarTour, setMostrarTour] = useState(false)
+  const enLinea = useEnLinea()
+  const [pendientes, setPendientes] = useState(0)
+
+  const actualizarConteoPendientes = async () => {
+    const cola = await obtenerColaPendiente()
+    setPendientes(cola.length)
+  }
+
+  const ejecutarOperacionPendiente = async (op) => {
+    if (op.accion === 'crearTransaccion') return crearTransaccion(op.datos)
+    if (op.accion === 'editarTransaccion') return editarTransaccion(op.datos)
+    if (op.accion === 'crearTransferencia') return crearTransferencia(op.datos)
+    throw new Error(`Acción offline desconocida: ${op.accion}`)
+  }
+
+  useEffect(() => {
+    actualizarConteoPendientes()
+  }, [])
+
+  useEffect(() => {
+    if (!enLinea) return
+    // Al recuperar conexión, intenta sincronizar todo lo que quedó pendiente
+    sincronizarCola(ejecutarOperacionPendiente)
+      .then(sincronizadas => {
+        actualizarConteoPendientes()
+        if (sincronizadas > 0) setRefreshKey(k => k + 1)
+      })
+      .catch(err => logError('Error sincronizando cola offline', err))
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [enLinea])
 
   useEffect(() => {
     let yaVistoAntes = false
@@ -52,12 +85,14 @@ function AppInner() {
 
   const abrirNueva = () => { setTransaccionEditar(null); setVista('formulario') }
   const abrirEdicion = tx => { setTransaccionEditar(tx); setVista('formulario') }
-  const guardada = () => { setRefreshKey(k => k + 1); setVista(transaccionEditar ? 'lista' : 'principal'); setTransaccionEditar(null) }
+  const guardada = () => { setRefreshKey(k => k + 1); actualizarConteoPendientes(); setVista(transaccionEditar ? 'lista' : 'principal'); setTransaccionEditar(null) }
   const abrirTransferencia = () => setVista('transferencia')
-  const transferenciaGuardada = () => { setRefreshKey(k => k + 1); setVista('principal') }
+  const transferenciaGuardada = () => { setRefreshKey(k => k + 1); actualizarConteoPendientes(); setVista('principal') }
 
   return (
     <div id="app-scroll" style={{ height: '100dvh', overflowY: 'auto', WebkitOverflowScrolling: 'touch', paddingTop: 'var(--safe-top)' }}>
+      {!enLinea && <BannerSinConexion pendientes={pendientes} />}
+
       {vista === 'formulario' && (
         <NuevaTransaccion transaccionEditar={transaccionEditar} onBack={() => setVista(transaccionEditar ? 'lista' : 'principal')} onGuardada={guardada} />
       )}

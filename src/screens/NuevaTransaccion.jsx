@@ -11,6 +11,7 @@ import {
 import InfoTooltip from '../components/InfoTooltip.jsx'
 import Monto from '../components/Monto.jsx'
 import { logError } from '../lib/logger.js'
+import { encolarOperacion, conRespaldoOffline } from '../lib/offline.js'
 import { usePreferencias } from '../context/PreferenciasContext.jsx'
 
 const hoy = () => {
@@ -47,11 +48,17 @@ export default function NuevaTransaccion({ onBack, onGuardada, transaccionEditar
         if (!data.user) throw new Error('No encontramos una sesión activa.')
 
         setUserId(data.user.id)
-        await asegurarCuentasPorDefecto(data.user.id)
-        await asegurarCategoriasPorDefecto(data.user.id)
+
+        // El sembrado de cuentas/categorías por defecto solo se checa con red —
+        // si ya las tenías (caso normal), esto no hace falta para poder capturar offline.
+        if (navigator.onLine) {
+          await asegurarCuentasPorDefecto(data.user.id)
+          await asegurarCategoriasPorDefecto(data.user.id)
+        }
+
         const [lista, todasCategorias] = await Promise.all([
-          obtenerCuentas(data.user.id),
-          obtenerCategorias(data.user.id)
+          conRespaldoOffline(`cuentas:${data.user.id}`, () => obtenerCuentas(data.user.id)),
+          conRespaldoOffline(`categorias:${data.user.id}`, () => obtenerCategorias(data.user.id))
         ])
         setCuentas(lista)
         setCategoriasGasto(todasCategorias.filter(c => c.tipo === 'gasto').map(c => c.nombre))
@@ -83,16 +90,39 @@ export default function NuevaTransaccion({ onBack, onGuardada, transaccionEditar
     setGuardando(true)
     setError(null)
 
-    try {
-      const comunes = {
-        cuentaId,
-        categoriaNombre: categoria,
-        tipo,
-        monto: montoNumerico,
-        descripcion: descripcion.trim() || null,
-        fecha
-      }
+    const comunes = {
+      cuentaId,
+      categoriaNombre: categoria,
+      tipo,
+      monto: montoNumerico,
+      descripcion: descripcion.trim() || null,
+      fecha
+    }
 
+    // Sin conexión: solo se pueden encolar transacciones NUEVAS. Editar una
+    // ya existente requiere conocer el saldo actual en el servidor para
+    // revertir el movimiento anterior correctamente, así que eso sí requiere red.
+    if (!navigator.onLine) {
+      if (editando) {
+        setError('No puedes editar movimientos sin conexión. Intenta cuando vuelva el internet.')
+        setGuardando(false)
+        return
+      }
+      try {
+        await encolarOperacion({
+          accion: 'crearTransaccion',
+          datos: { userId, cuentaSaldoActual: Number(cuentaSeleccionada.saldo), ...comunes }
+        })
+        onGuardada?.()
+      } catch (err) {
+        logError('Error encolando transacción offline', err)
+        setError('No se pudo guardar localmente. Intenta de nuevo.')
+        setGuardando(false)
+      }
+      return
+    }
+
+    try {
       if (editando) {
         await editarTransaccion({ transaccionId: transaccionEditar.id, ...comunes })
       } else {
