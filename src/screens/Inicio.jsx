@@ -6,6 +6,7 @@ import SelectorPeriodo from '../components/SelectorPeriodo.jsx'
 import { MESES_POR_IDIOMA } from '../i18n/translations.js'
 import Monto from '../components/Monto.jsx'
 import { usePreferencias } from '../context/PreferenciasContext.jsx'
+import AdministrarCuentas from './AdministrarCuentas.jsx'
 
 const fmt = n => Number(n).toLocaleString('es-MX', { style: 'currency', currency: 'MXN' })
 const fmtFecha = fechaISO => new Date(`${fechaISO}T12:00:00`).toLocaleDateString('es-MX', { day: '2-digit', month: 'short', year: 'numeric' })
@@ -15,6 +16,8 @@ export default function Inicio({ onNuevo, onEditar, onVerTodas, refreshKey }) {
   const [cargando, setCargando] = useState(true)
   const [error, setError] = useState(null)
   const [transacciones, setTransacciones] = useState([])
+  const [userId, setUserId] = useState(null)
+  const [mostrarCuentas, setMostrarCuentas] = useState(false)
   const hoy = new Date()
   const [periodo, setPeriodo] = useState({ tipo: 'mes', anio: hoy.getFullYear(), mes: hoy.getMonth() })
   const [mostrarSelector, setMostrarSelector] = useState(false)
@@ -42,7 +45,12 @@ export default function Inicio({ onNuevo, onEditar, onVerTodas, refreshKey }) {
   }, [periodo])
 
   useEffect(() => {
-    supabase.auth.getUser().then(({ data }) => data.user && cargarDatos(data.user.id))
+    supabase.auth.getUser().then(({ data }) => {
+      if (data.user) {
+        setUserId(data.user.id)
+        cargarDatos(data.user.id)
+      }
+    })
   }, [cargarDatos, refreshKey])
 
   const moverMes = cantidad => setPeriodo(p => {
@@ -64,6 +72,16 @@ export default function Inicio({ onNuevo, onEditar, onVerTodas, refreshKey }) {
   const etiquetaPeriodo = periodo.tipo === 'mes'
     ? `${MESES[periodo.mes]} ${periodo.anio}`
     : `${fmtFechaCorta(periodo.desde)} – ${fmtFechaCorta(periodo.hasta)}`
+
+  if (mostrarCuentas && userId) {
+    return (
+      <AdministrarCuentas
+        userId={userId}
+        onBack={() => setMostrarCuentas(false)}
+        onCambio={() => cargarDatos(userId)}
+      />
+    )
+  }
 
   return (
     <div style={{ padding: '16px 16px 100px', maxWidth: 680, margin: '0 auto' }}>
@@ -90,6 +108,17 @@ export default function Inicio({ onNuevo, onEditar, onVerTodas, refreshKey }) {
           <div><span className="income-label">↑ {t('inicio_ingresos')}</span><div>{cargando ? '…' : <Monto valor={ingresos} prefijo="+" />}</div></div>
           <div><span className="expense-label">↓ {t('inicio_gastos')}</span><div>{cargando ? '…' : <Monto valor={gastos} prefijo="-" />}</div></div>
         </div>
+        <button
+          onClick={() => setMostrarCuentas(true)}
+          style={{
+            width: '100%', background: 'transparent', color: 'var(--text-secondary)',
+            fontSize: 13, fontWeight: 600, display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+            padding: '10px 0 0', marginTop: 8, borderTop: '1px solid var(--border-subtle)'
+          }}
+        >
+          <span>📇 {t('inicio_administrar_cuentas')}</span>
+          <span>›</span>
+        </button>
       </section>
 
       <div className="section-heading">

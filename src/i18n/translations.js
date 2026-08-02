@@ -66,6 +66,7 @@ export const traducciones = {
     inicio_dinero_disponible_info: 'Ingresos menos gastos del período seleccionado. No incluye el ahorro externo.',
     inicio_ingresos: 'Ingresos',
     inicio_gastos: 'Gastos',
+    inicio_administrar_cuentas: 'Administrar Cuentas',
 
     // Transacciones (lista completa)
     tx_titulo: 'Transacciones',
@@ -200,6 +201,23 @@ export const traducciones = {
     cat_eliminar_titulo: '¿Eliminar categoría?',
     cat_eliminar_info: 'Tus transacciones pasadas con esta categoría no se ven afectadas, pero ya no podrás elegirla en nuevos movimientos.',
 
+    // Administrar Cuentas
+    cu_titulo: 'Administrar Cuentas',
+    cu_info: 'Si eliminas una cuenta, tus transacciones pasadas no se borran, solo se quedan sin cuenta asociada.',
+    cu_agregar: 'Agregar cuenta',
+    cu_nueva: 'Nueva cuenta',
+    cu_editar_titulo: 'Editar cuenta',
+    cu_nombre: 'Nombre de la cuenta',
+    cu_nombre_placeholder: 'Ej. Tarjeta Nu, Ahorros BBVA…',
+    cu_tipo: 'Tipo',
+    cu_tipo_efectivo: 'Efectivo',
+    cu_tipo_tarjeta: 'Tarjeta',
+    cu_tipo_banco: 'Banco',
+    cu_tipo_otro: 'Otro',
+    cu_saldo: 'Saldo inicial',
+    cu_eliminar_titulo: '¿Eliminar esta cuenta?',
+    cu_eliminar_info: 'Tus transacciones pasadas con esta cuenta se conservan, solo quedan sin cuenta asociada.',
+
     // Tour
     tour_atras: 'Atrás',
     tour_siguiente: 'Siguiente',
@@ -291,6 +309,7 @@ export const traducciones = {
     inicio_dinero_disponible_info: 'Income minus expenses for the selected period. Does not include external savings.',
     inicio_ingresos: 'Income',
     inicio_gastos: 'Expenses',
+    inicio_administrar_cuentas: 'Manage Accounts',
 
     tx_titulo: 'Transactions',
     tx_filtro_todos: 'All',
@@ -417,6 +436,22 @@ export const traducciones = {
     cat_nombre_placeholder: 'E.g. Pets, Subscriptions…',
     cat_eliminar_titulo: 'Delete category?',
     cat_eliminar_info: "Your past transactions with this category aren't affected, but you won't be able to pick it for new transactions.",
+
+    cu_titulo: 'Manage Accounts',
+    cu_info: "If you delete an account, your past transactions aren't deleted, they just lose the account association.",
+    cu_agregar: 'Add account',
+    cu_nueva: 'New account',
+    cu_editar_titulo: 'Edit account',
+    cu_nombre: 'Account name',
+    cu_nombre_placeholder: 'E.g. Nu Card, BBVA Savings…',
+    cu_tipo: 'Type',
+    cu_tipo_efectivo: 'Cash',
+    cu_tipo_tarjeta: 'Card',
+    cu_tipo_banco: 'Bank',
+    cu_tipo_otro: 'Other',
+    cu_saldo: 'Initial balance',
+    cu_eliminar_titulo: 'Delete this account?',
+    cu_eliminar_info: 'Your past transactions with this account are kept, they just lose the account association.',
 
     tour_atras: 'Back',
     tour_siguiente: 'Next',

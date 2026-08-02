@@ -82,6 +82,36 @@ export async function obtenerCuentas(userId) {
   return data || []
 }
 
+export async function crearCuenta({ userId, nombre, tipo, saldo }) {
+  const { error } = await supabase.from('cuentas').insert({
+    user_id: userId, nombre, tipo: tipo || 'otro', saldo: saldo || 0
+  })
+  if (error) throw error
+}
+
+export async function editarCuenta({ id, userId, nombre, tipo, saldo }) {
+  const { error } = await supabase
+    .from('cuentas')
+    .update({ nombre, tipo, saldo })
+    .eq('id', id)
+    .eq('user_id', userId)
+  if (error) throw error
+}
+
+/**
+ * Al eliminar una cuenta, sus transacciones NO se borran — se quedan con
+ * cuenta_id en null (por el "on delete set null" del schema) pero
+ * conservan su monto y fecha, así el historial no se rompe.
+ */
+export async function eliminarCuenta(id, userId) {
+  const { error } = await supabase
+    .from('cuentas')
+    .delete()
+    .eq('id', id)
+    .eq('user_id', userId)
+  if (error) throw error
+}
+
 export async function obtenerTransaccionesPorMes(userId, fechaReferencia = new Date()) {
   const inicioMes = new Date(fechaReferencia.getFullYear(), fechaReferencia.getMonth(), 1)
   const inicioSiguiente = new Date(fechaReferencia.getFullYear(), fechaReferencia.getMonth() + 1, 1)
