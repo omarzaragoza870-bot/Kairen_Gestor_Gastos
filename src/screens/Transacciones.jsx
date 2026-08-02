@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { supabase } from '../lib/supabaseClient.js'
-import { eliminarTransaccion, obtenerTodasLasTransacciones } from '../lib/db.js'
+import { eliminarTransaccion, obtenerTodasLasTransacciones, obtenerCuentas } from '../lib/db.js'
 import { useScrollLock } from '../hooks/useScrollLock.js'
 import Monto from '../components/Monto.jsx'
 import { usePreferencias } from '../context/PreferenciasContext.jsx'
@@ -10,9 +10,12 @@ const fmtFecha = f => new Date(`${f}T12:00:00`).toLocaleDateString('es-MX', { da
 
 export default function Transacciones({ onBack, onEditar, refreshKey, onCambio }) {
   const [lista, setLista] = useState([])
+  const [cuentas, setCuentas] = useState([])
   const [cargando, setCargando] = useState(true)
   const [error, setError] = useState(null)
   const [filtro, setFiltro] = useState('todos')
+  const [cuentaFiltro, setCuentaFiltro] = useState('todas')
+  const [busqueda, setBusqueda] = useState('')
   const [aEliminar, setAEliminar] = useState(null)
   useScrollLock(Boolean(aEliminar))
   const [eliminando, setEliminando] = useState(false)
@@ -24,7 +27,12 @@ export default function Transacciones({ onBack, onEditar, refreshKey, onCambio }
     try {
       const { data } = await supabase.auth.getUser()
       if (!data.user) throw new Error('Sesión no disponible.')
-      setLista(await obtenerTodasLasTransacciones(data.user.id))
+      const [tx, ctas] = await Promise.all([
+        obtenerTodasLasTransacciones(data.user.id),
+        obtenerCuentas(data.user.id)
+      ])
+      setLista(tx)
+      setCuentas(ctas)
     } catch (err) {
       setError(err.message || 'No se pudieron cargar las transacciones.')
     } finally {
@@ -34,7 +42,15 @@ export default function Transacciones({ onBack, onEditar, refreshKey, onCambio }
 
   useEffect(() => { cargar() }, [cargar, refreshKey])
 
-  const filtradas = useMemo(() => filtro === 'todos' ? lista : lista.filter(t => t.tipo === filtro), [filtro, lista])
+  const filtradas = useMemo(() => {
+    const q = busqueda.trim().toLowerCase()
+    return lista.filter(tx => {
+      if (filtro !== 'todos' && tx.tipo !== filtro) return false
+      if (cuentaFiltro !== 'todas' && tx.cuenta_id !== cuentaFiltro) return false
+      if (q && !(tx.categoria_nombre?.toLowerCase().includes(q) || tx.descripcion?.toLowerCase().includes(q))) return false
+      return true
+    })
+  }, [filtro, cuentaFiltro, busqueda, lista])
 
   const confirmarEliminar = async () => {
     if (!aEliminar || eliminando) return
@@ -55,11 +71,48 @@ export default function Transacciones({ onBack, onEditar, refreshKey, onCambio }
   return (
     <div style={{ padding: '16px 16px 40px', maxWidth: 680, margin: '0 auto' }}>
       <div className="screen-header"><button onClick={onBack} className="back-button">←</button><h1>{t('tx_titulo')}</h1></div>
+
+      <div className="input-shell" style={{ marginBottom: 12 }}>
+        <span style={{ color: 'var(--text-muted)' }}>🔍</span>
+        <input value={busqueda} onChange={(e) => setBusqueda(e.target.value)} placeholder={t('tx_buscar_placeholder')} />
+      </div>
+
       <div className="filter-row">
         {[['todos', t('tx_filtro_todos')], ['gasto', t('tx_filtro_gastos')], ['ingreso', t('tx_filtro_ingresos')]].map(([id, label]) => (
           <button key={id} onClick={() => setFiltro(id)} className={filtro === id ? 'filter active' : 'filter'}>{label}</button>
         ))}
       </div>
+
+      {cuentas.length > 1 && (
+        <div style={{ display: 'flex', gap: 8, overflowX: 'auto', margin: '10px 0 4px', paddingBottom: 4 }}>
+          <button
+            onClick={() => setCuentaFiltro('todas')}
+            style={{
+              flexShrink: 0, padding: '8px 14px', borderRadius: 999, fontSize: 12, fontWeight: 600,
+              background: cuentaFiltro === 'todas' ? 'var(--gradient-brand)' : 'var(--bg-surface)',
+              color: cuentaFiltro === 'todas' ? '#fff' : 'var(--text-secondary)',
+              border: '1px solid ' + (cuentaFiltro === 'todas' ? 'transparent' : 'var(--border-subtle)')
+            }}
+          >
+            {t('tx_todas_cuentas')}
+          </button>
+          {cuentas.map(c => (
+            <button
+              key={c.id}
+              onClick={() => setCuentaFiltro(c.id)}
+              style={{
+                flexShrink: 0, padding: '8px 14px', borderRadius: 999, fontSize: 12, fontWeight: 600,
+                background: cuentaFiltro === c.id ? 'var(--gradient-brand)' : 'var(--bg-surface)',
+                color: cuentaFiltro === c.id ? '#fff' : 'var(--text-secondary)',
+                border: '1px solid ' + (cuentaFiltro === c.id ? 'transparent' : 'var(--border-subtle)')
+              }}
+            >
+              {c.nombre}
+            </button>
+          ))}
+        </div>
+      )}
+
       {error && <p className="error-message">{error}</p>}
       {cargando && <div className="empty-state"><p>{t('comun_cargando')}</p></div>}
       {!cargando && filtradas.length === 0 && <div className="empty-state"><p>{t('tx_vacio')}</p></div>}

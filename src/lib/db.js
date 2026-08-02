@@ -159,6 +159,38 @@ export async function eliminarTransferencia(transferenciaId) {
   }
 }
 
+export async function obtenerPresupuestos(userId) {
+  try {
+    const { data, error } = await supabase
+      .from('presupuestos')
+      .select('*')
+      .eq('user_id', userId)
+      .order('created_at', { ascending: true })
+    if (error) throw error
+    return data || []
+  } catch (err) {
+    console.warn('[Kairen Finanzas] Presupuestos no disponibles aún:', err.message)
+    return []
+  }
+}
+
+/** Crea o actualiza el límite de una categoría (una sola fila por categoría). */
+export async function guardarPresupuesto({ userId, categoriaNombre, montoLimite }) {
+  const { error } = await supabase
+    .from('presupuestos')
+    .upsert({ user_id: userId, categoria_nombre: categoriaNombre, monto_limite: montoLimite }, { onConflict: 'user_id,categoria_nombre' })
+  if (error) throw error
+}
+
+export async function eliminarPresupuesto(id, userId) {
+  const { error } = await supabase
+    .from('presupuestos')
+    .delete()
+    .eq('id', id)
+    .eq('user_id', userId)
+  if (error) throw error
+}
+
 export async function obtenerTransaccionesPorMes(userId, fechaReferencia = new Date()) {
   const inicioMes = new Date(fechaReferencia.getFullYear(), fechaReferencia.getMonth(), 1)
   const inicioSiguiente = new Date(fechaReferencia.getFullYear(), fechaReferencia.getMonth() + 1, 1)

@@ -5,6 +5,7 @@ import { useScrollLock } from '../hooks/useScrollLock.js'
 import { usePreferencias, MONEDAS } from '../context/PreferenciasContext.jsx'
 import { exportarTodosLosDatos, importarTodosLosDatos, reiniciarCuentaActual } from '../lib/db.js'
 import Categorias from './Categorias.jsx'
+import Presupuestos from './Presupuestos.jsx'
 import SelectorMoneda from './SelectorMoneda.jsx'
 import SelectorTema from './SelectorTema.jsx'
 import SelectorIdioma from './SelectorIdioma.jsx'
@@ -15,6 +16,7 @@ export default function Ajustes({ onVerTutorial }) {
   const [confirmando, setConfirmando] = useState(false)
   const [confirmandoReinicio, setConfirmandoReinicio] = useState(false)
   const [mostrarCategorias, setMostrarCategorias] = useState(false)
+  const [mostrarPresupuestos, setMostrarPresupuestos] = useState(false)
   const [mostrarMoneda, setMostrarMoneda] = useState(false)
   const [mostrarTema, setMostrarTema] = useState(false)
   const [mostrarIdioma, setMostrarIdioma] = useState(false)
@@ -124,6 +126,9 @@ export default function Ajustes({ onVerTutorial }) {
 
   if (mostrarCategorias && user) {
     return <Categorias userId={user.id} onBack={() => setMostrarCategorias(false)} />
+  }
+  if (mostrarPresupuestos) {
+    return <Presupuestos onBack={() => setMostrarPresupuestos(false)} />
   }
   if (mostrarMoneda) {
     return <SelectorMoneda onBack={() => setMostrarMoneda(false)} />
@@ -241,6 +246,9 @@ export default function Ajustes({ onVerTutorial }) {
         </button>
         <button onClick={() => setMostrarCategorias(true)} style={{ width: '100%', textAlign: 'left', background: 'transparent' }}>
           <FilaAjuste icono="🏷️" titulo={t('ajustes_administrar_categorias')} subtitulo={t('ajustes_personalizar_categorias')} flecha />
+        </button>
+        <button onClick={() => setMostrarPresupuestos(true)} style={{ width: '100%', textAlign: 'left', background: 'transparent' }}>
+          <FilaAjuste icono="📊" titulo={t('pr_titulo')} subtitulo={t('pr_info')} flecha />
         </button>
         <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '14px 16px' }}>
           <span style={{ fontSize: 18 }}>👁️</span>
