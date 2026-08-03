@@ -10,30 +10,42 @@ export default function Login() {
   const { t } = usePreferencias()
   const [mostrarInvitado, setMostrarInvitado] = useState(false)
   const [mostrarEmail, setMostrarEmail] = useState(false)
+  const [cargandoGoogle, setCargandoGoogle] = useState(false)
 
   const handleGoogleLogin = async () => {
-    if (esNativo()) {
-      // Google bloquea el login dentro de un WebView embebido normal —
-      // hay que abrir el navegador del sistema y regresar por deep link
-      // (ver src/App.jsx, listener 'appUrlOpen', y capacitor.config.ts).
-      const { Browser } = await import('@capacitor/browser')
-      const { data, error } = await supabase.auth.signInWithOAuth({
-        provider: 'google',
-        options: {
-          redirectTo: 'com.kairen.finanzas://login-callback',
-          skipBrowserRedirect: true
-        }
-      })
-      if (error) return logError('Error al iniciar sesión', error)
-      if (data?.url) await Browser.open({ url: data.url })
-      return
-    }
+    if (cargandoGoogle) return // evita doble clic, que generaba dos flujos de OAuth a la vez
+    setCargandoGoogle(true)
+    try {
+      if (esNativo()) {
+        const { Browser } = await import('@capacitor/browser')
+        const { data, error } = await supabase.auth.signInWithOAuth({
+          provider: 'google',
+          options: {
+            // App Links: usamos el dominio real de Vercel como redirect.
+            // Android intercepta esta URL automáticamente y regresa a la app
+            // (gracias al intent-filter android:autoVerify="true" en el manifest
+            // y el archivo /.well-known/assetlinks.json en Vercel) — mucho más
+            // confiable que el esquema personalizado com.kairen.finanzas:// que
+            // Firefox y Chrome manejaban de forma inconsistente.
+            redirectTo: 'https://kairen-gestor-gastos.vercel.app/auth/callback',
+            skipBrowserRedirect: true
+          }
+        })
+        if (error) return logError('Error al iniciar sesión', error)
+        if (data?.url) await Browser.open({ url: data.url })
+        return
+      }
 
-    const { error } = await supabase.auth.signInWithOAuth({
-      provider: 'google',
-      options: { redirectTo: window.location.origin }
-    })
-    if (error) logError('Error al iniciar sesión', error)
+      const { error } = await supabase.auth.signInWithOAuth({
+        provider: 'google',
+        options: { redirectTo: window.location.origin }
+      })
+      if (error) logError('Error al iniciar sesión', error)
+    } finally {
+      // Se reactiva después de un momento — si el usuario cancela en el
+      // navegador y regresa, puede volver a intentarlo sin quedar trabado.
+      setTimeout(() => setCargandoGoogle(false), 2000)
+    }
   }
 
   if (mostrarInvitado) {
@@ -60,14 +72,16 @@ export default function Login() {
 
       <button
         onClick={handleGoogleLogin}
+        disabled={cargandoGoogle}
         style={{
           display: 'flex', alignItems: 'center', gap: 10,
           background: 'var(--bg-surface)', color: 'var(--text-primary)',
           padding: '14px 24px', borderRadius: 'var(--radius-md)',
-          border: '1px solid var(--border-subtle)', fontSize: 15, fontWeight: 600
+          border: '1px solid var(--border-subtle)', fontSize: 15, fontWeight: 600,
+          opacity: cargandoGoogle ? 0.6 : 1
         }}
       >
-        <span>🔵</span> {t('login_boton_google')}
+        <span>🔵</span> {cargandoGoogle ? '…' : t('login_boton_google')}
       </button>
 
       <button

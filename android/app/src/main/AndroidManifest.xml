@@ -21,11 +21,23 @@
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
+
+            <!-- Esquema personalizado (fallback) -->
             <intent-filter>
                 <action android:name="android.intent.action.VIEW" />
                 <category android:name="android.intent.category.DEFAULT" />
                 <category android:name="android.intent.category.BROWSABLE" />
                 <data android:scheme="com.kairen.finanzas" android:host="login-callback" />
+            </intent-filter>
+
+            <!-- App Links: dominio real verificado (método preferido) -->
+            <intent-filter android:autoVerify="true">
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="https"
+                      android:host="kairen-gestor-gastos.vercel.app"
+                      android:pathPrefix="/auth/callback" />
             </intent-filter>
 
         </activity>

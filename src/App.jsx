@@ -75,12 +75,17 @@ function AppInner() {
     // Cuando el navegador del sistema regresa a la app después de un login
     // exitoso con Google (deep link con el mismo esquema del capacitor.config.ts),
     // hay que cerrar el navegador y dejar que Supabase procese el código.
-    let cancelado = false
+    let listenerHandle = null
+    let desmontado = false
+    let urlYaProcesada = null // evita procesar el mismo deep link dos veces (causaba "flow_state_already_used")
     ;(async () => {
       const { App: CapacitorApp } = await import('@capacitor/app')
       const { Browser } = await import('@capacitor/browser')
-      const listener = await CapacitorApp.addListener('appUrlOpen', async ({ url }) => {
-        if (!url.startsWith('com.kairen.finanzas://login-callback')) return
+      const nuevoListener = await CapacitorApp.addListener('appUrlOpen', async ({ url }) => {
+        if (!url.startsWith('com.kairen.finanzas://login-callback') &&
+            !url.startsWith('https://kairen-gestor-gastos.vercel.app/auth/callback')) return
+        if (urlYaProcesada === url) return // ya se procesó esta misma URL, ignorar el duplicado
+        urlYaProcesada = url
         try {
           await supabase.auth.exchangeCodeForSession(url)
         } catch (err) {
@@ -89,10 +94,16 @@ function AppInner() {
           Browser.close().catch(() => {})
         }
       })
-      if (cancelado) listener.remove()
-      return () => listener.remove()
+      if (desmontado) {
+        nuevoListener.remove()
+      } else {
+        listenerHandle = nuevoListener
+      }
     })()
-    return () => { cancelado = true }
+    return () => {
+      desmontado = true
+      listenerHandle?.remove()
+    }
   }, [])
 
   useEffect(() => {
