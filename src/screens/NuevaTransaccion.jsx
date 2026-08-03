@@ -43,22 +43,23 @@ export default function NuevaTransaccion({ onBack, onGuardada, transaccionEditar
     const cargarCuentas = async () => {
       setError(null)
       try {
-        const { data, error: authError } = await supabase.auth.getUser()
+        const { data, error: authError } = await supabase.auth.getSession()
         if (authError) throw authError
-        if (!data.user) throw new Error('No encontramos una sesión activa.')
+        const usuario = data.session?.user
+        if (!usuario) throw new Error('No encontramos una sesión activa.')
 
-        setUserId(data.user.id)
+        setUserId(usuario.id)
 
         // El sembrado de cuentas/categorías por defecto solo se checa con red —
         // si ya las tenías (caso normal), esto no hace falta para poder capturar offline.
         if (navigator.onLine) {
-          await asegurarCuentasPorDefecto(data.user.id)
-          await asegurarCategoriasPorDefecto(data.user.id)
+          await asegurarCuentasPorDefecto(usuario.id)
+          await asegurarCategoriasPorDefecto(usuario.id)
         }
 
         const [lista, todasCategorias] = await Promise.all([
-          conRespaldoOffline(`cuentas:${data.user.id}`, () => obtenerCuentas(data.user.id)),
-          conRespaldoOffline(`categorias:${data.user.id}`, () => obtenerCategorias(data.user.id))
+          conRespaldoOffline(`cuentas:${usuario.id}`, () => obtenerCuentas(usuario.id)),
+          conRespaldoOffline(`categorias:${usuario.id}`, () => obtenerCategorias(usuario.id))
         ])
         setCuentas(lista)
         setCategoriasGasto(todasCategorias.filter(c => c.tipo === 'gasto').map(c => c.nombre))

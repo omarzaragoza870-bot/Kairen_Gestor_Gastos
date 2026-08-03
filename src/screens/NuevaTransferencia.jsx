@@ -4,7 +4,7 @@ import { obtenerCuentas, crearTransferencia } from '../lib/db.js'
 import { usePreferencias } from '../context/PreferenciasContext.jsx'
 import Monto from '../components/Monto.jsx'
 import { mensajeAmigable } from '../lib/errores.js'
-import { encolarOperacion } from '../lib/offline.js'
+import { encolarOperacion, conRespaldoOffline } from '../lib/offline.js'
 
 const hoy = () => {
   const fecha = new Date()
@@ -23,9 +23,10 @@ export default function NuevaTransferencia({ onBack, onGuardada }) {
   const [error, setError] = useState(null)
 
   useEffect(() => {
-    supabase.auth.getUser().then(async ({ data }) => {
-      if (!data.user) return
-      const lista = await obtenerCuentas(data.user.id)
+    supabase.auth.getSession().then(async ({ data }) => {
+      const usuario = data.session?.user
+      if (!usuario) return
+      const lista = await conRespaldoOffline(`cuentas:${usuario.id}`, () => obtenerCuentas(usuario.id))
       setCuentas(lista)
       if (lista.length > 0) setOrigenId(lista[0].id)
       if (lista.length > 1) setDestinoId(lista[1].id)

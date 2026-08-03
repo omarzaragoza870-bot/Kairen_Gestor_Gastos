@@ -10,8 +10,8 @@ import { supabase } from './supabaseClient.js'
  */
 async function contexto() {
   try {
-    const { data } = await supabase.auth.getUser()
-    return { usuario: data.user?.id || 'anónimo', timestamp: new Date().toISOString() }
+    const { data } = await supabase.auth.getSession()
+    return { usuario: data.session?.user?.id || 'anónimo', timestamp: new Date().toISOString() }
   } catch {
     return { usuario: 'desconocido', timestamp: new Date().toISOString() }
   }

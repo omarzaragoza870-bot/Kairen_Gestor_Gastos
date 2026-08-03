@@ -66,11 +66,12 @@ export default function Inicio({ onNuevo, onNuevaTransferencia, onEditar, onVerT
   }, [periodo])
 
   useEffect(() => {
-    supabase.auth.getUser().then(({ data }) => {
-      if (data.user) {
-        setUserId(data.user.id)
-        cargarDatos(data.user.id)
-        obtenerCategorias(data.user.id).then(cats => {
+    supabase.auth.getSession().then(({ data }) => {
+      const usuario = data.session?.user
+      if (usuario) {
+        setUserId(usuario.id)
+        cargarDatos(usuario.id)
+        conRespaldoOffline(`categorias-inicio:${usuario.id}`, () => obtenerCategorias(usuario.id)).then(cats => {
           const mapa = {}
           cats.forEach(c => { mapa[`${c.tipo}:${c.nombre}`] = c.icono || '🏷️' })
           setIconosPorCategoria(mapa)
