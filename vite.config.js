@@ -7,6 +7,9 @@ export default defineConfig({
     react(),
     VitePWA({
       registerType: 'autoUpdate',
+      devOptions: {
+        enabled: true // activa el service worker también en `npm run dev`, no solo en build de producción
+      },
       manifest: {
         name: 'Kairen Finanzas',
         short_name: 'Kairen',
