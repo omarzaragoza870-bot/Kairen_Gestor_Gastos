@@ -18,9 +18,12 @@ jobs:
           node-version: 20
           cache: npm
 
-      - run: npm ci
+      - name: Instalar dependencias
+        run: npm install --legacy-peer-deps
 
       # Falla el workflow si hay vulnerabilidades HIGH o CRITICAL sin resolver
+      # Las 3 moderate de uuid (dentro de @capacitor/cli) no se pueden resolver
+      # sin bajar la versión de Capacitor — se aceptan conscientemente.
       - name: npm audit (bloquea en HIGH/CRITICAL)
         run: npm audit --audit-level=high
 
