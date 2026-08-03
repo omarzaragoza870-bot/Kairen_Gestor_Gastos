@@ -338,6 +338,7 @@ function Dona({ datos }) {
         <div style={{ width: 46, height: 46, borderRadius: '50%', background: 'var(--bg-surface)' }} />
       </div>
       <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 8 }}>
+ 
         {datos.map((d, i) => (
           <div key={d.nombre} style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 12 }}>
             <span style={{ width: 8, height: 8, borderRadius: '50%', background: COLORES_CATEGORIA[i % COLORES_CATEGORIA.length], flexShrink: 0 }} />
