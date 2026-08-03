@@ -2,3 +2,13 @@ node_modules/
 dist/
 .env
 .DS_Store
+
+# Android (Capacitor) — se regenera con `npm run android:add` + `android:sync`
+android/build/
+android/app/build/
+android/.gradle/
+android/local.properties
+*.apk
+*.aab
+*.keystore
+*.jks

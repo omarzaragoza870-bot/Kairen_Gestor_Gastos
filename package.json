@@ -6,16 +6,25 @@
   "scripts": {
     "dev": "vite",
     "build": "vite build",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "android:add": "npx cap add android",
+    "android:sync": "npm run build && npx cap sync android",
+    "android:open": "npx cap open android",
+    "android:build-debug": "npm run android:sync && cd android && ./gradlew assembleDebug"
   },
   "dependencies": {
-    "@supabase/supabase-js": "2.111.0",
     "react": "18.3.1",
-    "react-dom": "18.3.1"
+    "react-dom": "18.3.1",
+    "@supabase/supabase-js": "2.111.0",
+    "@capacitor/core": "6.2.0",
+    "@capacitor/android": "6.2.0",
+    "@capacitor/browser": "6.0.3",
+    "@capacitor/app": "6.0.2"
   },
   "devDependencies": {
     "@vitejs/plugin-react": "4.7.0",
-    "vite": "^8.2.0",
-    "vite-plugin-pwa": "^1.3.0"
+    "vite": "5.4.21",
+    "vite-plugin-pwa": "0.20.5",
+    "@capacitor/cli": "6.2.0"
   }
 }

@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { supabase } from './lib/supabaseClient.js'
-import { asegurarCuentasPorDefecto, asegurarCategoriasPorDefecto, crearTransaccion, editarTransaccion, crearTransferencia, obtenerCuentas, obtenerCategorias } from './lib/db.js'
+import { asegurarCuentasPorDefecto, asegurarCategoriasPorDefecto, crearTransaccion, editarTransaccion, crearTransferencia, obtenerCuentas, obtenerCategorias, obtenerTransaccionesPorMes, obtenerMetas, obtenerAhorroExterno } from './lib/db.js'
 import { logError } from './lib/logger.js'
 import { useEnLinea } from './hooks/useEnLinea.js'
 import { obtenerColaPendiente, sincronizarCola, conRespaldoOffline } from './lib/offline.js'
@@ -18,6 +18,7 @@ import Login from './screens/Login.jsx'
 import Ajustes from './screens/Ajustes.jsx'
 import OnboardingTour, { TOUR_STORAGE_KEY } from './components/OnboardingTour.jsx'
 import { PreferenciasProvider } from './context/PreferenciasContext.jsx'
+import { esNativo } from './lib/capacitor.js'
 
 function AppInner() {
   const [tab, setTab] = useState('inicio')
@@ -57,6 +58,43 @@ function AppInner() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [enLinea])
 
+  const precargarOffline = (uid) => {
+    // Precarga en segundo plano todo lo que las pantallas principales
+    // necesitan, sin que el usuario tenga que visitarlas primero.
+    conRespaldoOffline(`cuentas:${uid}`, () => obtenerCuentas(uid)).catch(() => {})
+    conRespaldoOffline(`categorias:${uid}`, () => obtenerCategorias(uid)).catch(() => {})
+    const hoy = new Date()
+    conRespaldoOffline(`inicio:${uid}:${hoy.getFullYear()}-${hoy.getMonth()}`, () => obtenerTransaccionesPorMes(uid, hoy)).catch(() => {})
+    conRespaldoOffline(`analisis:${uid}:${hoy.getFullYear()}-${hoy.getMonth()}`, () => obtenerTransaccionesPorMes(uid, hoy)).catch(() => {})
+    conRespaldoOffline(`metas:${uid}`, () => obtenerMetas(uid)).catch(() => {})
+    conRespaldoOffline(`ahorro-externo:${uid}`, () => obtenerAhorroExterno(uid)).catch(() => {})
+  }
+
+  useEffect(() => {
+    if (!esNativo()) return
+    // Cuando el navegador del sistema regresa a la app después de un login
+    // exitoso con Google (deep link con el mismo esquema del capacitor.config.ts),
+    // hay que cerrar el navegador y dejar que Supabase procese el código.
+    let cancelado = false
+    ;(async () => {
+      const { App: CapacitorApp } = await import('@capacitor/app')
+      const { Browser } = await import('@capacitor/browser')
+      const listener = await CapacitorApp.addListener('appUrlOpen', async ({ url }) => {
+        if (!url.startsWith('com.kairen.finanzas://login-callback')) return
+        try {
+          await supabase.auth.exchangeCodeForSession(url)
+        } catch (err) {
+          logError('Error completando login nativo', err)
+        } finally {
+          Browser.close().catch(() => {})
+        }
+      })
+      if (cancelado) listener.remove()
+      return () => listener.remove()
+    })()
+    return () => { cancelado = true }
+  }, [])
+
   useEffect(() => {
     let yaVistoAntes = false
     try { yaVistoAntes = localStorage.getItem(TOUR_STORAGE_KEY) === 'true' } catch { /* noop */ }
@@ -67,9 +105,7 @@ function AppInner() {
         const uid = data.session.user.id
         asegurarCuentasPorDefecto(uid).catch(err => logError('Error creando cuentas por defecto', err))
         asegurarCategoriasPorDefecto(uid).catch(err => logError('Error creando categorías por defecto', err))
-        // Precarga la caché offline aunque el usuario nunca visite estas pantallas primero
-        conRespaldoOffline(`cuentas:${uid}`, () => obtenerCuentas(uid)).catch(() => {})
-        conRespaldoOffline(`categorias:${uid}`, () => obtenerCategorias(uid)).catch(() => {})
+        precargarOffline(uid)
         if (!yaVistoAntes) setMostrarTour(true)
       }
     })
@@ -79,8 +115,7 @@ function AppInner() {
         const uid = nueva.user.id
         asegurarCuentasPorDefecto(uid).catch(err => logError('Error creando cuentas por defecto', err))
         asegurarCategoriasPorDefecto(uid).catch(err => logError('Error creando categorías por defecto', err))
-        conRespaldoOffline(`cuentas:${uid}`, () => obtenerCuentas(uid)).catch(() => {})
-        conRespaldoOffline(`categorias:${uid}`, () => obtenerCategorias(uid)).catch(() => {})
+        precargarOffline(uid)
         if (!yaVistoAntes) setMostrarTour(true)
       }
     })
