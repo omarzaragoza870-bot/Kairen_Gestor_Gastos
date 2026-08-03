@@ -9,6 +9,7 @@ import Categorias from './Categorias.jsx'
 import Presupuestos from './Presupuestos.jsx'
 import Recurrentes from './Recurrentes.jsx'
 import Reportes from './Reportes.jsx'
+import { pushSoportado, permisoPush, suscribirPush, desuscribirPush, estaSuscrito } from '../lib/push.js'
 import SelectorMoneda from './SelectorMoneda.jsx'
 import SelectorTema from './SelectorTema.jsx'
 import SelectorIdioma from './SelectorIdioma.jsx'
@@ -22,6 +23,33 @@ export default function Ajustes({ onVerTutorial }) {
   const [mostrarPresupuestos, setMostrarPresupuestos] = useState(false)
   const [mostrarRecurrentes, setMostrarRecurrentes] = useState(false)
   const [mostrarReportes, setMostrarReportes] = useState(false)
+  const [pushActivo, setPushActivo] = useState(false)
+  const [cargandoPush, setCargandoPush] = useState(false)
+
+  useEffect(() => {
+    estaSuscrito().then(setPushActivo).catch(() => {})
+  }, [])
+
+  const togglePush = async () => {
+    if (!user) return
+    setCargandoPush(true)
+    try {
+      if (pushActivo) {
+        await desuscribirPush(user.id)
+        setPushActivo(false)
+      } else {
+        const ok = await suscribirPush(user.id)
+        setPushActivo(ok)
+        if (!ok && permisoPush() === 'denied') {
+          setError('Tienes las notificaciones bloqueadas en este navegador. Habilítalas desde la configuración del sitio.')
+        }
+      }
+    } catch (err) {
+      setError(mensajeAmigable(err))
+    } finally {
+      setCargandoPush(false)
+    }
+  }
   const [mostrarMoneda, setMostrarMoneda] = useState(false)
   const [mostrarTema, setMostrarTema] = useState(false)
   const [mostrarIdioma, setMostrarIdioma] = useState(false)
@@ -337,6 +365,34 @@ export default function Ajustes({ onVerTutorial }) {
         <button onClick={() => setMostrarReportes(true)} style={{ width: '100%', textAlign: 'left', background: 'transparent' }}>
           <FilaAjuste icono="📄" titulo="Reportes en PDF" subtitulo="Descarga un resumen mensual de tus finanzas" flecha />
         </button>
+
+        {pushSoportado() && (
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '14px 16px' }}>
+            <span style={{ fontSize: 18 }}>🔔</span>
+            <div style={{ flex: 1 }}>
+              <div style={{ fontSize: 14, fontWeight: 600 }}>Notificaciones</div>
+              <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>
+                {pushActivo ? 'Activadas en este dispositivo' : 'Recibe alertas de presupuestos y recurrentes'}
+              </div>
+            </div>
+            <button
+              onClick={togglePush}
+              disabled={cargandoPush}
+              aria-label="Activar notificaciones"
+              style={{
+                width: 46, height: 26, borderRadius: 999, flexShrink: 0, position: 'relative',
+                background: pushActivo ? 'var(--gradient-brand)' : 'var(--bg-surface-2)',
+                border: '1px solid var(--border-subtle)', opacity: cargandoPush ? 0.6 : 1
+              }}
+            >
+              <span style={{
+                position: 'absolute', top: 2, left: pushActivo ? 22 : 2,
+                width: 20, height: 20, borderRadius: '50%', background: '#fff', transition: 'left 0.15s'
+              }} />
+            </button>
+          </div>
+        )}
+
         <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '14px 16px' }}>
           <span style={{ fontSize: 18 }}>👁️</span>
           <div style={{ flex: 1 }}>

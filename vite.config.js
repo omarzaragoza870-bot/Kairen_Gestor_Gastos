@@ -7,8 +7,12 @@ export default defineConfig({
     react(),
     VitePWA({
       registerType: 'autoUpdate',
+      strategies: 'injectManifest',
+      srcDir: 'src',
+      filename: 'sw.js',
       devOptions: {
-        enabled: true // activa el service worker también en `npm run dev`, no solo en build de producción
+        enabled: true,
+        type: 'module'
       },
       manifest: {
         name: 'Kairen Finanzas',
@@ -19,24 +23,8 @@ export default defineConfig({
         display: 'standalone',
         orientation: 'portrait',
         icons: [
-          { src: '/icons/icon-192.png', sizes: '192x192', type: 'image/png' },
-          { src: '/icons/icon-512.png', sizes: '512x512', type: 'image/png' }
-        ]
-      },
-      workbox: {
-        // network-first: mismo patrón que usamos en KAIREN para
-        // evitar servir datos financieros viejos desde cache
-        runtimeCaching: [
-          {
-            urlPattern: ({ request }) => request.mode === 'navigate',
-            handler: 'NetworkFirst',
-            options: { cacheName: 'kairen-finanzas-pages' }
-          },
-          {
-            urlPattern: /^https:\/\/.*\.supabase\.co\/rest\//,
-            handler: 'NetworkFirst',
-            options: { cacheName: 'kairen-finanzas-api', networkTimeoutSeconds: 5 }
-          }
+          { src: '/favicon-192.png', sizes: '192x192', type: 'image/png' },
+          { src: '/favicon-512.png', sizes: '512x512', type: 'image/png' }
         ]
       }
     })
