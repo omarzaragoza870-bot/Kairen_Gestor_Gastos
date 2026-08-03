@@ -1,0 +1,12 @@
+[
+  {
+    "relation": ["delegate_permission/common.handle_all_urls"],
+    "target": {
+      "namespace": "android_app",
+      "package_name": "com.kairen.finanzas",
+      "sha256_cert_fingerprints": [
+        "B3:6E:7D:CC:7E:A4:E1:46:07:6C:5B:CF:84:5F:4B:39:CC:29:09:1E:22:17:BE:62:A3:01:26:0C:CA:63:F6:6A"
+      ]
+    }
+  }
+]
