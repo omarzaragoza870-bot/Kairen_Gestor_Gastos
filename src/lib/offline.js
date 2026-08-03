@@ -20,6 +20,41 @@ const DB_VERSION = 1
 const STORE_CACHE = 'cache'
 const STORE_COLA = 'cola'
 
+// ---------- Conectividad combinada ----------
+//
+// navigator.onLine / los eventos 'online'-'offline' del navegador SOLO
+// reaccionan a que tu WiFi/datos reales se desconecten a nivel de
+// sistema operativo — el modo "Offline" de las DevTools bloquea
+// peticiones, pero NO cambia navigator.onLine. Para que el banner
+// funcione en ambos casos, combinamos dos señales:
+//   1. El evento real del navegador (para desconexiones reales)
+//   2. Que una petición de red de verdad haya fallado/tenido éxito
+//      (esto sí lo detecta la simulación de DevTools)
+const emisorConectividad = new EventTarget()
+let conectividadActual = typeof navigator !== 'undefined' ? navigator.onLine : true
+
+export function marcarConectividad(estado) {
+  if (estado !== conectividadActual) {
+    conectividadActual = estado
+    emisorConectividad.dispatchEvent(new CustomEvent('cambio', { detail: estado }))
+  }
+}
+
+export function obtenerConectividad() {
+  return conectividadActual
+}
+
+export function suscribirseConectividad(callback) {
+  const manejador = (e) => callback(e.detail)
+  emisorConectividad.addEventListener('cambio', manejador)
+  return () => emisorConectividad.removeEventListener('cambio', manejador)
+}
+
+export function pareceErrorDeRed(err) {
+  const msg = (err?.message || '').toLowerCase()
+  return !navigator.onLine || msg.includes('fetch') || msg.includes('network') || msg.includes('failed')
+}
+
 function abrirDB() {
   return new Promise((resolve, reject) => {
     const req = indexedDB.open(DB_NAME, DB_VERSION)
@@ -88,10 +123,11 @@ export async function conRespaldoOffline(clave, fnRed) {
   try {
     const resultado = await fnRed()
     guardarEnCache(clave, resultado) // no esperamos a que termine, no bloquea la UI
+    marcarConectividad(true)
     return resultado
   } catch (err) {
-    const esErrorDeRed = !navigator.onLine || err?.message?.toLowerCase().includes('fetch') || err?.message?.toLowerCase().includes('network')
-    if (esErrorDeRed) {
+    if (pareceErrorDeRed(err)) {
+      marcarConectividad(false)
       const cacheado = await leerDeCache(clave)
       if (cacheado !== null) return cacheado
     }

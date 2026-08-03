@@ -4,7 +4,7 @@ import { obtenerCuentas, crearTransferencia } from '../lib/db.js'
 import { usePreferencias } from '../context/PreferenciasContext.jsx'
 import Monto from '../components/Monto.jsx'
 import { mensajeAmigable } from '../lib/errores.js'
-import { encolarOperacion, conRespaldoOffline } from '../lib/offline.js'
+import { encolarOperacion, conRespaldoOffline, obtenerConectividad, marcarConectividad, pareceErrorDeRed } from '../lib/offline.js'
 
 const hoy = () => {
   const fecha = new Date()
@@ -52,7 +52,7 @@ export default function NuevaTransferencia({ onBack, onGuardada }) {
       fecha
     }
 
-    if (!navigator.onLine) {
+    const intentarEncolar = async () => {
       try {
         await encolarOperacion({ accion: 'crearTransferencia', datos: datosTransferencia })
         onGuardada ? onGuardada() : onBack()
@@ -60,13 +60,23 @@ export default function NuevaTransferencia({ onBack, onGuardada }) {
         setError('No se pudo guardar localmente. Intenta de nuevo.')
         setGuardando(false)
       }
+    }
+
+    if (!obtenerConectividad()) {
+      await intentarEncolar()
       return
     }
 
     try {
       await crearTransferencia(datosTransferencia)
+      marcarConectividad(true)
       onGuardada ? onGuardada() : onBack()
     } catch (err) {
+      if (pareceErrorDeRed(err)) {
+        marcarConectividad(false)
+        await intentarEncolar()
+        return
+      }
       setError(mensajeAmigable(err))
       setGuardando(false)
     }

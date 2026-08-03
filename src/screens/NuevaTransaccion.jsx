@@ -11,7 +11,7 @@ import {
 import InfoTooltip from '../components/InfoTooltip.jsx'
 import Monto from '../components/Monto.jsx'
 import { logError } from '../lib/logger.js'
-import { encolarOperacion, conRespaldoOffline } from '../lib/offline.js'
+import { encolarOperacion, conRespaldoOffline, obtenerConectividad, marcarConectividad, pareceErrorDeRed } from '../lib/offline.js'
 import { usePreferencias } from '../context/PreferenciasContext.jsx'
 
 const hoy = () => {
@@ -103,12 +103,7 @@ export default function NuevaTransaccion({ onBack, onGuardada, transaccionEditar
     // Sin conexión: solo se pueden encolar transacciones NUEVAS. Editar una
     // ya existente requiere conocer el saldo actual en el servidor para
     // revertir el movimiento anterior correctamente, así que eso sí requiere red.
-    if (!navigator.onLine) {
-      if (editando) {
-        setError('No puedes editar movimientos sin conexión. Intenta cuando vuelva el internet.')
-        setGuardando(false)
-        return
-      }
+    const intentarEncolar = async () => {
       try {
         await encolarOperacion({
           accion: 'crearTransaccion',
@@ -120,6 +115,15 @@ export default function NuevaTransaccion({ onBack, onGuardada, transaccionEditar
         setError('No se pudo guardar localmente. Intenta de nuevo.')
         setGuardando(false)
       }
+    }
+
+    if (!obtenerConectividad()) {
+      if (editando) {
+        setError('No puedes editar movimientos sin conexión. Intenta cuando vuelva el internet.')
+        setGuardando(false)
+        return
+      }
+      await intentarEncolar()
       return
     }
 
@@ -133,8 +137,17 @@ export default function NuevaTransaccion({ onBack, onGuardada, transaccionEditar
           ...comunes
         })
       }
+      marcarConectividad(true)
       onGuardada?.()
     } catch (err) {
+      // Si la red realmente falló (aunque navigator.onLine no lo supiera aún,
+      // como pasa con la simulación de las DevTools), la tratamos como offline
+      // y encolamos en vez de mostrar un error duro — pero solo para transacciones nuevas.
+      if (!editando && pareceErrorDeRed(err)) {
+        marcarConectividad(false)
+        await intentarEncolar()
+        return
+      }
       logError('Error guardando transacción', err)
       setError(err.message || 'No se pudo guardar. Intenta de nuevo.')
       setGuardando(false)
