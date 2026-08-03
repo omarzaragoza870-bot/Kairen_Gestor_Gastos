@@ -245,6 +245,23 @@ export async function obtenerTransaccionesEnRango(userId, desde, hasta) {
   return data || []
 }
 
+/**
+ * Trae TODAS las transacciones desde siempre hasta (sin incluir) la fecha
+ * dada. Se usa para calcular el "Dinero Disponible" acumulado: si en un
+ * mes anterior te sobró dinero, debe seguir contando en los meses
+ * siguientes en vez de resetearse a $0 cada mes.
+ */
+export async function obtenerTransaccionesAcumuladasHasta(userId, hastaExclusiva) {
+  const { data, error } = await supabase
+    .from('transacciones')
+    .select('tipo, monto')
+    .eq('user_id', userId)
+    .lt('fecha', hastaExclusiva)
+
+  if (error) throw error
+  return data || []
+}
+
 /** Trae todas las transacciones de los últimos N meses, contados desde fechaReferencia (incluye ese mes). */
 export async function obtenerTransaccionesUltimosMeses(userId, n = 6, fechaReferencia = new Date()) {
   const desde = new Date(fechaReferencia.getFullYear(), fechaReferencia.getMonth() - (n - 1), 1).toISOString().slice(0, 10)

@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from 'react'
 import { supabase } from '../lib/supabaseClient.js'
-import { obtenerTransaccionesPorMes, obtenerTransaccionesEnRango, obtenerCategorias } from '../lib/db.js'
+import { obtenerTransaccionesPorMes, obtenerTransaccionesEnRango, obtenerTransaccionesAcumuladasHasta, obtenerCategorias } from '../lib/db.js'
 import InfoTooltip from '../components/InfoTooltip.jsx'
 import SelectorPeriodo from '../components/SelectorPeriodo.jsx'
 import { MESES_POR_IDIOMA } from '../i18n/translations.js'
@@ -23,6 +23,7 @@ export default function Inicio({ onNuevo, onNuevaTransferencia, onEditar, onVerT
   const [mostrarCuentas, setMostrarCuentas] = useState(false)
   const [mostrarOpciones, setMostrarOpciones] = useState(false)
   const [iconosPorCategoria, setIconosPorCategoria] = useState({})
+  const [acumuladas, setAcumuladas] = useState([])
   const hoy = new Date()
   const [periodo, setPeriodo] = useState({ tipo: 'mes', anio: hoy.getFullYear(), mes: hoy.getMonth() })
   const [mostrarSelector, setMostrarSelector] = useState(false)
@@ -33,19 +34,29 @@ export default function Inicio({ onNuevo, onNuevaTransferencia, onEditar, onVerT
     setCargando(true)
     setError(null)
     try {
+      let hastaStr
       if (periodo.tipo === 'mes') {
         const clave = `inicio:${uid}:${periodo.anio}-${periodo.mes}`
         const datos = await conRespaldoOffline(clave, () => obtenerTransaccionesPorMes(uid, new Date(periodo.anio, periodo.mes, 1)))
         setTransacciones(datos)
+        // Boundary exclusivo = primer día del mes siguiente al que se está viendo
+        hastaStr = new Date(periodo.anio, periodo.mes + 1, 1).toISOString().slice(0, 10)
       } else {
         // "hasta" es exclusivo en la consulta, así que se le suma un día para incluir el día final
         const hastaExclusivo = new Date(`${periodo.hasta}T00:00:00`)
         hastaExclusivo.setDate(hastaExclusivo.getDate() + 1)
-        const hastaStr = hastaExclusivo.toISOString().slice(0, 10)
+        hastaStr = hastaExclusivo.toISOString().slice(0, 10)
         const clave = `inicio:${uid}:${periodo.desde}_${hastaStr}`
         const datos = await conRespaldoOffline(clave, () => obtenerTransaccionesEnRango(uid, periodo.desde, hastaStr))
         setTransacciones(datos)
       }
+
+      // "Dinero Disponible" es acumulado desde siempre hasta el fin del período
+      // que estás viendo — así lo que te sobró en meses anteriores no se
+      // resetea a $0. Ingresos/Gastos de abajo sí se quedan solo del período.
+      const claveAcumulado = `inicio-acumulado:${uid}:${hastaStr}`
+      const datosAcumulados = await conRespaldoOffline(claveAcumulado, () => obtenerTransaccionesAcumuladasHasta(uid, hastaStr))
+      setAcumuladas(datosAcumulados)
     } catch (err) {
       logError('Error cargando inicio', err)
       setError('No se pudieron cargar los movimientos.')
@@ -81,7 +92,9 @@ export default function Inicio({ onNuevo, onNuevaTransferencia, onEditar, onVerT
 
   const ingresos = transacciones.filter(t => t.tipo === 'ingreso').reduce((s, t) => s + Number(t.monto), 0)
   const gastos = transacciones.filter(t => t.tipo === 'gasto').reduce((s, t) => s + Number(t.monto), 0)
-  const disponible = ingresos - gastos
+  const ingresosAcumulados = acumuladas.filter(t => t.tipo === 'ingreso').reduce((s, t) => s + Number(t.monto), 0)
+  const gastosAcumulados = acumuladas.filter(t => t.tipo === 'gasto').reduce((s, t) => s + Number(t.monto), 0)
+  const disponible = ingresosAcumulados - gastosAcumulados
   const visibles = transacciones.slice(0, 6)
 
   const etiquetaPeriodo = periodo.tipo === 'mes'
