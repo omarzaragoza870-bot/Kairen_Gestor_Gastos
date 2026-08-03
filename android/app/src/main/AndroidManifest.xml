@@ -30,7 +30,7 @@
                 <data android:scheme="com.kairen.finanzas" android:host="login-callback" />
             </intent-filter>
 
-            <!-- App Links: dominio real verificado (método preferido) -->
+            <!-- App Links: dominio real verificado -->
             <intent-filter android:autoVerify="true">
                 <action android:name="android.intent.action.VIEW" />
                 <category android:name="android.intent.category.DEFAULT" />
