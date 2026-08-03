@@ -92,20 +92,24 @@ function AppInner() {
       })
 
       const nuevoListener = await CapacitorApp.addListener('appUrlOpen', async ({ url }) => {
-        // DEBUG TEMPORAL — muestra la URL exacta que llega y el resultado
-        alert('URL recibida:\n' + url.substring(0, 200))
         if (!url.startsWith('com.kairen.finanzas://login-callback') &&
-            !url.startsWith('https://kairen-gestor-gastos.vercel.app/auth/callback')) {
-          alert('URL ignorada (no coincide con ningún patrón)')
-          return
-        }
+            !url.startsWith('https://kairen-gestor-gastos.vercel.app/auth/callback')) return
         if (urlYaProcesada === url) return
         urlYaProcesada = url
         try {
-          const result = await supabase.auth.exchangeCodeForSession(url)
-          alert('exchangeCodeForSession resultado:\n' + JSON.stringify(result?.error || 'OK'))
+          // Implicit flow: el token llega en el hash de la URL (#access_token=...)
+          // en vez de como código (?code=...) que requería PKCE + flow state.
+          if (url.includes('access_token')) {
+            const hashParams = new URLSearchParams(url.split('#')[1] || '')
+            const accessToken = hashParams.get('access_token')
+            const refreshToken = hashParams.get('refresh_token')
+            if (accessToken) {
+              await supabase.auth.setSession({ access_token: accessToken, refresh_token: refreshToken || '' })
+            }
+          } else {
+            await supabase.auth.exchangeCodeForSession(url)
+          }
         } catch (err) {
-          alert('Error en exchangeCodeForSession:\n' + err.message)
           logError('Error completando login nativo', err)
         } finally {
           Browser.close().catch(() => {})

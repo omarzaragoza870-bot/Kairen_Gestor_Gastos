@@ -10,17 +10,13 @@ if (!supabaseUrl || !supabaseAnonKey) {
 
 export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
   auth: {
-    // PKCE explícito: no depender del default de la librería para el
-    // flujo OAuth (más seguro que el flujo implícito, y queda auditable
-    // directo en el código en vez de asumir el comportamiento de la versión instalada).
-    flowType: 'pkce',
-    // En la app nativa, nosotros procesamos el deep link a mano (ver
-    // App.jsx, listener 'appUrlOpen') — si dejamos esto prendido ahí,
-    // Supabase también intenta consumir el mismo código de autorización
-    // por su cuenta, y el segundo intento falla con
-    // "flow_state_already_used" porque el código ya se usó una vez.
-    // En la web sí debe quedar prendido (true, el default) — ahí SÍ
-    // dependemos de que Supabase detecte la sesión solo tras el redirect.
+    // En la app nativa usamos implicit flow: el navegador externo no comparte
+    // localStorage con el WebView, así que el PKCE "flow state" se pierde y
+    // exchangeCodeForSession falla con "flow_state_not_found". Con implicit
+    // flow el token llega directo en el hash de la URL, sin necesitar el state.
+    // En la web sí usamos PKCE (más seguro) — se selecciona automáticamente
+    // según esNativo().
+    flowType: esNativo() ? 'implicit' : 'pkce',
     detectSessionInUrl: !esNativo()
   }
 })
