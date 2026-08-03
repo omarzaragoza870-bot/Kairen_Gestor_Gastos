@@ -92,13 +92,20 @@ function AppInner() {
       })
 
       const nuevoListener = await CapacitorApp.addListener('appUrlOpen', async ({ url }) => {
+        // DEBUG TEMPORAL — muestra la URL exacta que llega y el resultado
+        alert('URL recibida:\n' + url.substring(0, 200))
         if (!url.startsWith('com.kairen.finanzas://login-callback') &&
-            !url.startsWith('https://kairen-gestor-gastos.vercel.app/auth/callback')) return
-        if (urlYaProcesada === url) return // ya se procesó esta misma URL, ignorar el duplicado
+            !url.startsWith('https://kairen-gestor-gastos.vercel.app/auth/callback')) {
+          alert('URL ignorada (no coincide con ningún patrón)')
+          return
+        }
+        if (urlYaProcesada === url) return
         urlYaProcesada = url
         try {
-          await supabase.auth.exchangeCodeForSession(url)
+          const result = await supabase.auth.exchangeCodeForSession(url)
+          alert('exchangeCodeForSession resultado:\n' + JSON.stringify(result?.error || 'OK'))
         } catch (err) {
+          alert('Error en exchangeCodeForSession:\n' + err.message)
           logError('Error completando login nativo', err)
         } finally {
           Browser.close().catch(() => {})
