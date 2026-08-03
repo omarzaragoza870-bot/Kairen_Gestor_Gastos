@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState, lazy, Suspense } from 'react'
 import { supabase } from './lib/supabaseClient.js'
 import { asegurarCuentasPorDefecto, asegurarCategoriasPorDefecto, crearTransaccion, editarTransaccion, crearTransferencia, obtenerCuentas, obtenerCategorias, obtenerTransaccionesPorMes, obtenerMetas, obtenerAhorroExterno } from './lib/db.js'
 import { logError } from './lib/logger.js'
@@ -6,19 +6,31 @@ import { useEnLinea } from './hooks/useEnLinea.js'
 import { obtenerColaPendiente, sincronizarCola, conRespaldoOffline } from './lib/offline.js'
 import BannerSinConexion from './components/BannerSinConexion.jsx'
 import BottomNav from './components/BottomNav.jsx'
-import Inicio from './screens/Inicio.jsx'
-import NuevaTransaccion from './screens/NuevaTransaccion.jsx'
-import NuevaTransferencia from './screens/NuevaTransferencia.jsx'
-import Transacciones from './screens/Transacciones.jsx'
-import Analisis from './screens/Analisis.jsx'
-import AhorroExterno from './screens/AhorroExterno.jsx'
-import Metas from './screens/Metas.jsx'
-import Placeholder from './screens/Placeholder.jsx'
 import Login from './screens/Login.jsx'
-import Ajustes from './screens/Ajustes.jsx'
 import OnboardingTour, { TOUR_STORAGE_KEY } from './components/OnboardingTour.jsx'
 import { PreferenciasProvider } from './context/PreferenciasContext.jsx'
 import { esNativo } from './lib/capacitor.js'
+
+// Pantallas cargadas solo cuando el usuario las visita (code splitting)
+// — reduce el bundle inicial de ~510 KB a ~150-200 KB
+const Inicio = lazy(() => import('./screens/Inicio.jsx'))
+const NuevaTransaccion = lazy(() => import('./screens/NuevaTransaccion.jsx'))
+const NuevaTransferencia = lazy(() => import('./screens/NuevaTransferencia.jsx'))
+const Transacciones = lazy(() => import('./screens/Transacciones.jsx'))
+const Analisis = lazy(() => import('./screens/Analisis.jsx'))
+const AhorroExterno = lazy(() => import('./screens/AhorroExterno.jsx'))
+const Metas = lazy(() => import('./screens/Metas.jsx'))
+const Ajustes = lazy(() => import('./screens/Ajustes.jsx'))
+
+// Spinner mínimo mientras carga una pantalla nueva
+function CargandoPantalla() {
+  return (
+    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '60vh' }}>
+      <div style={{ width: 28, height: 28, borderRadius: '50%', border: '3px solid var(--border-subtle)', borderTopColor: 'var(--accent-blue)', animation: 'spin 0.7s linear infinite' }} />
+      <style>{`@keyframes spin { to { transform: rotate(360deg) } }`}</style>
+    </div>
+  )
+}
 
 function AppInner() {
   const [tab, setTab] = useState('inicio')
@@ -169,28 +181,30 @@ function AppInner() {
     <div id="app-scroll" style={{ height: '100dvh', overflowY: 'auto', WebkitOverflowScrolling: 'touch', paddingTop: 'var(--safe-top)' }}>
       {!enLinea && <BannerSinConexion pendientes={pendientes} />}
 
-      {vista === 'formulario' && (
-        <NuevaTransaccion transaccionEditar={transaccionEditar} onBack={() => setVista(transaccionEditar ? 'lista' : 'principal')} onGuardada={guardada} />
-      )}
+      <Suspense fallback={<CargandoPantalla />}>
+        {vista === 'formulario' && (
+          <NuevaTransaccion transaccionEditar={transaccionEditar} onBack={() => setVista(transaccionEditar ? 'lista' : 'principal')} onGuardada={guardada} />
+        )}
 
-      {vista === 'transferencia' && (
-        <NuevaTransferencia onBack={() => setVista('principal')} onGuardada={transferenciaGuardada} />
-      )}
+        {vista === 'transferencia' && (
+          <NuevaTransferencia onBack={() => setVista('principal')} onGuardada={transferenciaGuardada} />
+        )}
 
-      {vista === 'lista' && (
-        <Transacciones refreshKey={refreshKey} onBack={() => setVista('principal')} onEditar={abrirEdicion} onCambio={() => setRefreshKey(k => k + 1)} />
-      )}
+        {vista === 'lista' && (
+          <Transacciones refreshKey={refreshKey} onBack={() => setVista('principal')} onEditar={abrirEdicion} onCambio={() => setRefreshKey(k => k + 1)} />
+        )}
 
-      {vista === 'principal' && (
-        <>
-          {tab === 'inicio' && <Inicio onNuevo={abrirNueva} onNuevaTransferencia={abrirTransferencia} onEditar={abrirEdicion} onVerTodas={() => setVista('lista')} refreshKey={refreshKey} />}
-          {tab === 'analisis' && <Analisis />}
-          {tab === 'ahorro' && <AhorroExterno />}
-          {tab === 'metas' && <Metas />}
-          {tab === 'ajustes' && <Ajustes onVerTutorial={() => setMostrarTour(true)} />}
-          <BottomNav active={tab} onChange={setTab} />
-        </>
-      )}
+        {vista === 'principal' && (
+          <>
+            {tab === 'inicio' && <Inicio onNuevo={abrirNueva} onNuevaTransferencia={abrirTransferencia} onEditar={abrirEdicion} onVerTodas={() => setVista('lista')} refreshKey={refreshKey} />}
+            {tab === 'analisis' && <Analisis />}
+            {tab === 'ahorro' && <AhorroExterno />}
+            {tab === 'metas' && <Metas />}
+            {tab === 'ajustes' && <Ajustes onVerTutorial={() => setMostrarTour(true)} />}
+            <BottomNav active={tab} onChange={setTab} />
+          </>
+        )}
+      </Suspense>
 
       {mostrarTour && <OnboardingTour onFinalizar={() => setMostrarTour(false)} />}
     </div>
