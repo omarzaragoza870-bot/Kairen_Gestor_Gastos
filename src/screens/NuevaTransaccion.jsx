@@ -11,6 +11,7 @@ import {
 import InfoTooltip from '../components/InfoTooltip.jsx'
 import Monto from '../components/Monto.jsx'
 import { logError } from '../lib/logger.js'
+import { mensajeAmigable } from '../lib/errores.js'
 import { encolarOperacion, conRespaldoOffline, obtenerConectividad, marcarConectividad, pareceErrorDeRed } from '../lib/offline.js'
 import { usePreferencias } from '../context/PreferenciasContext.jsx'
 
@@ -69,7 +70,7 @@ export default function NuevaTransaccion({ onBack, onGuardada, transaccionEditar
         if (lista.length === 0) throw new Error('No se pudieron cargar las cuentas Efectivo y Tarjeta.')
       } catch (err) {
         logError('Error cargando cuentas', err)
-        setError(err.message || 'No se pudieron cargar tus cuentas.')
+        setError(pareceErrorDeRed(err) ? 'No se pudo conectar. Revisa tu conexión e intenta de nuevo.' : mensajeAmigable(err, 'No se pudieron cargar tus cuentas.'))
       }
     }
     cargarCuentas()
@@ -149,7 +150,7 @@ export default function NuevaTransaccion({ onBack, onGuardada, transaccionEditar
         return
       }
       logError('Error guardando transacción', err)
-      setError(err.message || 'No se pudo guardar. Intenta de nuevo.')
+      setError(mensajeAmigable(err, 'No se pudo guardar. Intenta de nuevo.'))
       setGuardando(false)
     }
   }

@@ -5,6 +5,8 @@ import {
   sumar, agruparPorCategoria, agruparPorMes, calcularHabitos, calcularInsights, compararConMesAnterior
 } from '../lib/estadisticas.js'
 import SelectorPeriodo from '../components/SelectorPeriodo.jsx'
+import { conRespaldoOffline } from '../lib/offline.js'
+import { mensajeAmigable } from '../lib/errores.js'
 import { MESES_POR_IDIOMA } from '../i18n/translations.js'
 import Monto from '../components/Monto.jsx'
 import { usePreferencias } from '../context/PreferenciasContext.jsx'
@@ -33,28 +35,33 @@ export default function Analisis() {
       setCargando(true)
       setError(null)
       try {
-        const { data } = await supabase.auth.getUser()
-        if (!data.user) throw new Error('Sesión no disponible.')
-        const uid = data.user.id
+        const { data } = await supabase.auth.getSession()
+        const usuario = data.session?.user
+        if (!usuario) throw new Error('Sesión no disponible.')
+        const uid = usuario.id
 
         let actual, anterior, referenciaHistorico
 
         if (periodo.tipo === 'mes') {
           const fechaMes = new Date(periodo.anio, periodo.mes, 1)
-          actual = await obtenerTransaccionesPorMes(uid, fechaMes)
-          anterior = await obtenerTransaccionesPorMes(uid, new Date(periodo.anio, periodo.mes - 1, 1))
+          const claveMes = `analisis:${uid}:${periodo.anio}-${periodo.mes}`
+          const claveAnterior = `analisis:${uid}:${periodo.anio}-${periodo.mes}-anterior`
+          actual = await conRespaldoOffline(claveMes, () => obtenerTransaccionesPorMes(uid, fechaMes))
+          anterior = await conRespaldoOffline(claveAnterior, () => obtenerTransaccionesPorMes(uid, new Date(periodo.anio, periodo.mes - 1, 1)))
           referenciaHistorico = fechaMes
         } else {
           const hastaExclusivo = new Date(`${periodo.hasta}T00:00:00`)
           hastaExclusivo.setDate(hastaExclusivo.getDate() + 1)
-          actual = await obtenerTransaccionesEnRango(uid, periodo.desde, hastaExclusivo.toISOString().slice(0, 10))
+          const hastaStr = hastaExclusivo.toISOString().slice(0, 10)
+          const claveRango = `analisis:${uid}:${periodo.desde}_${hastaStr}`
+          actual = await conRespaldoOffline(claveRango, () => obtenerTransaccionesEnRango(uid, periodo.desde, hastaStr))
           anterior = [] // "vs mes anterior" no aplica a un rango libre
           referenciaHistorico = new Date(`${periodo.hasta}T12:00:00`)
         }
 
         const [historico, cuentas] = await Promise.all([
-          obtenerTransaccionesUltimosMeses(uid, 6, referenciaHistorico),
-          obtenerCuentas(uid)
+          conRespaldoOffline(`analisis-historico:${uid}`, () => obtenerTransaccionesUltimosMeses(uid, 6, referenciaHistorico)),
+          conRespaldoOffline(`cuentas:${uid}`, () => obtenerCuentas(uid))
         ])
 
         setMesActual(actual)
@@ -62,7 +69,7 @@ export default function Analisis() {
         setUltimosMeses(historico)
         setCuentasPorId(Object.fromEntries(cuentas.map(c => [c.id, c])))
       } catch (err) {
-        setError(err.message || t('an_cargando'))
+        setError(mensajeAmigable(err, t('an_cargando')))
       } finally {
         setCargando(false)
       }
@@ -338,7 +345,6 @@ function Dona({ datos }) {
         <div style={{ width: 46, height: 46, borderRadius: '50%', background: 'var(--bg-surface)' }} />
       </div>
       <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 8 }}>
- 
         {datos.map((d, i) => (
           <div key={d.nombre} style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 12 }}>
             <span style={{ width: 8, height: 8, borderRadius: '50%', background: COLORES_CATEGORIA[i % COLORES_CATEGORIA.length], flexShrink: 0 }} />

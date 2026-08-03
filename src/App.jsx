@@ -1,9 +1,9 @@
 import { useEffect, useState } from 'react'
 import { supabase } from './lib/supabaseClient.js'
-import { asegurarCuentasPorDefecto, asegurarCategoriasPorDefecto, crearTransaccion, editarTransaccion, crearTransferencia } from './lib/db.js'
+import { asegurarCuentasPorDefecto, asegurarCategoriasPorDefecto, crearTransaccion, editarTransaccion, crearTransferencia, obtenerCuentas, obtenerCategorias } from './lib/db.js'
 import { logError } from './lib/logger.js'
 import { useEnLinea } from './hooks/useEnLinea.js'
-import { obtenerColaPendiente, sincronizarCola } from './lib/offline.js'
+import { obtenerColaPendiente, sincronizarCola, conRespaldoOffline } from './lib/offline.js'
 import BannerSinConexion from './components/BannerSinConexion.jsx'
 import BottomNav from './components/BottomNav.jsx'
 import Inicio from './screens/Inicio.jsx'
@@ -64,16 +64,23 @@ function AppInner() {
     supabase.auth.getSession().then(({ data }) => {
       setSession(data.session)
       if (data.session) {
-        asegurarCuentasPorDefecto(data.session.user.id).catch(err => logError('Error creando cuentas por defecto', err))
-        asegurarCategoriasPorDefecto(data.session.user.id).catch(err => logError('Error creando categorías por defecto', err))
+        const uid = data.session.user.id
+        asegurarCuentasPorDefecto(uid).catch(err => logError('Error creando cuentas por defecto', err))
+        asegurarCategoriasPorDefecto(uid).catch(err => logError('Error creando categorías por defecto', err))
+        // Precarga la caché offline aunque el usuario nunca visite estas pantallas primero
+        conRespaldoOffline(`cuentas:${uid}`, () => obtenerCuentas(uid)).catch(() => {})
+        conRespaldoOffline(`categorias:${uid}`, () => obtenerCategorias(uid)).catch(() => {})
         if (!yaVistoAntes) setMostrarTour(true)
       }
     })
     const { data: listener } = supabase.auth.onAuthStateChange((_event, nueva) => {
       setSession(nueva)
       if (nueva) {
-        asegurarCuentasPorDefecto(nueva.user.id).catch(err => logError('Error creando cuentas por defecto', err))
-        asegurarCategoriasPorDefecto(nueva.user.id).catch(err => logError('Error creando categorías por defecto', err))
+        const uid = nueva.user.id
+        asegurarCuentasPorDefecto(uid).catch(err => logError('Error creando cuentas por defecto', err))
+        asegurarCategoriasPorDefecto(uid).catch(err => logError('Error creando categorías por defecto', err))
+        conRespaldoOffline(`cuentas:${uid}`, () => obtenerCuentas(uid)).catch(() => {})
+        conRespaldoOffline(`categorias:${uid}`, () => obtenerCategorias(uid)).catch(() => {})
         if (!yaVistoAntes) setMostrarTour(true)
       }
     })

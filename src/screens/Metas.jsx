@@ -5,6 +5,8 @@ import { useScrollLock } from '../hooks/useScrollLock.js'
 import MetaDetalle from './MetaDetalle.jsx'
 import Monto from '../components/Monto.jsx'
 import { usePreferencias } from '../context/PreferenciasContext.jsx'
+import { conRespaldoOffline } from '../lib/offline.js'
+import { mensajeAmigable } from '../lib/errores.js'
 
 const fmt = (n) => Number(n).toLocaleString('es-MX', { style: 'currency', currency: 'MXN' })
 const fmtFecha = (f) => f ? new Date(`${f}T12:00:00`).toLocaleDateString('es-MX', { day: '2-digit', month: 'short', year: 'numeric' }) : null
@@ -34,19 +36,20 @@ export default function Metas() {
     setCargando(true)
     setError(null)
     try {
-      setLista(await obtenerMetas(uid))
+      setLista(await conRespaldoOffline(`metas:${uid}`, () => obtenerMetas(uid)))
     } catch (err) {
-      setError(err.message || t('metas_vacio_activas'))
+      setError(mensajeAmigable(err, t('metas_vacio_activas')))
     } finally {
       setCargando(false)
     }
   }, [])
 
   useEffect(() => {
-    supabase.auth.getUser().then(({ data }) => {
-      if (data.user) {
-        setUserId(data.user.id)
-        cargar(data.user.id)
+    supabase.auth.getSession().then(({ data }) => {
+      const usuario = data.session?.user
+      if (usuario) {
+        setUserId(usuario.id)
+        cargar(usuario.id)
       }
     })
   }, [cargar])

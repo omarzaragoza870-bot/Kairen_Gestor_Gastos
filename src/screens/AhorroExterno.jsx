@@ -4,6 +4,8 @@ import { obtenerAhorroExterno, crearAhorroExterno, editarAhorroExterno, eliminar
 import InfoTooltip from '../components/InfoTooltip.jsx'
 import { useScrollLock } from '../hooks/useScrollLock.js'
 import Monto from '../components/Monto.jsx'
+import { conRespaldoOffline } from '../lib/offline.js'
+import { mensajeAmigable } from '../lib/errores.js'
 import { usePreferencias } from '../context/PreferenciasContext.jsx'
 
 const fmt = (n) => Number(n).toLocaleString('es-MX', { style: 'currency', currency: 'MXN' })
@@ -31,19 +33,20 @@ export default function AhorroExterno() {
     setCargando(true)
     setError(null)
     try {
-      setLista(await obtenerAhorroExterno(uid))
+      setLista(await conRespaldoOffline(`ahorro-externo:${uid}`, () => obtenerAhorroExterno(uid)))
     } catch (err) {
-      setError(err.message || 'No se pudo cargar tu ahorro externo.')
+      setError(mensajeAmigable(err, 'No se pudo cargar tu ahorro externo.'))
     } finally {
       setCargando(false)
     }
   }, [])
 
   useEffect(() => {
-    supabase.auth.getUser().then(({ data }) => {
-      if (data.user) {
-        setUserId(data.user.id)
-        cargar(data.user.id)
+    supabase.auth.getSession().then(({ data }) => {
+      const usuario = data.session?.user
+      if (usuario) {
+        setUserId(usuario.id)
+        cargar(usuario.id)
       }
     })
   }, [cargar])
