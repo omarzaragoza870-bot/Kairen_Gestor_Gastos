@@ -606,3 +606,63 @@ export async function reiniciarCuentaActual(userId) {
 
   await asegurarCategoriasPorDefecto(userId)
 }
+// ─── Transacciones Recurrentes ────────────────────────────────────────────
+
+export async function obtenerRecurrentes(userId) {
+  try {
+    const { data, error } = await supabase
+      .from('recurrentes')
+      .select('*')
+      .eq('user_id', userId)
+      .order('proxima_fecha', { ascending: true })
+    if (error) throw error
+    return data || []
+  } catch (err) {
+    console.warn('[Kairen Finanzas] Recurrentes no disponibles aún:', err.message)
+    return []
+  }
+}
+
+export async function crearRecurrente({ userId, cuentaId, cuentaNombre, tipo, categoriaNombre, monto, descripcion, frecuencia, proximaFecha }) {
+  const { error } = await supabase.from('recurrentes').insert({
+    user_id: userId,
+    cuenta_id: cuentaId,
+    cuenta_nombre: cuentaNombre,
+    tipo,
+    categoria_nombre: categoriaNombre,
+    monto,
+    descripcion: descripcion || null,
+    frecuencia,
+    proxima_fecha: proximaFecha
+  })
+  if (error) throw error
+}
+
+export async function editarRecurrente({ id, userId, cuentaId, cuentaNombre, tipo, categoriaNombre, monto, descripcion, frecuencia, proximaFecha, activa }) {
+  const { error } = await supabase
+    .from('recurrentes')
+    .update({ cuenta_id: cuentaId, cuenta_nombre: cuentaNombre, tipo, categoria_nombre: categoriaNombre, monto, descripcion: descripcion || null, frecuencia, proxima_fecha: proximaFecha, activa })
+    .eq('id', id)
+    .eq('user_id', userId)
+  if (error) throw error
+}
+
+export async function eliminarRecurrente(id, userId) {
+  const { error } = await supabase
+    .from('recurrentes')
+    .delete()
+    .eq('id', id)
+    .eq('user_id', userId)
+  if (error) throw error
+}
+
+export async function procesarRecurrentes() {
+  try {
+    const { data, error } = await supabase.rpc('procesar_recurrentes')
+    if (error) throw error
+    return data || 0
+  } catch (err) {
+    console.warn('[Kairen Finanzas] No se pudieron procesar recurrentes:', err.message)
+    return 0
+  }
+}

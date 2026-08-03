@@ -7,10 +7,11 @@ import { exportarTodosLosDatos, importarTodosLosDatos, reiniciarCuentaActual } f
 import { logError } from '../lib/logger.js'
 import Categorias from './Categorias.jsx'
 import Presupuestos from './Presupuestos.jsx'
+import Recurrentes from './Recurrentes.jsx'
+import Reportes from './Reportes.jsx'
 import SelectorMoneda from './SelectorMoneda.jsx'
 import SelectorTema from './SelectorTema.jsx'
 import SelectorIdioma from './SelectorIdioma.jsx'
-import { mensajeAmigable } from '../lib/errores.js'
 
 export default function Ajustes({ onVerTutorial }) {
   const { ocultarSaldos, toggleOcultarSaldos, moneda, tema, idioma, t } = usePreferencias()
@@ -19,6 +20,8 @@ export default function Ajustes({ onVerTutorial }) {
   const [confirmandoReinicio, setConfirmandoReinicio] = useState(false)
   const [mostrarCategorias, setMostrarCategorias] = useState(false)
   const [mostrarPresupuestos, setMostrarPresupuestos] = useState(false)
+  const [mostrarRecurrentes, setMostrarRecurrentes] = useState(false)
+  const [mostrarReportes, setMostrarReportes] = useState(false)
   const [mostrarMoneda, setMostrarMoneda] = useState(false)
   const [mostrarTema, setMostrarTema] = useState(false)
   const [mostrarIdioma, setMostrarIdioma] = useState(false)
@@ -96,7 +99,7 @@ export default function Ajustes({ onVerTutorial }) {
       URL.revokeObjectURL(url)
       setMensaje('Respaldo descargado correctamente.')
     } catch (err) {
-      setError(mensajeAmigable(err, 'No se pudo exportar tus datos.'))
+      setError(err.message || 'No se pudo exportar tus datos.')
     } finally {
       setExportando(false)
     }
@@ -157,7 +160,7 @@ export default function Ajustes({ onVerTutorial }) {
       setConfirmandoReinicio(false)
       setMensaje('Tu cuenta se reinició. Todo quedó en cero.')
     } catch (err) {
-      setError(mensajeAmigable(err, 'No se pudo reiniciar la cuenta.'))
+      setError(err.message || 'No se pudo reiniciar la cuenta.')
     } finally {
       setReiniciando(false)
     }
@@ -176,6 +179,12 @@ export default function Ajustes({ onVerTutorial }) {
   }
   if (mostrarPresupuestos) {
     return <Presupuestos onBack={() => setMostrarPresupuestos(false)} />
+  }
+  if (mostrarRecurrentes) {
+    return <Recurrentes onBack={() => setMostrarRecurrentes(false)} />
+  }
+  if (mostrarReportes) {
+    return <Reportes onBack={() => setMostrarReportes(false)} />
   }
   if (mostrarMoneda) {
     return <SelectorMoneda onBack={() => setMostrarMoneda(false)} />
@@ -321,6 +330,12 @@ export default function Ajustes({ onVerTutorial }) {
         </button>
         <button onClick={() => setMostrarPresupuestos(true)} style={{ width: '100%', textAlign: 'left', background: 'transparent' }}>
           <FilaAjuste icono="📊" titulo={t('pr_titulo')} subtitulo={t('pr_info')} flecha />
+        </button>
+        <button onClick={() => setMostrarRecurrentes(true)} style={{ width: '100%', textAlign: 'left', background: 'transparent' }}>
+          <FilaAjuste icono="🔁" titulo="Transacciones Recurrentes" subtitulo="Netflix, renta, sueldo… se crean solos cuando toca" flecha />
+        </button>
+        <button onClick={() => setMostrarReportes(true)} style={{ width: '100%', textAlign: 'left', background: 'transparent' }}>
+          <FilaAjuste icono="📄" titulo="Reportes en PDF" subtitulo="Descarga un resumen mensual de tus finanzas" flecha />
         </button>
         <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '14px 16px' }}>
           <span style={{ fontSize: 18 }}>👁️</span>

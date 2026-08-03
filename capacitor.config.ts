@@ -5,14 +5,21 @@ const config: CapacitorConfig = {
   appName: 'Kairen Finanzas',
   webDir: 'dist',
   server: {
-    androidScheme: 'https'
+    androidScheme: 'https',
+    allowNavigation: ['*.googleusercontent.com']
   },
   plugins: {
-    // App Links: usa el dominio real de Vercel en vez del esquema personalizado
-    // com.kairen.finanzas:// — Android verifica que el dominio es dueño de la
-    // app a través del archivo /.well-known/assetlinks.json en Vercel.
     Deeplinks: {
       androidPathPrefix: '/auth/callback'
+    },
+    SplashScreen: {
+      launchShowDuration: 2000,
+      launchAutoHide: true,
+      backgroundColor: '#0B0F1A',
+      androidSplashResourceName: 'splash',
+      showSpinner: false,
+      splashFullScreen: true,
+      splashImmersive: true
     }
   }
 }

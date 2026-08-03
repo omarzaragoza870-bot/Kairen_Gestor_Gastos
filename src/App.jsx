@@ -1,6 +1,6 @@
 import { useEffect, useState, lazy, Suspense } from 'react'
 import { supabase } from './lib/supabaseClient.js'
-import { asegurarCuentasPorDefecto, asegurarCategoriasPorDefecto, crearTransaccion, editarTransaccion, crearTransferencia, obtenerCuentas, obtenerCategorias, obtenerTransaccionesPorMes, obtenerMetas, obtenerAhorroExterno } from './lib/db.js'
+import { asegurarCuentasPorDefecto, asegurarCategoriasPorDefecto, crearTransaccion, editarTransaccion, crearTransferencia, obtenerCuentas, obtenerCategorias, obtenerTransaccionesPorMes, obtenerMetas, obtenerAhorroExterno, procesarRecurrentes } from './lib/db.js'
 import { logError } from './lib/logger.js'
 import { useEnLinea } from './hooks/useEnLinea.js'
 import { obtenerColaPendiente, sincronizarCola, conRespaldoOffline } from './lib/offline.js'
@@ -152,6 +152,7 @@ function AppInner() {
         asegurarCuentasPorDefecto(uid).catch(err => logError('Error creando cuentas por defecto', err))
         asegurarCategoriasPorDefecto(uid).catch(err => logError('Error creando categorías por defecto', err))
         precargarOffline(uid)
+        procesarRecurrentes().then(n => { if (n > 0) setRefreshKey(k => k + 1) }).catch(() => {})
         if (!yaVistoAntes) setMostrarTour(true)
       }
     })
@@ -162,6 +163,7 @@ function AppInner() {
         asegurarCuentasPorDefecto(uid).catch(err => logError('Error creando cuentas por defecto', err))
         asegurarCategoriasPorDefecto(uid).catch(err => logError('Error creando categorías por defecto', err))
         precargarOffline(uid)
+        procesarRecurrentes().then(n => { if (n > 0) setRefreshKey(k => k + 1) }).catch(() => {})
         if (!yaVistoAntes) setMostrarTour(true)
       }
     })
