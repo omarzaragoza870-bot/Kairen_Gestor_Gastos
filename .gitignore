@@ -11,4 +11,4 @@ android/local.properties
 *.apk
 *.aab
 *.keystore
-*.jks
+*.jkssupabase/.temp/
