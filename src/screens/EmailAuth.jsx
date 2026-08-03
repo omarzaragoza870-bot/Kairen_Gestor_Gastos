@@ -12,11 +12,19 @@ export default function EmailAuth({ onCancelar }) {
   const [procesando, setProcesando] = useState(false)
   const [error, setError] = useState(null)
   const [mensaje, setMensaje] = useState(null)
+  const [intentosFallidos, setIntentosFallidos] = useState(0)
+  const [bloqueadoHasta, setBloqueadoHasta] = useState(null)
 
   const valido = email.trim().length > 3 && password.length >= 6 && (modo === 'entrar' || nombre.trim().length > 0)
 
   const handleSubmit = async () => {
     if (!valido || procesando) return
+    // Protección client-side contra fuerza bruta: bloquea 30s tras 5 intentos fallidos
+    if (bloqueadoHasta && Date.now() < bloqueadoHasta) {
+      const segs = Math.ceil((bloqueadoHasta - Date.now()) / 1000)
+      setError(`Demasiados intentos fallidos. Espera ${segs} segundos antes de volver a intentar.`)
+      return
+    }
     setProcesando(true)
     setError(null)
     setMensaje(null)
@@ -33,6 +41,8 @@ export default function EmailAuth({ onCancelar }) {
         // no habrá sesión todavía hasta que el usuario confirme desde su email.
         if (!data.session) {
           setMensaje('Te mandamos un correo de confirmación. Revisa tu bandeja de entrada y luego inicia sesión aquí.')
+        setIntentosFallidos(0)
+        setBloqueadoHasta(null)
           setModo('entrar')
         }
       } else {
@@ -45,6 +55,13 @@ export default function EmailAuth({ onCancelar }) {
     } catch (err) {
       logError('Error con correo/contraseña', err)
       setError(mensajeError(err))
+      // Incrementar contador de intentos fallidos
+      const nuevos = intentosFallidos + 1
+      setIntentosFallidos(nuevos)
+      if (nuevos >= 5) {
+        setBloqueadoHasta(Date.now() + 30000) // bloquear 30 segundos
+        setIntentosFallidos(0)
+      }
     } finally {
       setProcesando(false)
     }
@@ -97,12 +114,12 @@ export default function EmailAuth({ onCancelar }) {
 
       <label className="field-label">Correo</label>
       <div className="input-shell" style={{ marginBottom: 16 }}>
-        <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="tu@correo.com" autoCapitalize="none" />
+        <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="tu@correo.com" autoCapitalize="none" autoComplete="email" />
       </div>
 
       <label className="field-label">Contraseña</label>
       <div className="input-shell" style={{ marginBottom: 8 }}>
-        <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} placeholder="Mínimo 6 caracteres" />
+        <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} placeholder="Mínimo 6 caracteres" autoComplete={modo === 'entrar' ? 'current-password' : 'new-password'} />
       </div>
       <p style={{ fontSize: 11, color: 'var(--text-muted)', margin: '0 0 20px' }}>Mínimo 6 caracteres.</p>
 

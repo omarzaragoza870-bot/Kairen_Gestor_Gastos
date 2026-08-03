@@ -70,7 +70,7 @@ export default function Metas() {
       setEditando(null)
       await cargar(userId)
     } catch (err) {
-      setError(err.message || 'No se pudo guardar la meta.')
+      setError(mensajeAmigable(err, 'No se pudo guardar la meta.'))
     } finally {
       setProcesando(false)
     }
@@ -81,7 +81,7 @@ export default function Metas() {
       await marcarMetaCompletada(meta.id, userId, !meta.completada)
       await cargar(userId)
     } catch (err) {
-      setError(err.message || 'No se pudo actualizar la meta.')
+      setError(mensajeAmigable(err, 'No se pudo actualizar la meta.'))
     }
   }
 
@@ -93,7 +93,7 @@ export default function Metas() {
       setAEliminar(null)
       await cargar(userId)
     } catch (err) {
-      setError(err.message || 'No se pudo eliminar.')
+      setError(mensajeAmigable(err, 'No se pudo eliminar.'))
     } finally {
       setProcesando(false)
     }

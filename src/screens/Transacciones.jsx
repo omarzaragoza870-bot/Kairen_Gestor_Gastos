@@ -4,6 +4,7 @@ import { eliminarTransaccion, obtenerTodasLasTransacciones, obtenerCuentas, obte
 import { useScrollLock } from '../hooks/useScrollLock.js'
 import Monto from '../components/Monto.jsx'
 import { usePreferencias } from '../context/PreferenciasContext.jsx'
+import { mensajeAmigable } from '../lib/errores.js'
 
 const fmt = n => Number(n).toLocaleString('es-MX', { style: 'currency', currency: 'MXN' })
 const fmtFecha = f => new Date(`${f}T12:00:00`).toLocaleDateString('es-MX', { day: '2-digit', month: 'long', year: 'numeric' })
@@ -39,7 +40,7 @@ export default function Transacciones({ onBack, onEditar, refreshKey, onCambio }
       cats.forEach(c => { mapa[`${c.tipo}:${c.nombre}`] = c.icono || '🏷️' })
       setIconosPorCategoria(mapa)
     } catch (err) {
-      setError(err.message || 'No se pudieron cargar las transacciones.')
+      setError(mensajeAmigable(err, 'No se pudieron cargar las transacciones.'))
     } finally {
       setCargando(false)
     }
@@ -67,7 +68,7 @@ export default function Transacciones({ onBack, onEditar, refreshKey, onCambio }
       await cargar()
       onCambio?.()
     } catch (err) {
-      setError(err.message || 'No se pudo eliminar el movimiento.')
+      setError(mensajeAmigable(err, 'No se pudo eliminar el movimiento.'))
     } finally {
       setEliminando(false)
     }

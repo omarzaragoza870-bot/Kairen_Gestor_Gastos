@@ -65,7 +65,7 @@ export default function AhorroExterno() {
       setEditando(null)
       await cargar(userId)
     } catch (err) {
-      setError(err.message || 'No se pudo guardar el registro.')
+      setError(mensajeAmigable(err, 'No se pudo guardar el registro.'))
     } finally {
       setProcesando(false)
     }
@@ -79,7 +79,7 @@ export default function AhorroExterno() {
       setAEliminar(null)
       await cargar(userId)
     } catch (err) {
-      setError(err.message || 'No se pudo eliminar.')
+      setError(mensajeAmigable(err, 'No se pudo eliminar.'))
     } finally {
       setProcesando(false)
     }

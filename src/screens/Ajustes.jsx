@@ -10,6 +10,7 @@ import Presupuestos from './Presupuestos.jsx'
 import SelectorMoneda from './SelectorMoneda.jsx'
 import SelectorTema from './SelectorTema.jsx'
 import SelectorIdioma from './SelectorIdioma.jsx'
+import { mensajeAmigable } from '../lib/errores.js'
 
 export default function Ajustes({ onVerTutorial }) {
   const { ocultarSaldos, toggleOcultarSaldos, moneda, tema, idioma, t } = usePreferencias()
@@ -95,7 +96,7 @@ export default function Ajustes({ onVerTutorial }) {
       URL.revokeObjectURL(url)
       setMensaje('Respaldo descargado correctamente.')
     } catch (err) {
-      setError(err.message || 'No se pudo exportar tus datos.')
+      setError(mensajeAmigable(err, 'No se pudo exportar tus datos.'))
     } finally {
       setExportando(false)
     }
@@ -156,7 +157,7 @@ export default function Ajustes({ onVerTutorial }) {
       setConfirmandoReinicio(false)
       setMensaje('Tu cuenta se reinició. Todo quedó en cero.')
     } catch (err) {
-      setError(err.message || 'No se pudo reiniciar la cuenta.')
+      setError(mensajeAmigable(err, 'No se pudo reiniciar la cuenta.'))
     } finally {
       setReiniciando(false)
     }
