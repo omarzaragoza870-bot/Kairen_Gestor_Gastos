@@ -34,6 +34,25 @@ export default function Ajustes({ onVerTutorial }) {
     supabase.auth.getUser().then(({ data }) => setUser(data.user))
   }, [])
 
+  const [vinculando, setVinculando] = useState(false)
+
+  const handleVincularGoogle = async () => {
+    setVinculando(true)
+    setError(null)
+    try {
+      const { error: vincularError } = await supabase.auth.linkIdentity({
+        provider: 'google',
+        options: { redirectTo: window.location.origin }
+      })
+      if (vincularError) throw vincularError
+      // Supabase redirige a Google y de vuelta — no hace falta más aquí
+    } catch (err) {
+      logError('Error vinculando con Google', err)
+      setError('No se pudo vincular con Google. Intenta de nuevo.')
+      setVinculando(false)
+    }
+  }
+
   const handleLogout = async () => {
     await supabase.auth.signOut({ scope: 'global' }) // invalida el refresh token en todos los dispositivos, no solo este
     // onAuthStateChange en App.jsx detecta esto solo y regresa al Login
@@ -149,6 +168,7 @@ export default function Ajustes({ onVerTutorial }) {
   // XSS-03: solo aceptamos avatares servidos por https, nunca esquemas raros (javascript:, data:, etc.)
   const avatar = avatarBruto?.startsWith('https://') ? avatarBruto : null
   const email = user?.email
+  const esInvitado = Boolean(user?.is_anonymous)
 
   if (mostrarCategorias && user) {
     return <Categorias userId={user.id} onBack={() => setMostrarCategorias(false)} />
@@ -188,8 +208,14 @@ export default function Ajustes({ onVerTutorial }) {
         )}
         <div style={{ overflow: 'hidden' }}>
           <div style={{ fontWeight: 700, fontSize: 15 }}>{nombre}</div>
-          <div style={{ fontSize: 12, color: 'var(--text-secondary)', overflow: 'hidden', textOverflow: 'ellipsis' }}>{email}</div>
-          <div style={{ fontSize: 11, color: 'var(--success)', marginTop: 2 }}>● {t('ajustes_sesion_google')}</div>
+          {esInvitado ? (
+            <div style={{ fontSize: 11, color: 'var(--warning)', marginTop: 2 }}>👤 {t('ajustes_cuenta_invitado')}</div>
+          ) : (
+            <>
+              <div style={{ fontSize: 12, color: 'var(--text-secondary)', overflow: 'hidden', textOverflow: 'ellipsis' }}>{email}</div>
+              <div style={{ fontSize: 11, color: 'var(--success)', marginTop: 2 }}>● {t('ajustes_sesion_google')}</div>
+            </>
+          )}
         </div>
       </section>
 
@@ -213,6 +239,25 @@ export default function Ajustes({ onVerTutorial }) {
           }}
         >
           <span>🎓</span> {t('ajustes_ver_tutorial')}
+        </button>
+      )}
+
+      {esInvitado && (
+        <button
+          onClick={handleVincularGoogle}
+          disabled={vinculando}
+          style={{
+            width: '100%', textAlign: 'left', padding: '14px 16px', marginBottom: 10,
+            background: 'rgba(79, 107, 255, 0.1)', borderRadius: 'var(--radius-md)',
+            border: '1px solid var(--accent-blue)', color: 'var(--text-primary)',
+            fontSize: 14, fontWeight: 600, display: 'flex', alignItems: 'center', gap: 10
+          }}
+        >
+          <span>🔵</span>
+          <div>
+            <div>{vinculando ? t('ajustes_vinculando') : t('ajustes_vincular_google')}</div>
+            {!vinculando && <div style={{ fontSize: 11, color: 'var(--text-muted)', fontWeight: 400 }}>{t('ajustes_vincular_google_desc')}</div>}
+          </div>
         </button>
       )}
 

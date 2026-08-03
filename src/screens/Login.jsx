@@ -1,9 +1,12 @@
+import { useState } from 'react'
 import { supabase } from '../lib/supabaseClient.js'
 import { usePreferencias } from '../context/PreferenciasContext.jsx'
 import { logError } from '../lib/logger.js'
+import ContinuarSinCuenta from './ContinuarSinCuenta.jsx'
 
 export default function Login() {
   const { t } = usePreferencias()
+  const [mostrarInvitado, setMostrarInvitado] = useState(false)
 
   const handleGoogleLogin = async () => {
     const { error } = await supabase.auth.signInWithOAuth({
@@ -11,6 +14,10 @@ export default function Login() {
       options: { redirectTo: window.location.origin }
     })
     if (error) logError('Error al iniciar sesión', error)
+  }
+
+  if (mostrarInvitado) {
+    return <ContinuarSinCuenta onCancelar={() => setMostrarInvitado(false)} />
   }
 
   return (
@@ -38,6 +45,23 @@ export default function Login() {
         }}
       >
         <span>🔵</span> {t('login_boton_google')}
+      </button>
+
+      <div style={{ display: 'flex', alignItems: 'center', gap: 10, margin: '20px 0', width: '100%', maxWidth: 280 }}>
+        <div style={{ flex: 1, height: 1, background: 'var(--border-subtle)' }} />
+        <span style={{ fontSize: 12, color: 'var(--text-muted)' }}>{t('login_o')}</span>
+        <div style={{ flex: 1, height: 1, background: 'var(--border-subtle)' }} />
+      </div>
+
+      <button
+        onClick={() => setMostrarInvitado(true)}
+        style={{
+          padding: '14px 24px', borderRadius: 'var(--radius-md)',
+          background: 'transparent', color: 'var(--text-secondary)',
+          border: '1px solid var(--border-subtle)', fontSize: 14, fontWeight: 600
+        }}
+      >
+        {t('login_boton_invitado')}
       </button>
 
       <p style={{ color: 'var(--text-muted)', fontSize: 12, marginTop: 20, maxWidth: 280 }}>
