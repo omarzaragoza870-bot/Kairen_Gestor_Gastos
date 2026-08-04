@@ -32,6 +32,13 @@
                       android:host="kairen-gestor-gastos.vercel.app"
                       android:pathPrefix="/auth/callback" />
             </intent-filter>
+            <!-- Deep link de los botones rápidos del widget -->
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="com.kairen.finanzas" android:host="nueva-transaccion" />
+            </intent-filter>
         </activity>
         <provider
             android:name="androidx.core.content.FileProvider"

@@ -24,9 +24,12 @@ const hoy = () => {
 
   return `${año}-${mes}-${dia}`
 }
-export default function NuevaTransaccion({ onBack, onGuardada, transaccionEditar = null }) {
+export default function NuevaTransaccion({ onBack, onGuardada, transaccionEditar = null, tipoInicial = 'gasto' }) {
   const editando = Boolean(transaccionEditar)
-  const [tipo, setTipo] = useState(transaccionEditar?.tipo || 'gasto')
+  // Al crear una nueva (no editando), respeta el tipo que venga preseleccionado
+  // — por ejemplo desde los botones rápidos "− Gasto" / "+ Ingreso" del widget
+  // de Android, que abren la app directo con el tipo correcto ya elegido.
+  const [tipo, setTipo] = useState(transaccionEditar?.tipo || tipoInicial)
   const [cuentas, setCuentas] = useState([])
   const [cuentaId, setCuentaId] = useState(transaccionEditar?.cuenta_id || null)
   const [monto, setMonto] = useState(transaccionEditar ? String(transaccionEditar.monto) : '')

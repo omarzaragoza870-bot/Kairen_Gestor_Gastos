@@ -75,6 +75,7 @@ function AppInner() {
   const [session, setSession] = useState(undefined)
   const [refreshKey, setRefreshKey] = useState(0)
   const [mostrarTour, setMostrarTour] = useState(false)
+  const [tipoPreseleccionado, setTipoPreseleccionado] = useState('gasto')
   const enLinea = useEnLinea()
   const [pendientes, setPendientes] = useState(0)
 
@@ -140,6 +141,20 @@ function AppInner() {
       })
 
       const nuevoListener = await CapacitorApp.addListener('appUrlOpen', async ({ url }) => {
+        // Deep link de los botones rápidos del widget: abre directo el
+        // formulario de Nueva Transacción con el tipo ya preseleccionado.
+        // Usamos los setters de useState (definidos arriba, antes de
+        // cualquier return condicional) para que esto funcione sin
+        // importar en qué momento del ciclo de vida se dispare.
+        if (url.startsWith('com.kairen.finanzas://nueva-transaccion')) {
+          const params = new URL(url).searchParams
+          const tipo = params.get('tipo') === 'ingreso' ? 'ingreso' : 'gasto'
+          setTransaccionEditar(null)
+          setTipoPreseleccionado(tipo)
+          setVista('formulario')
+          return
+        }
+
         if (!url.startsWith('com.kairen.finanzas://login-callback') &&
             !url.startsWith('https://kairen-gestor-gastos.vercel.app/auth/callback')) return
         if (urlYaProcesada === url) return
@@ -217,7 +232,7 @@ function AppInner() {
   if (session === undefined) return <div className="app-loader">Cargando…</div>
   if (!session) return <Login />
 
-  const abrirNueva = () => { setTransaccionEditar(null); setVista('formulario') }
+  const abrirNueva = () => { setTransaccionEditar(null); setTipoPreseleccionado('gasto'); setVista('formulario') }
   const abrirEdicion = tx => { setTransaccionEditar(tx); setVista('formulario') }
   const guardada = () => { setRefreshKey(k => k + 1); actualizarConteoPendientes(); setVista(transaccionEditar ? 'lista' : 'principal'); setTransaccionEditar(null) }
   const abrirTransferencia = () => setVista('transferencia')
@@ -229,7 +244,7 @@ function AppInner() {
 
       <Suspense fallback={<CargandoPantalla />}>
         {vista === 'formulario' && (
-          <NuevaTransaccion transaccionEditar={transaccionEditar} onBack={() => setVista(transaccionEditar ? 'lista' : 'principal')} onGuardada={guardada} />
+          <NuevaTransaccion transaccionEditar={transaccionEditar} tipoInicial={tipoPreseleccionado} onBack={() => setVista(transaccionEditar ? 'lista' : 'principal')} onGuardada={guardada} />
         )}
 
         {vista === 'transferencia' && (
