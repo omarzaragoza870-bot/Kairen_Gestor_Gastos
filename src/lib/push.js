@@ -7,7 +7,7 @@
  */
 import { supabase } from './supabaseClient.js'
 
-const VAPID_PUBLIC_KEY = import.meta.env.VITE_VAPID_PUBLIC_KEY
+const VAPID_PUBLIC_KEY = import.meta.env.VITE_VAPID_PUBLIC_KEY || 'BKeKHElhKaBgabfWABu4zQXtzW-UBx4uDCnYXmDSXr7XhWzjYzywhk0UQu9Me3xv7Zs00fXlGpDBcgs7i0FDyfw'
 
 /** Convierte la clave pública VAPID de base64url a Uint8Array */
 function urlBase64ToUint8Array(base64String) {
