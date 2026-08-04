@@ -5,6 +5,7 @@ import InfoTooltip from '../components/InfoTooltip.jsx'
 import SelectorPeriodo from '../components/SelectorPeriodo.jsx'
 import { MESES_POR_IDIOMA } from '../i18n/translations.js'
 import Monto from '../components/Monto.jsx'
+import { actualizarWidget } from '../lib/widget.js'
 import { usePreferencias } from '../context/PreferenciasContext.jsx'
 import AdministrarCuentas from './AdministrarCuentas.jsx'
 import { logError, logWarn } from '../lib/logger.js'
@@ -27,7 +28,7 @@ export default function Inicio({ onNuevo, onNuevaTransferencia, onEditar, onVerT
   const hoy = new Date()
   const [periodo, setPeriodo] = useState({ tipo: 'mes', anio: hoy.getFullYear(), mes: hoy.getMonth() })
   const [mostrarSelector, setMostrarSelector] = useState(false)
-  const { t, idioma } = usePreferencias()
+  const { t, idioma, moneda } = usePreferencias()
   const MESES = MESES_POR_IDIOMA[idioma] || MESES_POR_IDIOMA.es
 
   const cargarDatos = useCallback(async uid => {
@@ -96,6 +97,16 @@ export default function Inicio({ onNuevo, onNuevaTransferencia, onEditar, onVerT
   const ingresosAcumulados = acumuladas.filter(t => t.tipo === 'ingreso').reduce((s, t) => s + Number(t.monto), 0)
   const gastosAcumulados = acumuladas.filter(t => t.tipo === 'gasto').reduce((s, t) => s + Number(t.monto), 0)
   const disponible = ingresosAcumulados - gastosAcumulados
+
+  useEffect(() => {
+    if (cargando) return
+    // Actualiza el widget de Android con los montos ya calculados
+    actualizarWidget({
+      disponible: Number(disponible).toLocaleString('es-MX', { style: 'currency', currency: moneda }),
+      ingresos: Number(ingresos).toLocaleString('es-MX', { style: 'currency', currency: moneda }),
+      gastos: Number(gastos).toLocaleString('es-MX', { style: 'currency', currency: moneda })
+    })
+  }, [disponible, ingresos, gastos, cargando, moneda])
   const visibles = transacciones.slice(0, 6)
 
   const etiquetaPeriodo = periodo.tipo === 'mes'
