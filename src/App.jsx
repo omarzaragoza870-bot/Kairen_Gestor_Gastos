@@ -181,28 +181,34 @@ function AppInner() {
     let yaVistoAntes = false
     try { yaVistoAntes = localStorage.getItem(TOUR_STORAGE_KEY) === 'true' } catch { /* noop */ }
 
+    // Se ejecuta UNA sola vez por usuario/sesión — evita la condición de
+    // carrera que creaba cuentas/categorías por defecto duplicadas cuando
+    // getSession() y onAuthStateChange() se disparaban casi al mismo tiempo.
+    let yaInicializado = false
+
+    const inicializarUsuario = (uid) => {
+      if (yaInicializado) return
+      yaInicializado = true
+      asegurarCuentasPorDefecto(uid).catch(err => logError('Error creando cuentas por defecto', err))
+      asegurarCategoriasPorDefecto(uid).catch(err => logError('Error creando categorías por defecto', err))
+      precargarOffline(uid)
+      procesarRecurrentes().then(n => { if (n > 0) setRefreshKey(k => k + 1) }).catch(() => {})
+      inicializarFirebaseMessaging(uid)
+      if (!yaVistoAntes) setMostrarTour(true)
+    }
+
     supabase.auth.getSession().then(({ data }) => {
       setSession(data.session)
-      if (data.session) {
-        const uid = data.session.user.id
-        asegurarCuentasPorDefecto(uid).catch(err => logError('Error creando cuentas por defecto', err))
-        asegurarCategoriasPorDefecto(uid).catch(err => logError('Error creando categorías por defecto', err))
-        precargarOffline(uid)
-        procesarRecurrentes().then(n => { if (n > 0) setRefreshKey(k => k + 1) }).catch(() => {})
-        inicializarFirebaseMessaging(uid)
-        if (!yaVistoAntes) setMostrarTour(true)
-      }
+      if (data.session) inicializarUsuario(data.session.user.id)
     })
-    const { data: listener } = supabase.auth.onAuthStateChange((_event, nueva) => {
+
+    const { data: listener } = supabase.auth.onAuthStateChange((event, nueva) => {
       setSession(nueva)
-      if (nueva) {
-        const uid = nueva.user.id
-        asegurarCuentasPorDefecto(uid).catch(err => logError('Error creando cuentas por defecto', err))
-        asegurarCategoriasPorDefecto(uid).catch(err => logError('Error creando categorías por defecto', err))
-        precargarOffline(uid)
-        procesarRecurrentes().then(n => { if (n > 0) setRefreshKey(k => k + 1) }).catch(() => {})
-        inicializarFirebaseMessaging(uid)
-        if (!yaVistoAntes) setMostrarTour(true)
+      // 'INITIAL_SESSION' ya lo maneja el getSession() de arriba — solo nos
+      // interesa aquí un login/token nuevo genuino (ej. el usuario acaba de
+      // iniciar sesión desde la pantalla de Login, o vincular con Google).
+      if (nueva && event !== 'INITIAL_SESSION') {
+        inicializarUsuario(nueva.user.id)
       }
     })
     return () => listener.subscription.unsubscribe()
