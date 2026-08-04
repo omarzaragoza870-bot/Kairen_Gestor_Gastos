@@ -11,6 +11,42 @@ import OnboardingTour, { TOUR_STORAGE_KEY } from './components/OnboardingTour.js
 import { PreferenciasProvider } from './context/PreferenciasContext.jsx'
 import { esNativo } from './lib/capacitor.js'
 
+// Inicializar Firebase Messaging en la app nativa (Android)
+// Se hace aquí para que el token FCM esté disponible lo antes posible
+async function inicializarFirebaseMessaging(userId) {
+  if (!esNativo()) return
+  try {
+    const { FirebaseMessaging } = await import('@capacitor-firebase/messaging')
+
+    // Pedir permiso de notificaciones
+    const { receive } = await FirebaseMessaging.requestPermissions()
+    if (receive !== 'granted') return
+
+    // Obtener el token FCM de este dispositivo
+    const { token } = await FirebaseMessaging.getToken()
+    if (!token) return
+
+    // Guardar el token en Supabase para poder enviarle notificaciones
+    await supabase.from('fcm_tokens').upsert({
+      user_id: userId,
+      token,
+      plataforma: 'android'
+    }, { onConflict: 'user_id,token' })
+
+    // Escuchar notificaciones cuando la app está en primer plano
+    await FirebaseMessaging.addListener('notificationReceived', ({ notification }) => {
+      console.log('[FCM] Notificación recibida:', notification.title)
+    })
+
+    // Cuando el usuario toca la notificación
+    await FirebaseMessaging.addListener('notificationActionPerformed', ({ notification }) => {
+      console.log('[FCM] Notificación tocada:', notification.notification?.title)
+    })
+  } catch (err) {
+    logError('Error inicializando Firebase Messaging', err)
+  }
+}
+
 // Pantallas cargadas solo cuando el usuario las visita (code splitting)
 // — reduce el bundle inicial de ~510 KB a ~150-200 KB
 const Inicio = lazy(() => import('./screens/Inicio.jsx'))
@@ -153,6 +189,7 @@ function AppInner() {
         asegurarCategoriasPorDefecto(uid).catch(err => logError('Error creando categorías por defecto', err))
         precargarOffline(uid)
         procesarRecurrentes().then(n => { if (n > 0) setRefreshKey(k => k + 1) }).catch(() => {})
+        inicializarFirebaseMessaging(uid)
         if (!yaVistoAntes) setMostrarTour(true)
       }
     })
@@ -164,6 +201,7 @@ function AppInner() {
         asegurarCategoriasPorDefecto(uid).catch(err => logError('Error creando categorías por defecto', err))
         precargarOffline(uid)
         procesarRecurrentes().then(n => { if (n > 0) setRefreshKey(k => k + 1) }).catch(() => {})
+        inicializarFirebaseMessaging(uid)
         if (!yaVistoAntes) setMostrarTour(true)
       }
     })
