@@ -18,7 +18,8 @@ export default function Transacciones({ onBack, onEditar, refreshKey, onCambio }
   const [cuentaFiltro, setCuentaFiltro] = useState('todas')
   const [busqueda, setBusqueda] = useState('')
   const [aEliminar, setAEliminar] = useState(null)
-  useScrollLock(Boolean(aEliminar))
+  const [verDetalle, setVerDetalle] = useState(null)
+  useScrollLock(Boolean(aEliminar) || Boolean(verDetalle))
   const [eliminando, setEliminando] = useState(false)
   const [iconosPorCategoria, setIconosPorCategoria] = useState({})
   const { t } = usePreferencias()
@@ -57,6 +58,8 @@ export default function Transacciones({ onBack, onEditar, refreshKey, onCambio }
       return true
     })
   }, [filtro, cuentaFiltro, busqueda, lista])
+
+  const cuentaDe = (tx) => cuentas.find(c => c.id === tx.cuenta_id)?.nombre || '—'
 
   const confirmarEliminar = async () => {
     if (!aEliminar || eliminando) return
@@ -124,16 +127,50 @@ export default function Transacciones({ onBack, onEditar, refreshKey, onCambio }
       {!cargando && filtradas.length === 0 && <div className="empty-state"><p>{t('tx_vacio')}</p></div>}
       {filtradas.map(tx => (
         <div key={tx.id} className="transaction-card">
-          <button onClick={() => onEditar(tx)} className="transaction-main">
+          <button onClick={() => setVerDetalle(tx)} className="transaction-main" style={{ width: '100%' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 10, minWidth: 0 }}>
               <span style={{ fontSize: 20, flexShrink: 0 }}>{iconosPorCategoria[`${tx.tipo}:${tx.categoria_nombre}`] || '🏷️'}</span>
               <div style={{ minWidth: 0, textAlign: 'left' }}><strong>{tx.categoria_nombre}</strong>{tx.descripcion && <span>{tx.descripcion}</span>}<small>{fmtFecha(tx.fecha)}</small></div>
             </div>
             <div className={tx.tipo === 'gasto' ? 'amount expense' : 'amount income'}><Monto valor={tx.monto} prefijo={tx.tipo === 'gasto' ? '-' : '+'} /></div>
           </button>
-          <div className="transaction-actions"><button onClick={() => onEditar(tx)}>✏️ {t('comun_editar')}</button><button className="danger-link" onClick={() => setAEliminar(tx)}>🗑️ {t('comun_eliminar')}</button></div>
         </div>
       ))}
+
+      {/* Cuadro de detalle al tocar una transacción — reemplaza los botones inline de Editar/Eliminar */}
+      {verDetalle && (
+        <div className="modal-backdrop" onClick={() => setVerDetalle(null)}>
+          <div className="modal-card" onClick={e => e.stopPropagation()} style={{ textAlign: 'center' }}>
+            <div style={{ fontSize: 44, marginBottom: 8 }}>
+              {iconosPorCategoria[`${verDetalle.tipo}:${verDetalle.categoria_nombre}`] || '🏷️'}
+            </div>
+            <h3 style={{ margin: '0 0 4px' }}>{verDetalle.categoria_nombre}</h3>
+            <p style={{ color: 'var(--text-muted)', margin: '0 0 2px', fontSize: 13, fontWeight: 600 }}>{cuentaDe(verDetalle)}</p>
+            <p style={{ color: 'var(--text-muted)', margin: '0 0 16px', fontSize: 12 }}>{fmtFecha(verDetalle.fecha)}</p>
+            {verDetalle.descripcion && (
+              <p style={{ margin: '0 0 16px', fontSize: 14, color: 'var(--text-secondary)' }}>{verDetalle.descripcion}</p>
+            )}
+            <div
+              className={verDetalle.tipo === 'gasto' ? 'amount expense' : 'amount income'}
+              style={{ fontSize: 30, fontWeight: 700, marginBottom: 24 }}
+            >
+              <Monto valor={verDetalle.monto} prefijo={verDetalle.tipo === 'gasto' ? '-' : '+'} />
+            </div>
+
+            <div className="modal-actions">
+              <button onClick={() => setVerDetalle(null)}>{t('comun_cancelar')}</button>
+              <button onClick={() => { onEditar(verDetalle); setVerDetalle(null) }}>✏️ {t('comun_editar')}</button>
+            </div>
+            <button
+              className="danger-link"
+              style={{ marginTop: 14, width: '100%', textAlign: 'center' }}
+              onClick={() => { setAEliminar(verDetalle); setVerDetalle(null) }}
+            >
+              🗑️ {t('comun_eliminar')}
+            </button>
+          </div>
+        </div>
+      )}
 
       {aEliminar && <div className="modal-backdrop" onClick={() => !eliminando && setAEliminar(null)}>
         <div className="modal-card" onClick={e => e.stopPropagation()}>
