@@ -1,8 +1,8 @@
 apply plugin: 'com.android.application'
 
 android {
-    namespace "com.kairen.finanzas"
-    compileSdk rootProject.ext.compileSdkVersion
+    namespace = "com.kairen.finanzas"
+    compileSdk = rootProject.ext.compileSdkVersion
     defaultConfig {
         applicationId "com.kairen.finanzas"
         minSdkVersion rootProject.ext.minSdkVersion
@@ -11,10 +11,11 @@ android {
         versionName "1.0"
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         aaptOptions {
-            ignoreAssetsPattern '!.svn:!.git:!.ds_store:!*.scc:.*:!CVS:!thumbs.db:!picasa.ini:!*~'
+             // Files and dirs to omit from the packaged assets dir, modified to accommodate modern web apps.
+             // Default: https://android.googlesource.com/platform/frameworks/base/+/282e181b58cf72b6ca770dc7ca5f91f135444502/tools/aapt/AaptAssets.cpp#61
+            ignoreAssetsPattern = '!.svn:!.git:!.ds_store:!*.scc:.*:!CVS:!thumbs.db:!picasa.ini:!*~'
         }
     }
-
     applicationVariants.all { variant ->
         variant.outputs.all { output ->
             outputFileName = "KairenFinanzas-${variant.buildType.name}.apk"
