@@ -21,17 +21,14 @@ jobs:
       - name: Instalar dependencias
         run: npm install --legacy-peer-deps
 
-      # @capacitor/cli@6.x depende de tar<=7.5.20 (CRITICAL) pero tar solo
-      # se usa en el CLI de desarrollo — nunca se incluye en el bundle de la
-      # app ni llega a los usuarios finales. Se acepta conscientemente hasta
-      # que Capacitor 8 sea compatible con este entorno de build.
-      # Se audita en HIGH para seguir bloqueando vulnerabilidades reales.
-      - name: npm audit (bloquea en HIGH/CRITICAL excepto tar de CLI)
-        run: npm audit --audit-level=high --ignore-scripts || true
-        continue-on-error: true
+      - name: npm audit (solo informativo, no bloquea)
+        run: npm audit --audit-level=critical || true
 
-      - name: npm audit resumen informativo
-        run: npm audit --audit-level=critical 2>&1 | tail -5 || true
+      - name: Verificar vulnerabilidades críticas
+        run: |
+          CRITICAL=$(npm audit --json 2>/dev/null | node -e "const d=require('fs').readFileSync('/dev/stdin','utf8');try{const j=JSON.parse(d);const c=Object.values(j.vulnerabilities||{}).filter(v=>v.severity==='critical').length;console.log(c)}catch{console.log(0)}")
+          echo "Vulnerabilidades críticas: $CRITICAL"
+          if [ "$CRITICAL" -gt "0" ]; then exit 1; fi
 
   secret-scan:
     name: Escaneo de secretos (gitleaks)
