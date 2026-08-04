@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from 'react'
 import { supabase } from '../lib/supabaseClient.js'
-import { obtenerTransaccionesPorMes, obtenerTransaccionesEnRango, obtenerTransaccionesAcumuladasHasta, obtenerCategorias } from '../lib/db.js'
+import { obtenerTransaccionesPorMes, obtenerTransaccionesEnRango, obtenerTransaccionesAcumuladasHasta, obtenerCategorias, obtenerCuentas, eliminarTransaccion } from '../lib/db.js'
 import InfoTooltip from '../components/InfoTooltip.jsx'
 import SelectorPeriodo from '../components/SelectorPeriodo.jsx'
 import { MESES_POR_IDIOMA } from '../i18n/translations.js'
@@ -11,10 +11,13 @@ import AdministrarCuentas from './AdministrarCuentas.jsx'
 import { logError, logWarn } from '../lib/logger.js'
 import { conRespaldoOffline } from '../lib/offline.js'
 import NuevaOperacion from '../components/NuevaOperacion.jsx'
+import { mensajeAmigable } from '../lib/errores.js'
+import { useScrollLock } from '../hooks/useScrollLock.js'
 
 const fmt = n => Number(n).toLocaleString('es-MX', { style: 'currency', currency: 'MXN' })
 const fmtFecha = fechaISO => new Date(`${fechaISO}T12:00:00`).toLocaleDateString('es-MX', { day: '2-digit', month: 'short', year: 'numeric' })
 const fmtFechaCorta = iso => new Date(`${iso}T12:00:00`).toLocaleDateString('es-MX', { day: '2-digit', month: 'short' })
+const fmtFechaLarga = iso => new Date(`${iso}T12:00:00`).toLocaleDateString('es-MX', { day: '2-digit', month: 'long', year: 'numeric' })
 
 export default function Inicio({ onNuevo, onNuevaTransferencia, onEditar, onVerTodas, refreshKey }) {
   const [cargando, setCargando] = useState(true)
@@ -24,7 +27,12 @@ export default function Inicio({ onNuevo, onNuevaTransferencia, onEditar, onVerT
   const [mostrarCuentas, setMostrarCuentas] = useState(false)
   const [mostrarOpciones, setMostrarOpciones] = useState(false)
   const [iconosPorCategoria, setIconosPorCategoria] = useState({})
+  const [cuentas, setCuentas] = useState([])
   const [acumuladas, setAcumuladas] = useState([])
+  const [verDetalle, setVerDetalle] = useState(null)
+  const [aEliminar, setAEliminar] = useState(null)
+  const [eliminando, setEliminando] = useState(false)
+  useScrollLock(Boolean(verDetalle) || Boolean(aEliminar))
   const hoy = new Date()
   const [periodo, setPeriodo] = useState({ tipo: 'mes', anio: hoy.getFullYear(), mes: hoy.getMonth() })
   const [mostrarSelector, setMostrarSelector] = useState(false)
@@ -77,6 +85,10 @@ export default function Inicio({ onNuevo, onNuevaTransferencia, onEditar, onVerT
           cats.forEach(c => { mapa[`${c.tipo}:${c.nombre}`] = c.icono || '🏷️' })
           setIconosPorCategoria(mapa)
         }).catch(err => logWarn('No se pudieron cargar los íconos de categoría', err))
+        // Misma clave de caché que usa el precargado de App.jsx — reutiliza offline
+        conRespaldoOffline(`cuentas:${usuario.id}`, () => obtenerCuentas(usuario.id))
+          .then(setCuentas)
+          .catch(err => logWarn('No se pudieron cargar las cuentas', err))
       }
     })
   }, [cargarDatos, refreshKey])
@@ -97,6 +109,23 @@ export default function Inicio({ onNuevo, onNuevaTransferencia, onEditar, onVerT
   const ingresosAcumulados = acumuladas.filter(t => t.tipo === 'ingreso').reduce((s, t) => s + Number(t.monto), 0)
   const gastosAcumulados = acumuladas.filter(t => t.tipo === 'gasto').reduce((s, t) => s + Number(t.monto), 0)
   const disponible = ingresosAcumulados - gastosAcumulados
+
+  const cuentaDe = (tx) => cuentas.find(c => c.id === tx.cuenta_id)?.nombre || '—'
+
+  const confirmarEliminar = async () => {
+    if (!aEliminar || eliminando) return
+    setEliminando(true)
+    setError(null)
+    try {
+      await eliminarTransaccion(aEliminar.id)
+      setAEliminar(null)
+      if (userId) await cargarDatos(userId)
+    } catch (err) {
+      setError(mensajeAmigable(err, 'No se pudo eliminar el movimiento.'))
+    } finally {
+      setEliminando(false)
+    }
+  }
 
   useEffect(() => {
     if (cargando) return
@@ -172,7 +201,7 @@ export default function Inicio({ onNuevo, onNuevaTransferencia, onEditar, onVerT
       )}
 
       {visibles.map(tx => (
-        <button key={tx.id} onClick={() => onEditar(tx)} className="transaction-row">
+        <button key={tx.id} onClick={() => setVerDetalle(tx)} className="transaction-row">
           <div style={{ display: 'flex', alignItems: 'center', gap: 10, minWidth: 0, textAlign: 'left' }}>
             <span style={{ fontSize: 20, flexShrink: 0 }}>{iconosPorCategoria[`${tx.tipo}:${tx.categoria_nombre}`] || '🏷️'}</span>
             <div style={{ minWidth: 0 }}>
@@ -184,6 +213,54 @@ export default function Inicio({ onNuevo, onNuevaTransferencia, onEditar, onVerT
           <div className={tx.tipo === 'gasto' ? 'amount expense' : 'amount income'}><Monto valor={tx.monto} prefijo={tx.tipo === 'gasto' ? '-' : '+'} /></div>
         </button>
       ))}
+
+      {/* Cuadro de detalle al tocar una transacción reciente — mismo patrón que en Transacciones */}
+      {verDetalle && (
+        <div className="modal-backdrop" onClick={() => setVerDetalle(null)}>
+          <div className="modal-card" onClick={e => e.stopPropagation()} style={{ textAlign: 'center' }}>
+            <div style={{ fontSize: 44, marginBottom: 8 }}>
+              {iconosPorCategoria[`${verDetalle.tipo}:${verDetalle.categoria_nombre}`] || '🏷️'}
+            </div>
+            <h3 style={{ margin: '0 0 4px' }}>{verDetalle.categoria_nombre}</h3>
+            <p style={{ color: 'var(--text-muted)', margin: '0 0 2px', fontSize: 13, fontWeight: 600 }}>{cuentaDe(verDetalle)}</p>
+            <p style={{ color: 'var(--text-muted)', margin: '0 0 16px', fontSize: 12 }}>{fmtFechaLarga(verDetalle.fecha)}</p>
+            {verDetalle.descripcion && (
+              <p style={{ margin: '0 0 16px', fontSize: 14, color: 'var(--text-secondary)' }}>{verDetalle.descripcion}</p>
+            )}
+            <div
+              className={verDetalle.tipo === 'gasto' ? 'amount expense' : 'amount income'}
+              style={{ fontSize: 30, fontWeight: 700, marginBottom: 24 }}
+            >
+              <Monto valor={verDetalle.monto} prefijo={verDetalle.tipo === 'gasto' ? '-' : '+'} />
+            </div>
+
+            <div className="modal-actions">
+              <button onClick={() => setVerDetalle(null)}>{t('comun_cancelar')}</button>
+              <button onClick={() => { onEditar(verDetalle); setVerDetalle(null) }}>✏️ {t('comun_editar')}</button>
+            </div>
+            <button
+              className="danger-link"
+              style={{ marginTop: 14, width: '100%', textAlign: 'center' }}
+              onClick={() => { setAEliminar(verDetalle); setVerDetalle(null) }}
+            >
+              🗑️ {t('comun_eliminar')}
+            </button>
+          </div>
+        </div>
+      )}
+
+      {aEliminar && (
+        <div className="modal-backdrop" onClick={() => !eliminando && setAEliminar(null)}>
+          <div className="modal-card" onClick={e => e.stopPropagation()}>
+            <h3>{t('tx_eliminar_confirmar_titulo')}</h3>
+            <p>{t('tx_eliminar_confirmar_1')} "{aEliminar.categoria_nombre}" {t('tx_eliminar_confirmar_2')} <Monto valor={aEliminar.monto} /> {t('tx_eliminar_confirmar_3')}</p>
+            <div className="modal-actions">
+              <button onClick={() => setAEliminar(null)} disabled={eliminando}>{t('comun_cancelar')}</button>
+              <button className="danger-button" onClick={confirmarEliminar} disabled={eliminando}>{eliminando ? t('comun_eliminando') : t('comun_si_eliminar')}</button>
+            </div>
+          </div>
+        </div>
+      )}
 
       <button onClick={() => setMostrarOpciones(true)} aria-label="Nueva operación" className="floating-button">+</button>
 
