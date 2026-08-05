@@ -10,6 +10,7 @@ import Login from './screens/Login.jsx'
 import OnboardingTour, { TOUR_STORAGE_KEY } from './components/OnboardingTour.jsx'
 import { PreferenciasProvider } from './context/PreferenciasContext.jsx'
 import { esNativo } from './lib/capacitor.js'
+import { obtenerVerifier, limpiarVerifier } from './lib/pkce.js'
 
 // Inicializar Firebase Messaging en la app nativa (Android)
 // Se hace aquí para que el token FCM esté disponible lo antes posible
@@ -35,12 +36,12 @@ async function inicializarFirebaseMessaging(userId) {
 
     // Escuchar notificaciones cuando la app está en primer plano
     await FirebaseMessaging.addListener('notificationReceived', ({ notification }) => {
-      logError('[FCM] Notificación recibida', { title: notification.title })
+      console.log('[FCM] Notificación recibida:', notification.title)
     })
 
     // Cuando el usuario toca la notificación
     await FirebaseMessaging.addListener('notificationActionPerformed', ({ notification }) => {
-      logError('[FCM] Notificación tocada', { title: notification.notification?.title })
+      console.log('[FCM] Notificación tocada:', notification.notification?.title)
     })
   } catch (err) {
     logError('Error inicializando Firebase Messaging', err)
@@ -160,14 +161,29 @@ function AppInner() {
         if (urlYaProcesada === url) return
         urlYaProcesada = url
         try {
-          // Implicit flow: el token llega en el hash de la URL (#access_token=...)
-          // en vez de como código (?code=...) que requería PKCE + flow state.
-          if (url.includes('access_token')) {
-            const hashParams = new URLSearchParams(url.split('#')[1] || '')
-            const accessToken = hashParams.get('access_token')
-            const refreshToken = hashParams.get('refresh_token')
-            if (accessToken) {
-              await supabase.auth.setSession({ access_token: accessToken, refresh_token: refreshToken || '' })
+          // PKCE flow: el código llega como ?code=... en la URL.
+          // El flow_state se persiste en Capacitor Preferences para que
+          // sobreviva el viaje al navegador externo y de regreso al WebView.
+          // PKCE manual: recuperamos el verifier que guardamos antes de abrir el navegador
+          const code = new URL(url).searchParams.get('code')
+          const verifier = await obtenerVerifier()
+          if (code && verifier) {
+            const supabaseUrl = import.meta.env.VITE_SUPABASE_URL
+            const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY
+            const res = await fetch(`${supabaseUrl}/auth/v1/token?grant_type=pkce`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json', 'apikey': supabaseKey },
+              body: JSON.stringify({ auth_code: code, code_verifier: verifier })
+            })
+            const tokens = await res.json()
+            if (tokens.access_token) {
+              await supabase.auth.setSession({
+                access_token: tokens.access_token,
+                refresh_token: tokens.refresh_token || ''
+              })
+              await limpiarVerifier()
+            } else {
+              logError('Error en intercambio PKCE', tokens)
             }
           } else {
             await supabase.auth.exchangeCodeForSession(url)

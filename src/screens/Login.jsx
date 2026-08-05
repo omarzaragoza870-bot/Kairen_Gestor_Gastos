@@ -5,6 +5,7 @@ import { logError } from '../lib/logger.js'
 import { esNativo } from '../lib/capacitor.js'
 import ContinuarSinCuenta from './ContinuarSinCuenta.jsx'
 import EmailAuth from './EmailAuth.jsx'
+import { iniciarPKCE, limpiarVerifier } from '../lib/pkce.js'
 
 export default function Login() {
   const { t } = usePreferencias()
@@ -13,37 +14,44 @@ export default function Login() {
   const [cargandoGoogle, setCargandoGoogle] = useState(false)
 
   const handleGoogleLogin = async () => {
-    if (cargandoGoogle) return // evita doble clic, que generaba dos flujos de OAuth a la vez
+    if (cargandoGoogle) return
     setCargandoGoogle(true)
     try {
       if (esNativo()) {
         const { Browser } = await import('@capacitor/browser')
-        const { data, error } = await supabase.auth.signInWithOAuth({
+
+        // Generamos el PKCE challenge nosotros mismos y guardamos el verifier
+        // en Capacitor Preferences — así persiste entre el navegador externo
+        // y el WebView cuando regresa el deep link con ?code=...
+        await limpiarVerifier() // limpiar cualquier verifier anterior
+        const { challenge } = await iniciarPKCE()
+
+        // Construimos la URL de autorización de Supabase con PKCE manual
+        // usando la API de bajo nivel que NO usa el localStorage interno
+        const params = new URLSearchParams({
           provider: 'google',
-          options: {
-            // App Links: usamos el dominio real de Vercel como redirect.
-            // Android intercepta esta URL automáticamente y regresa a la app
-            // (gracias al intent-filter android:autoVerify="true" en el manifest
-            // y el archivo /.well-known/assetlinks.json en Vercel) — mucho más
-            // confiable que el esquema personalizado com.kairen.finanzas:// que
-            // Firefox y Chrome manejaban de forma inconsistente.
-            redirectTo: 'https://kairen-gestor-gastos.vercel.app/auth/callback',
-            skipBrowserRedirect: true
-          }
+          redirect_to: 'https://kairen-gestor-gastos.vercel.app/auth/callback',
+          code_challenge: challenge,
+          code_challenge_method: 'S256',
+          response_type: 'code',
+          scopes: 'email profile',
+          skip_http_redirect: 'true'
         })
-        if (error) return logError('Error al iniciar sesión', error)
-        if (data?.url) await Browser.open({ url: data.url })
+
+        const authUrl = `${import.meta.env.VITE_SUPABASE_URL}/auth/v1/authorize?${params}`
+        await Browser.open({ url: authUrl })
         return
       }
 
+      // En web: PKCE nativo de Supabase (funciona porque todo está en el mismo contexto)
       const { error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: { redirectTo: window.location.origin }
       })
       if (error) logError('Error al iniciar sesión', error)
+    } catch (err) {
+      logError('Error al iniciar sesión con Google', err)
     } finally {
-      // Se reactiva después de un momento — si el usuario cancela en el
-      // navegador y regresa, puede volver a intentarlo sin quedar trabado.
       setTimeout(() => setCargandoGoogle(false), 2000)
     }
   }

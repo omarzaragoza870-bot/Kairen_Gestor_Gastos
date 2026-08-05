@@ -10,12 +10,10 @@ if (!supabaseUrl || !supabaseAnonKey) {
 
 export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
   auth: {
-    // En la app nativa usamos implicit flow: el navegador externo no comparte
-    // localStorage con el WebView, así que el PKCE "flow state" se pierde y
-    // exchangeCodeForSession falla con "flow_state_not_found". Con implicit
-    // flow el token llega directo en el hash de la URL, sin necesitar el state.
-    // En la web sí usamos PKCE (más seguro) — se selecciona automáticamente
-    // según esNativo().
+    // En nativo usamos implicit para la sesión normal, pero el login con
+    // Google usa PKCE manual (ver src/screens/Login.jsx y src/lib/pkce.js)
+    // En web usamos PKCE nativo de Supabase (más seguro, no tiene el problema
+    // del localStorage compartido porque todo ocurre en el mismo contexto)
     flowType: esNativo() ? 'implicit' : 'pkce',
     detectSessionInUrl: !esNativo()
   }
