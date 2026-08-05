@@ -14,6 +14,7 @@ import { logError } from '../lib/logger.js'
 import { mensajeAmigable } from '../lib/errores.js'
 import { encolarOperacion, conRespaldoOffline, obtenerConectividad, marcarConectividad, pareceErrorDeRed } from '../lib/offline.js'
 import { usePreferencias } from '../context/PreferenciasContext.jsx'
+import CategoriaIcono from '../components/CategoriaIcono.jsx'
 
 const hoy = () => {
   const fecha = new Date()
@@ -203,14 +204,21 @@ export default function NuevaTransaccion({ onBack, onGuardada, transaccionEditar
 
       <label className="field-label">{t('nt_categoria')}</label>
       <div style={{ display: 'flex', gap: 8, overflowX: 'auto', margin: '8px 0 20px', paddingBottom: 4 }}>
-        {categorias.map(cat => (
-          <button key={cat} onClick={() => setCategoria(cat)} style={{
-            flexShrink: 0, padding: '10px 16px', borderRadius: 999,
-            background: categoria === cat ? 'var(--gradient-brand)' : 'var(--bg-surface)',
-            color: categoria === cat ? '#fff' : 'var(--text-secondary)', fontSize: 13, fontWeight: 600,
-            border: '1px solid ' + (categoria === cat ? 'transparent' : 'var(--border-subtle)')
-          }}>{cat}</button>
-        ))}
+        {categorias.map(cat => {
+          const activa = categoria === cat.nombre
+          return (
+            <button key={cat.nombre} onClick={() => setCategoria(cat.nombre)} style={{
+              flexShrink: 0, padding: '8px 14px', borderRadius: 999,
+              background: activa ? 'var(--gradient-brand)' : 'var(--bg-surface)',
+              color: activa ? '#fff' : 'var(--text-secondary)', fontSize: 13, fontWeight: 600,
+              border: '1px solid ' + (activa ? 'transparent' : 'var(--border-subtle)'),
+              display: 'flex', alignItems: 'center', gap: 6
+            }}>
+              <CategoriaIcono icono={cat.icono || 'Tag'} size={14} color={activa ? '#fff' : 'var(--text-muted)'} />
+              {cat.nombre}
+            </button>
+          )
+        })}
       </div>
 
       <label className="field-label">{t('nt_descripcion').split(' (')[0]} <span style={{ fontWeight: 400, color: 'var(--text-muted)' }}>{t('nt_opcional')}</span></label>

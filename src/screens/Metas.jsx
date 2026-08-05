@@ -253,21 +253,31 @@ function FormularioMeta({ meta, onCancelar, onGuardar, guardando }) {
       <div onClick={(e) => e.stopPropagation()} className="modal-card" style={{ maxWidth: 420, maxHeight: '85vh', overflowY: 'auto' }}>
         <h3>{esNueva ? t('metas_form_nueva') : t('metas_form_editar')}</h3>
 
-        <label className="field-label">{t('metas_icono')}</label>
-        <div style={{ display: 'flex', gap: 8, overflowX: 'auto', margin: '8px 0 16px', paddingBottom: 4 }}>
-          {ICONOS.map(ic => (
-            <button
-              key={ic}
-              onClick={() => setIcono(ic)}
-              style={{
-                flexShrink: 0, width: 44, height: 44, borderRadius: 'var(--radius-md)', fontSize: 20,
-                background: icono === ic ? 'var(--gradient-brand)' : 'var(--bg-surface)',
-                border: '1px solid ' + (icono === ic ? 'transparent' : 'var(--border-subtle)')
-              }}
-            >
-              {ic}
-            </button>
-          ))}
+        <label className="field-label">Emoji de la meta</label>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12, margin: '8px 0 16px' }}>
+          <div style={{
+            width: 56, height: 56, borderRadius: 'var(--radius-md)',
+            background: 'var(--bg-surface)', border: '1px solid var(--border-subtle)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            fontSize: 28, flexShrink: 0
+          }}>
+            {icono}
+          </div>
+          <input
+            value={icono}
+            onChange={e => {
+              const val = [...e.target.value].slice(-2).join('')
+              if (val.trim()) setIcono(val.trim())
+            }}
+            maxLength={4}
+            placeholder="🎯"
+            style={{
+              flex: 1, padding: '14px 16px', borderRadius: 'var(--radius-md)',
+              background: 'var(--bg-surface)', border: '1px solid var(--border-subtle)',
+              fontSize: 24, textAlign: 'center', color: 'var(--text-primary)',
+              fontFamily: 'inherit'
+            }}
+          />
         </div>
 
         <label className="field-label">{t('metas_nombre')}</label>
