@@ -23,12 +23,12 @@ export async function asegurarCuentasPorDefecto(userId) {
 }
 
 const CATEGORIAS_GASTO_DEFECTO = [
-  ['Alimentación', '🍔'], ['Transporte', '🚗'], ['Servicios', '💡'],
-  ['Entretenimiento', '🎬'], ['Ropa', '👕'], ['Salud', '🏥'], ['Otros', '📦']
+  ['Alimentación', 'UtensilsCrossed'], ['Transporte', 'Car'], ['Servicios', 'Zap'],
+  ['Entretenimiento', 'Clapperboard'], ['Ropa', 'Shirt'], ['Salud', 'Heart'], ['Otros', 'MoreHorizontal']
 ]
 const CATEGORIAS_INGRESO_DEFECTO = [
-  ['Salario', '💰'], ['Inversiones', '📈'], ['Negocios', '💼'],
-  ['Reembolsos', '↩️'], ['Regalos', '🎁'], ['Otros', '📦']
+  ['Salario', 'Banknote'], ['Inversiones', 'TrendingUp'], ['Negocios', 'Briefcase'],
+  ['Reembolsos', 'RotateCcw'], ['Regalos', 'Gift'], ['Otros', 'MoreHorizontal']
 ]
 
 export async function asegurarCategoriasPorDefecto(userId) {

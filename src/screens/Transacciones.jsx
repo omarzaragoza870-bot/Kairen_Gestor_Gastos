@@ -3,6 +3,7 @@ import { supabase } from '../lib/supabaseClient.js'
 import { eliminarTransaccion, obtenerTodasLasTransacciones, obtenerCuentas, obtenerCategorias } from '../lib/db.js'
 import { useScrollLock } from '../hooks/useScrollLock.js'
 import Monto from '../components/Monto.jsx'
+import CategoriaIcono from '../components/CategoriaIcono.jsx'
 import { usePreferencias } from '../context/PreferenciasContext.jsx'
 import { mensajeAmigable } from '../lib/errores.js'
 
@@ -139,7 +140,7 @@ export default function Transacciones({ onBack, onEditar, refreshKey, onCambio }
         <div key={tx.id} className="transaction-card">
           <button onClick={() => setVerDetalle(tx)} className="transaction-main" style={{ width: '100%' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 10, minWidth: 0 }}>
-              <span style={{ fontSize: 20, flexShrink: 0 }}>{iconosPorCategoria[`${tx.tipo}:${tx.categoria_nombre}`] || '🏷️'}</span>
+              <span style={{ flexShrink: 0, display:'flex', alignItems:'center' }}><CategoriaIcono icono={iconosPorCategoria[`${tx.tipo}:${tx.categoria_nombre}`] || 'Tag'} size={20} color='var(--text-secondary)' /></span>
               <div style={{ minWidth: 0, textAlign: 'left' }}><strong>{tx.categoria_nombre}</strong>{tx.descripcion && <span>{tx.descripcion}</span>}<small>{fmtFecha(tx.fecha)}</small></div>
             </div>
             <div className={tx.tipo === 'gasto' ? 'amount expense' : 'amount income'}><Monto valor={tx.monto} prefijo={tx.tipo === 'gasto' ? '-' : '+'} /></div>
@@ -151,8 +152,8 @@ export default function Transacciones({ onBack, onEditar, refreshKey, onCambio }
       {verDetalle && (
         <div className="modal-backdrop" onClick={() => setVerDetalle(null)}>
           <div className="modal-card" onClick={e => e.stopPropagation()} style={{ textAlign: 'center' }}>
-            <div style={{ fontSize: 44, marginBottom: 8 }}>
-              {iconosPorCategoria[`${verDetalle.tipo}:${verDetalle.categoria_nombre}`] || '🏷️'}
+            <div style={{ marginBottom: 8, display:'flex', justifyContent:'center' }}>
+              <CategoriaIcono icono={iconosPorCategoria[`${verDetalle.tipo}:${verDetalle.categoria_nombre}`] || 'Tag'} size={44} color='var(--accent-blue)' />
             </div>
             <h3 style={{ margin: '0 0 4px' }}>{verDetalle.categoria_nombre}</h3>
             <p style={{ color: 'var(--text-muted)', margin: '0 0 2px', fontSize: 13, fontWeight: 600 }}>{cuentaDe(verDetalle)}</p>

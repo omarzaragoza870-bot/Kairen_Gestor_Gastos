@@ -3,8 +3,7 @@ import { obtenerCategorias, crearCategoria, eliminarCategoria } from '../lib/db.
 import { useScrollLock } from '../hooks/useScrollLock.js'
 import { usePreferencias } from '../context/PreferenciasContext.jsx'
 import { mensajeAmigable } from '../lib/errores.js'
-
-const ICONOS = ['🏷️', '🍔', '🚗', '💡', '🎬', '👕', '🏥', '📚', '✈️', '🐾', '💰', '📈', '💼', '🎁', '↩️']
+import CategoriaIcono, { ICONOS_DISPONIBLES } from '../components/CategoriaIcono.jsx'
 
 export default function Categorias({ userId, onBack }) {
   const [tab, setTab] = useState('gasto')
@@ -101,9 +100,9 @@ export default function Categorias({ userId, onBack }) {
           background: 'var(--bg-surface)', borderRadius: 'var(--radius-md)',
           border: '1px solid var(--border-subtle)', marginBottom: 8
         }}>
-          <span style={{ fontSize: 18 }}>{cat.icono || '🏷️'}</span>
+          <span style={{ display:'flex', alignItems:'center', width:24, justifyContent:'center' }}><CategoriaIcono icono={cat.icono || 'Tag'} size={20} color='var(--text-secondary)' /></span>
           <span style={{ flex: 1, fontSize: 14, fontWeight: 600 }}>{cat.nombre}</span>
-          <button onClick={() => setAEliminar(cat)} style={{ background: 'transparent', color: 'var(--danger)', fontSize: 18 }}>🗑️</button>
+          <button onClick={() => setAEliminar(cat)} style={{ background: 'transparent', color: 'var(--danger)', fontSize: 12, fontWeight: 600 }}>Eliminar</button>
         </div>
       ))}
 
@@ -147,7 +146,7 @@ export default function Categorias({ userId, onBack }) {
 function FormularioCategoria({ onCancelar, onGuardar, procesando }) {
   const { t } = usePreferencias()
   const [nombre, setNombre] = useState('')
-  const [icono, setIcono] = useState(ICONOS[0])
+  const [icono, setIcono] = useState('🏷️')
   const valido = nombre.trim().length > 0
 
   return (
@@ -155,21 +154,30 @@ function FormularioCategoria({ onCancelar, onGuardar, procesando }) {
       <div onClick={(e) => e.stopPropagation()} className="modal-card" style={{ maxWidth: 380 }}>
         <h3>{t('cat_nueva')}</h3>
 
-        <label className="field-label">{t('metas_icono')}</label>
-        <div style={{ display: 'flex', gap: 8, overflowX: 'auto', margin: '8px 0 16px', paddingBottom: 4 }}>
-          {ICONOS.map(ic => (
-            <button
-              key={ic}
-              onClick={() => setIcono(ic)}
-              style={{
-                flexShrink: 0, width: 40, height: 40, borderRadius: 'var(--radius-md)', fontSize: 18,
-                background: icono === ic ? 'var(--gradient-brand)' : 'var(--bg-surface)',
-                border: '1px solid ' + (icono === ic ? 'transparent' : 'var(--border-subtle)')
-              }}
-            >
-              {ic}
-            </button>
-          ))}
+        <label className="field-label">Emoji (toca para elegir del teclado)</label>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12, margin: '8px 0 16px' }}>
+          <div style={{
+            width: 60, height: 60, borderRadius: 'var(--radius-md)',
+            background: 'var(--bg-surface)', border: '1px solid var(--border-subtle)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            fontSize: 32, flexShrink: 0
+          }}>
+            {icono}
+          </div>
+          <input
+            value={icono}
+            onChange={e => {
+              const val = [...e.target.value].slice(-2).join('')
+              if (val.trim()) setIcono(val.trim())
+            }}
+            maxLength={4}
+            placeholder="🏷️"
+            style={{
+              flex: 1, padding: '14px 16px', borderRadius: 'var(--radius-md)',
+              background: 'var(--bg-surface)', border: '1px solid var(--border-subtle)',
+              fontSize: 24, textAlign: 'center', color: 'var(--text-primary)'
+            }}
+          />
         </div>
 
         <label className="field-label">{t('cat_nombre')}</label>
