@@ -254,3 +254,24 @@ button:disabled { cursor: not-allowed; opacity: .72; }
   --nav-icon-active:   #FFFFFF;
   --nav-active-bg:     #4F6BFF;
 }
+
+/* Scrollbar personalizado — delgado, redondeado, respeta el tema */
+::-webkit-scrollbar {
+  width: 4px;
+  height: 4px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: var(--border-subtle);
+  border-radius: 999px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--text-muted);
+}
+/* Firefox */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--border-subtle) transparent;
+}
