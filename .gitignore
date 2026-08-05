@@ -2,8 +2,13 @@ node_modules/
 dist/
 .env
 .DS_Store
+kairen-icon__1_.png
+fix-java.sh
 
-# Android (Capacitor) — se regenera con `npm run android:add` + `android:sync`
+# Supabase — contiene IDs internos del proyecto
+supabase/.temp/
+
+# Android (Capacitor) — se regenera con npx cap add android
 android/build/
 android/app/build/
 android/.gradle/
@@ -11,4 +16,4 @@ android/local.properties
 *.apk
 *.aab
 *.keystore
-*.jkssupabase/.temp/
+*.jks
