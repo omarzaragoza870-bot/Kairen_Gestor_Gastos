@@ -224,3 +224,32 @@ button:disabled { cursor: not-allowed; opacity: .72; }
 .modal-actions button { flex: 1; padding: 12px; border-radius: var(--radius-md); background: var(--bg-surface-2); color: var(--text-primary); font-weight: 600; border: 1px solid var(--border-subtle); }
 .modal-actions .danger-button { background: var(--danger); color: #fff; border-color: transparent; }
 .danger-link { background: transparent; color: var(--danger); font-weight: 600; font-size: 13px; }
+/* Tema claro explícito — mismo que :root pero necesario cuando
+   data-theme="claro" se aplica por el PreferenciasContext */
+[data-theme="claro"] {
+  --bg-base:      #F4F5F9;
+  --bg-surface:   #FFFFFF;
+  --bg-surface-2: #ECEBF5;
+  --accent-blue:   #4F6BFF;
+  --accent-purple: #8B5CF6;
+  --gradient-brand: linear-gradient(135deg, #4F6BFF 0%, #8B5CF6 100%);
+  --text-primary:   #17152B;
+  --text-secondary: #4B4563;
+  --text-muted:     #6B6585;
+  --success: #12A576;
+  --danger:  #E24C63;
+  --warning: #B8860B;
+  --border-subtle: rgba(23, 21, 43, 0.08);
+  --card-dark-bg:   #111111;
+  --card-dark-text: #FFFFFF;
+  --chip-income-bg:      #E3F7EE;
+  --chip-income-icon-bg: #12A576;
+  --chip-income-text:    #0F3D2C;
+  --chip-expense-bg:     #FCEBEC;
+  --chip-expense-icon-bg:#E24C63;
+  --chip-expense-text:   #4A1417;
+  --nav-bg:          #111827;
+  --nav-icon-inactive: #6B7280;
+  --nav-icon-active:   #FFFFFF;
+  --nav-active-bg:     #4F6BFF;
+}
