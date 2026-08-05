@@ -13,12 +13,12 @@
     "android:build-debug": "npm run android:sync && cd android && ./gradlew assembleDebug"
   },
   "dependencies": {
-    "@capacitor-firebase/messaging": "^6.3.1",
-    "@capacitor/android": "6.2.0",
-    "@capacitor/app": "6.0.2",
-    "@capacitor/browser": "6.0.3",
-    "@capacitor/core": "6.2.0",
-    "@capacitor/preferences": "^6.0.4",
+    "@capacitor-firebase/messaging": "^8.3.0",
+    "@capacitor/android": "^8.5.0",
+    "@capacitor/app": "^8.1.1",
+    "@capacitor/browser": "^8.0.4",
+    "@capacitor/core": "^8.5.0",
+    "@capacitor/preferences": "^8.0.1",
     "@supabase/supabase-js": "2.111.0",
     "firebase": "^12.17.0",
     "lucide-react": "^1.28.0",
