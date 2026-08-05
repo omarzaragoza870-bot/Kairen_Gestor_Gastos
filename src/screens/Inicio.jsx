@@ -34,6 +34,11 @@ export default function Inicio({ onNuevo, onNuevaTransferencia, onEditar, onVerT
   const [aEliminar, setAEliminar] = useState(null)
   const [eliminando, setEliminando] = useState(false)
   useScrollLock(Boolean(verDetalle) || Boolean(aEliminar))
+  const hoy = new Date()
+  const [periodo, setPeriodo] = useState({ tipo: 'mes', anio: hoy.getFullYear(), mes: hoy.getMonth() })
+  const [mostrarSelector, setMostrarSelector] = useState(false)
+  const { t, idioma, moneda } = usePreferencias()
+  const MESES = MESES_POR_IDIOMA[idioma] || MESES_POR_IDIOMA.es
 
   useEffect(() => {
     const handleKeyDown = (e) => {
@@ -46,11 +51,6 @@ export default function Inicio({ onNuevo, onNuevaTransferencia, onEditar, onVerT
     document.addEventListener('keydown', handleKeyDown)
     return () => document.removeEventListener('keydown', handleKeyDown)
   }, [verDetalle, aEliminar, eliminando, mostrarSelector, mostrarOpciones])
-  const hoy = new Date()
-  const [periodo, setPeriodo] = useState({ tipo: 'mes', anio: hoy.getFullYear(), mes: hoy.getMonth() })
-  const [mostrarSelector, setMostrarSelector] = useState(false)
-  const { t, idioma, moneda } = usePreferencias()
-  const MESES = MESES_POR_IDIOMA[idioma] || MESES_POR_IDIOMA.es
 
   const cargarDatos = useCallback(async uid => {
     setCargando(true)
