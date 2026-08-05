@@ -133,7 +133,7 @@ Número de transacciones este mes: ${(transaccionesMes || []).length}
 
     // Llamar a Gemini 2.0 Flash
     const geminiRes = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-lite:generateContent?key=${geminiKey}`,
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-lite:generateContent?key=${geminiKey}`,
       {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -146,15 +146,17 @@ Número de transacciones este mes: ${(transaccionesMes || []).length}
           ],
           generationConfig: {
             temperature: 0.7,
-            maxOutputTokens: 300,
+            maxOutputTokens: 150,
             topP: 0.9
           }
         })
       }
     )
 
-    const geminiData = await geminiRes.json()
-    const respuesta = geminiData?.candidates?.[0]?.content?.parts?.[0]?.text
+        const geminiData = await geminiRes.json()
+        console.log('[gemini status]', geminiRes.status)
+        console.log('[gemini response]', JSON.stringify(geminiData))
+        const respuesta = geminiData?.candidates?.[0]?.content?.parts?.[0]?.text
 
     if (!respuesta) {
       return new Response(JSON.stringify({ error: 'No se pudo obtener respuesta de la IA' }), {
