@@ -67,8 +67,8 @@ export default function NuevaTransaccion({ onBack, onGuardada, transaccionEditar
           conRespaldoOffline(`categorias:${usuario.id}`, () => obtenerCategorias(usuario.id))
         ])
         setCuentas(lista)
-        setCategoriasGasto(todasCategorias.filter(c => c.tipo === 'gasto').map(c => c.nombre))
-        setCategoriasIngreso(todasCategorias.filter(c => c.tipo === 'ingreso').map(c => c.nombre))
+        setCategoriasGasto(todasCategorias.filter(c => c.tipo === 'gasto'))
+        setCategoriasIngreso(todasCategorias.filter(c => c.tipo === 'ingreso'))
 
         if (!cuentaId && lista.length > 0) setCuentaId(lista[0].id)
         if (lista.length === 0) throw new Error('No se pudieron cargar las cuentas Efectivo y Tarjeta.')
