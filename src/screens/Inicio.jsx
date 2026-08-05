@@ -34,6 +34,18 @@ export default function Inicio({ onNuevo, onNuevaTransferencia, onEditar, onVerT
   const [aEliminar, setAEliminar] = useState(null)
   const [eliminando, setEliminando] = useState(false)
   useScrollLock(Boolean(verDetalle) || Boolean(aEliminar))
+
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      if (e.key !== 'Escape') return
+      if (aEliminar && !eliminando) { setAEliminar(null); return }
+      if (verDetalle) { setVerDetalle(null); return }
+      if (mostrarSelector) { setMostrarSelector(false); return }
+      if (mostrarOpciones) { setMostrarOpciones(false); return }
+    }
+    document.addEventListener('keydown', handleKeyDown)
+    return () => document.removeEventListener('keydown', handleKeyDown)
+  }, [verDetalle, aEliminar, eliminando, mostrarSelector, mostrarOpciones])
   const hoy = new Date()
   const [periodo, setPeriodo] = useState({ tipo: 'mes', anio: hoy.getFullYear(), mes: hoy.getMonth() })
   const [mostrarSelector, setMostrarSelector] = useState(false)

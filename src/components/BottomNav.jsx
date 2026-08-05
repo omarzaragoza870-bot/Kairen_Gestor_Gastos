@@ -41,7 +41,7 @@ export default function BottomNav({ active, onChange }) {
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
-              transition: 'background 0.15s, width 0.15s'
+              transition: 'all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1)'
             }}
           >
             <Icon

@@ -20,6 +20,16 @@ export default function Transacciones({ onBack, onEditar, refreshKey, onCambio }
   const [aEliminar, setAEliminar] = useState(null)
   const [verDetalle, setVerDetalle] = useState(null)
   useScrollLock(Boolean(aEliminar) || Boolean(verDetalle))
+
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      if (e.key !== 'Escape') return
+      if (aEliminar && !eliminando) { setAEliminar(null); return }
+      if (verDetalle) { setVerDetalle(null); return }
+    }
+    document.addEventListener('keydown', handleKeyDown)
+    return () => document.removeEventListener('keydown', handleKeyDown)
+  }, [verDetalle, aEliminar, eliminando])
   const [eliminando, setEliminando] = useState(false)
   const [iconosPorCategoria, setIconosPorCategoria] = useState({})
   const { t } = usePreferencias()

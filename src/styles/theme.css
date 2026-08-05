@@ -80,8 +80,8 @@
   --accent-purple: #8B5CF6;
   --gradient-brand: linear-gradient(135deg, #4F6BFF 0%, #8B5CF6 100%);
   --text-primary: #17152B;
-  --text-secondary: #5B5775;
-  --text-muted: #8B87A3;
+  --text-secondary: #4B4563;
+  --text-muted: #6B6585;
   --success: #12A576;
   --danger: #E24C63;
   --warning: #B8860B;
@@ -120,6 +120,16 @@ button {
   font-family: inherit;
   border: none;
   cursor: pointer;
+  transition: transform 0.12s ease, opacity 0.12s ease;
+}
+
+button:active:not(:disabled) {
+  transform: scale(0.96);
+}
+
+button:focus-visible {
+  outline: 2px solid var(--accent-blue);
+  outline-offset: 2px;
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -136,6 +146,8 @@ input {
   border: 0;
   outline: 0;
   width: 100%;
+  line-height: 1.5;
+  min-height: 44px;
 }
 
 input[type='date'] { color-scheme: dark; }
@@ -146,7 +158,8 @@ button:disabled { cursor: not-allowed; opacity: .72; }
 .input-shell { display: flex; align-items: center; gap: 6px; margin: 8px 0 20px; padding: 14px 16px; background: var(--bg-surface); border: 1px solid var(--border-subtle); border-radius: var(--radius-md); }
 .empty-inline { width: 100%; padding: 14px; border-radius: var(--radius-md); background: var(--bg-surface); border: 1px solid var(--border-subtle); color: var(--text-muted); font-size: 13px; text-align: center; }
 .primary-button { width: 100%; padding: 16px; border-radius: var(--radius-md); font-weight: 700; font-size: 15px; }
-.error-message { color: var(--danger); font-size: 13px; margin: 12px 0; line-height: 1.45; }
+.error-message { color: var(--danger); font-size: 13px; margin: 12px 0; line-height: 1.55; background: rgba(251, 113, 133, 0.1); border-left: 3px solid var(--danger); padding: 12px 14px; border-radius: var(--radius-sm); }
+[data-theme="claro"] .error-message { background: rgba(226, 76, 99, 0.08); }
 .month-header { display: grid; grid-template-columns: 42px 1fr 42px; align-items: center; gap: 8px; margin-bottom: 16px; }
 .icon-button, .back-button { background: var(--bg-surface); color: var(--text-primary); border: 1px solid var(--border-subtle); border-radius: 12px; min-height: 42px; font-size: 24px; }
 .month-title { background: transparent; color: var(--text-primary); font-size: 18px; font-weight: 700; text-transform: capitalize; }
@@ -207,7 +220,7 @@ button:disabled { cursor: not-allowed; opacity: .72; }
 .screen-header h1 { font-size: 18px; margin: 0; }
 .back-button { width: 42px; }
 .filter-row { display: flex; gap: 8px; margin-bottom: 16px; }
-.filter { flex: 1; padding: 10px 12px; border-radius: 999px; background: var(--bg-surface); color: var(--text-secondary); border: 1px solid var(--border-subtle); font-weight: 600; }
+.filter { flex: 1; padding: 10px 12px; min-height: 44px; border-radius: 999px; background: var(--bg-surface); color: var(--text-secondary); border: 1px solid var(--border-subtle); font-weight: 600; }
 .filter.active { background: var(--gradient-brand); color: #fff; border-color: transparent; }
 .transaction-card { background: var(--bg-surface); border: 1px solid var(--border-subtle); border-radius: var(--radius-md); margin-bottom: 12px; overflow: hidden; }
 .transaction-main { width: 100%; padding: 14px 16px; background: transparent; color: var(--text-primary); display: flex; align-items: center; justify-content: space-between; }
