@@ -35,12 +35,12 @@ async function inicializarFirebaseMessaging(userId) {
 
     // Escuchar notificaciones cuando la app está en primer plano
     await FirebaseMessaging.addListener('notificationReceived', ({ notification }) => {
-      console.log('[FCM] Notificación recibida:', notification.title)
+      logError('[FCM] Notificación recibida', { title: notification.title })
     })
 
     // Cuando el usuario toca la notificación
     await FirebaseMessaging.addListener('notificationActionPerformed', ({ notification }) => {
-      console.log('[FCM] Notificación tocada:', notification.notification?.title)
+      logError('[FCM] Notificación tocada', { title: notification.notification?.title })
     })
   } catch (err) {
     logError('Error inicializando Firebase Messaging', err)
@@ -160,12 +160,20 @@ function AppInner() {
         if (urlYaProcesada === url) return
         urlYaProcesada = url
         try {
-          // PKCE flow: el código llega como ?code=... en la URL.
-          // El flow_state se persiste en Capacitor Preferences para que
-          // sobreviva el viaje al navegador externo y de regreso al WebView.
-          await supabase.auth.exchangeCodeForSession(url)
+          // Implicit flow: el token llega en el hash de la URL (#access_token=...)
+          // en vez de como código (?code=...) que requería PKCE + flow state.
+          if (url.includes('access_token')) {
+            const hashParams = new URLSearchParams(url.split('#')[1] || '')
+            const accessToken = hashParams.get('access_token')
+            const refreshToken = hashParams.get('refresh_token')
+            if (accessToken) {
+              await supabase.auth.setSession({ access_token: accessToken, refresh_token: refreshToken || '' })
+            }
+          } else {
+            await supabase.auth.exchangeCodeForSession(url)
+          }
         } catch (err) {
-          logError('Error completando login nativo con PKCE', err)
+          logError('Error completando login nativo', err)
         } finally {
           Browser.close().catch(() => {})
         }
