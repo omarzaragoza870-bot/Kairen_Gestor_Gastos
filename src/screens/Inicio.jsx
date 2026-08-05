@@ -13,6 +13,7 @@ import { conRespaldoOffline } from '../lib/offline.js'
 import NuevaOperacion from '../components/NuevaOperacion.jsx'
 import { mensajeAmigable } from '../lib/errores.js'
 import { useScrollLock } from '../hooks/useScrollLock.js'
+import { ArrowUpRight, ArrowDownRight, Landmark } from 'lucide-react'
 
 const fmt = n => Number(n).toLocaleString('es-MX', { style: 'currency', currency: 'MXN' })
 const fmtFecha = fechaISO => new Date(`${fechaISO}T12:00:00`).toLocaleDateString('es-MX', { day: '2-digit', month: 'short', year: 'numeric' })
@@ -169,26 +170,39 @@ export default function Inicio({ onNuevo, onNuevaTransferencia, onEditar, onVerT
 
       <section className="summary-card">
         <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-          <span style={{ fontSize: 13, color: 'var(--text-secondary)' }}>{t('inicio_dinero_disponible')}</span>
+          <span style={{ fontSize: 13, color: 'rgba(255,255,255,0.6)' }}>{t('inicio_dinero_disponible')}</span>
           <InfoTooltip title={t('inicio_dinero_disponible')} text={t('inicio_dinero_disponible_info')} />
         </div>
         <div className="available-amount">{cargando ? '…' : <Monto valor={disponible} />}</div>
-        <div className="summary-grid">
-          <div><span className="income-label">↑ {t('inicio_ingresos')}</span><div>{cargando ? '…' : <Monto valor={ingresos} prefijo="+" />}</div></div>
-          <div><span className="expense-label">↓ {t('inicio_gastos')}</span><div>{cargando ? '…' : <Monto valor={gastos} prefijo="-" />}</div></div>
-        </div>
-        <button
-          onClick={() => setMostrarCuentas(true)}
-          style={{
-            width: '100%', background: 'transparent', color: 'var(--text-secondary)',
-            fontSize: 13, fontWeight: 600, display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-            padding: '10px 0 0', marginTop: 8, borderTop: '1px solid var(--border-subtle)'
-          }}
-        >
-          <span>📇 {t('inicio_administrar_cuentas')}</span>
-          <span>›</span>
-        </button>
       </section>
+
+      <div className="summary-grid">
+        <div>
+          <div className="chip-icon chip-icon-income"><ArrowUpRight size={16} color="#fff" strokeWidth={2.5} /></div>
+          <span className="income-label">{t('inicio_ingresos')}</span>
+          <div>{cargando ? '…' : <Monto valor={ingresos} prefijo="+" />}</div>
+        </div>
+        <div>
+          <div className="chip-icon chip-icon-expense"><ArrowDownRight size={16} color="#fff" strokeWidth={2.5} /></div>
+          <span className="expense-label">{t('inicio_gastos')}</span>
+          <div>{cargando ? '…' : <Monto valor={gastos} prefijo="-" />}</div>
+        </div>
+      </div>
+
+      <button
+        onClick={() => setMostrarCuentas(true)}
+        style={{
+          width: '100%', background: 'var(--bg-surface)', color: 'var(--text-secondary)',
+          fontSize: 13, fontWeight: 600, display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+          padding: '14px 16px', marginTop: 14, borderRadius: 'var(--radius-md)', border: '1px solid var(--border-subtle)'
+        }}
+      >
+        <span style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <Landmark size={16} strokeWidth={2} />
+          {t('inicio_administrar_cuentas')}
+        </span>
+        <span>›</span>
+      </button>
 
       <div className="section-heading">
         <h2>{t('inicio_transacciones')}</h2>

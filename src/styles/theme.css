@@ -25,7 +25,8 @@
 }
 
 :root {
-  /* Paleta KAIREN */
+  /* Paleta KAIREN v2 — minimalista, tarjetas de acento negro,
+     chips pastel para ingresos/gastos, barra inferior flotante oscura */
   --bg-base: #0F0B1E;
   --bg-surface: #1A1530;
   --bg-surface-2: #241D42;
@@ -40,12 +41,31 @@
   --warning: #FBBF24;
   --border-subtle: rgba(255, 255, 255, 0.08);
 
+  /* Tarjeta de acento negro sólido (Dinero Disponible) */
+  --card-dark-bg: #111111;
+  --card-dark-text: #FFFFFF;
+
+  /* Chips pastel de Ingresos / Gastos */
+  --chip-income-bg: #E3F7EE;
+  --chip-income-icon-bg: #34D399;
+  --chip-income-text: #0F3D2C;
+  --chip-expense-bg: #FCEBEC;
+  --chip-expense-icon-bg: #F87171;
+  --chip-expense-text: #4A1417;
+
+  /* Barra inferior flotante — siempre oscura, sin importar el tema */
+  --nav-bg: #15141F;
+  --nav-icon-inactive: #8B87A3;
+  --nav-icon-active: #FFFFFF;
+  --nav-active-bg: #4F6BFF;
+
   --font-display: 'Poppins', sans-serif;
   --font-body: 'Poppins', sans-serif;
 
   --radius-lg: 20px;
   --radius-md: 14px;
   --radius-sm: 10px;
+  --radius-xl: 26px;
 
   --safe-top: env(safe-area-inset-top, 0px);
   --safe-bottom: env(safe-area-inset-bottom, 0px);
@@ -66,6 +86,22 @@
   --danger: #E24C63;
   --warning: #B8860B;
   --border-subtle: rgba(23, 21, 43, 0.08);
+
+  --card-dark-bg: #111111;
+  --card-dark-text: #FFFFFF;
+
+  --chip-income-bg: #E3F7EE;
+  --chip-income-icon-bg: #34D399;
+  --chip-income-text: #0F3D2C;
+  --chip-expense-bg: #FCEBEC;
+  --chip-expense-icon-bg: #F87171;
+  --chip-expense-text: #4A1417;
+
+  /* La barra inferior se mantiene oscura incluso en tema claro */
+  --nav-bg: #15141F;
+  --nav-icon-inactive: #8B87A3;
+  --nav-icon-active: #FFFFFF;
+  --nav-active-bg: #4F6BFF;
 }
 
 * { box-sizing: border-box; }
@@ -114,13 +150,46 @@ button:disabled { cursor: not-allowed; opacity: .72; }
 .month-header { display: grid; grid-template-columns: 42px 1fr 42px; align-items: center; gap: 8px; margin-bottom: 16px; }
 .icon-button, .back-button { background: var(--bg-surface); color: var(--text-primary); border: 1px solid var(--border-subtle); border-radius: 12px; min-height: 42px; font-size: 24px; }
 .month-title { background: transparent; color: var(--text-primary); font-size: 18px; font-weight: 700; text-transform: capitalize; }
-.summary-card { background: var(--bg-surface); border-radius: var(--radius-lg); padding: 20px; border: 1px solid var(--border-subtle); }
-.available-amount { font-size: 30px; font-weight: 800; margin: 4px 0 16px; background-image: var(--gradient-brand); -webkit-background-clip: text; color: transparent; }
-.summary-grid { display: flex; gap: 16px; border-top: 1px solid var(--border-subtle); padding-top: 14px; }
-.summary-grid > div { flex: 1; font-size: 16px; font-weight: 600; }
-.summary-grid span { display: block; font-size: 12px; font-weight: 500; }
+
+/* Tarjeta negra de acento — "Dinero Disponible" */
+.summary-card {
+  background: var(--card-dark-bg);
+  color: var(--card-dark-text);
+  border-radius: var(--radius-xl);
+  padding: 22px;
+  border: none;
+}
+.available-amount {
+  font-size: 32px;
+  font-weight: 800;
+  margin: 6px 0 0;
+  color: var(--card-dark-text);
+}
+
+/* Chips pastel de Ingresos / Gastos, debajo de la tarjeta negra */
+.summary-grid {
+  display: flex;
+  gap: 12px;
+  margin-top: 14px;
+  border-top: none;
+  padding-top: 0;
+}
+.summary-grid > div {
+  flex: 1;
+  border-radius: var(--radius-lg);
+  padding: 16px;
+  font-size: 16px;
+  font-weight: 700;
+}
+.summary-grid > div:first-child { background: var(--chip-income-bg); color: var(--chip-income-text); }
+.summary-grid > div:last-child { background: var(--chip-expense-bg); color: var(--chip-expense-text); }
+.summary-grid span { display: block; font-size: 12px; font-weight: 600; margin-bottom: 6px; opacity: .75; }
+.chip-icon { width: 32px; height: 32px; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin-bottom: 10px; }
+.chip-icon-income { background: var(--chip-income-icon-bg); }
+.chip-icon-expense { background: var(--chip-expense-icon-bg); }
 .income-label, .amount.income { color: var(--success); }
 .expense-label, .amount.expense { color: var(--danger); }
+
 .section-heading { display: flex; justify-content: space-between; align-items: center; margin: 22px 0 10px; }
 .section-heading h2 { font-size: 15px; font-weight: 600; margin: 0; }
 .link-button { background: transparent; color: var(--accent-blue); font-size: 13px; }
@@ -133,7 +202,7 @@ button:disabled { cursor: not-allowed; opacity: .72; }
 .transaction-description { font-size: 12px; color: var(--text-secondary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 230px; }
 .transaction-date { font-size: 11px; color: var(--text-muted); }
 .amount { flex-shrink: 0; font-weight: 700; margin-left: 12px; }
-.floating-button { position: fixed; right: 20px; bottom: 92px; width: 56px; height: 56px; border-radius: 16px; background: var(--gradient-brand); color: #fff; font-size: 26px; font-weight: 700; box-shadow: 0 8px 24px rgba(79,107,255,.4); }
+.floating-button { position: fixed; right: 20px; bottom: 100px; width: 56px; height: 56px; border-radius: 16px; background: var(--gradient-brand); color: #fff; font-size: 26px; font-weight: 700; box-shadow: 0 8px 24px rgba(79,107,255,.4); }
 .screen-header { display: flex; align-items: center; gap: 12px; margin-bottom: 18px; }
 .screen-header h1 { font-size: 18px; margin: 0; }
 .back-button { width: 42px; }

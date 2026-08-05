@@ -4,6 +4,7 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:orientation="vertical"
+    android:gravity="center"
     android:background="@drawable/widget_background"
     android:padding="16dp">
 
@@ -25,10 +26,11 @@
         android:textSize="26sp"
         android:textStyle="bold" />
 
+    <!-- Resumen: Ingresos (verde) izquierda, Gastos (rojo) derecha, texto centrado -->
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginTop="8dp"
+        android:layout_marginTop="10dp"
         android:orientation="horizontal">
 
         <TextView
@@ -36,6 +38,7 @@
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_weight="1"
+            android:gravity="center"
             android:text="↑ $0.00"
             android:textColor="#34D399"
             android:textSize="12sp" />
@@ -45,44 +48,43 @@
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_weight="1"
+            android:gravity="center"
             android:text="↓ $0.00"
             android:textColor="#F87171"
             android:textSize="12sp" />
     </LinearLayout>
 
-    <!-- Espacio flexible que empuja los botones hasta el fondo del widget -->
-    <View
-        android:layout_width="match_parent"
-        android:layout_height="0dp"
-        android:layout_weight="1" />
-
+    <!-- Botones: mismo orden — Ingreso (verde) izquierda, Gasto (rojo) derecha -->
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
+        android:layout_marginTop="18dp"
         android:orientation="horizontal">
 
-        <Button
-            android:id="@+id/widget_boton_gasto"
-            android:layout_width="0dp"
-            android:layout_height="36dp"
-            android:layout_weight="1"
-            android:layout_marginEnd="4dp"
-            android:text="− Gasto"
-            android:textSize="11sp"
-            android:textAllCaps="false"
-            android:textColor="#FFFFFF"
-            android:background="@drawable/widget_button_gasto" />
-
-        <Button
+        <TextView
             android:id="@+id/widget_boton_ingreso"
             android:layout_width="0dp"
             android:layout_height="36dp"
             android:layout_weight="1"
-            android:layout_marginStart="4dp"
+            android:layout_marginEnd="4dp"
+            android:gravity="center"
             android:text="+ Ingreso"
-            android:textSize="11sp"
-            android:textAllCaps="false"
+            android:textSize="12sp"
+            android:textStyle="bold"
             android:textColor="#FFFFFF"
             android:background="@drawable/widget_button_ingreso" />
+
+        <TextView
+            android:id="@+id/widget_boton_gasto"
+            android:layout_width="0dp"
+            android:layout_height="36dp"
+            android:layout_weight="1"
+            android:layout_marginStart="4dp"
+            android:gravity="center"
+            android:text="− Gasto"
+            android:textSize="12sp"
+            android:textStyle="bold"
+            android:textColor="#FFFFFF"
+            android:background="@drawable/widget_button_gasto" />
     </LinearLayout>
 </LinearLayout>

@@ -1,41 +1,57 @@
-import { usePreferencias } from '../context/PreferenciasContext.jsx'
+import { Home, BarChart3, Wallet, Target, Settings } from 'lucide-react'
 
 const tabs = [
-  { id: 'inicio', clave: 'nav_inicio', icon: '🏠' },
-  { id: 'analisis', clave: 'nav_analisis', icon: '📊' },
-  { id: 'ahorro', clave: 'nav_ahorro', icon: '🏦' },
-  { id: 'metas', clave: 'nav_metas', icon: '🎯' },
-  { id: 'ajustes', clave: 'nav_ajustes', icon: '⚙️' }
+  { id: 'inicio', clave: 'nav_inicio', Icon: Home },
+  { id: 'analisis', clave: 'nav_analisis', Icon: BarChart3 },
+  { id: 'ahorro', clave: 'nav_ahorro', Icon: Wallet },
+  { id: 'metas', clave: 'nav_metas', Icon: Target },
+  { id: 'ajustes', clave: 'nav_ajustes', Icon: Settings }
 ]
 
 export default function BottomNav({ active, onChange }) {
-  const { t } = usePreferencias()
   return (
-    <nav style={{
-      position: 'fixed', bottom: 0, left: 0, right: 0,
-      background: 'var(--bg-surface)',
-      borderTop: '1px solid var(--border-subtle)',
-      paddingBottom: 'var(--safe-bottom)',
-      display: 'flex', zIndex: 20
-    }}>
-      {tabs.map(tab => (
-        <button
-          key={tab.id}
-          onClick={() => onChange(tab.id)}
-          style={{
-            flex: 1, background: 'transparent', padding: '10px 4px 8px',
-            display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2
-          }}
-        >
-          <span style={{ fontSize: 18, opacity: active === tab.id ? 1 : 0.5 }}>{tab.icon}</span>
-          <span style={{
-            fontSize: 10, fontWeight: 600,
-            color: active === tab.id ? 'var(--accent-blue)' : 'var(--text-muted)'
-          }}>
-            {t(tab.clave)}
-          </span>
-        </button>
-      ))}
+    <nav
+      style={{
+        position: 'fixed',
+        left: 16,
+        right: 16,
+        bottom: 'calc(16px + var(--safe-bottom))',
+        background: 'var(--nav-bg)',
+        borderRadius: 999,
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'space-around',
+        padding: '10px 8px',
+        boxShadow: '0 12px 32px rgba(0,0,0,.35)',
+        zIndex: 20
+      }}
+    >
+      {tabs.map(({ id, Icon }) => {
+        const activo = active === id
+        return (
+          <button
+            key={id}
+            onClick={() => onChange(id)}
+            aria-label={id}
+            style={{
+              background: activo ? 'var(--nav-active-bg)' : 'transparent',
+              width: activo ? 52 : 44,
+              height: 44,
+              borderRadius: 16,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              transition: 'background 0.15s, width 0.15s'
+            }}
+          >
+            <Icon
+              size={22}
+              strokeWidth={2}
+              color={activo ? 'var(--nav-icon-active)' : 'var(--nav-icon-inactive)'}
+            />
+          </button>
+        )
+      })}
     </nav>
   )
 }
