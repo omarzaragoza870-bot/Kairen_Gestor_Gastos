@@ -18,6 +18,10 @@ const COLORES_CATEGORIA = ['#8B5CF6', '#4F6BFF', '#34D399', '#FBBF24', '#FB7185'
 
 export default function Analisis() {
   const [tab, setTab] = useState('resumen')
+  const [pregunta, setPregunta] = useState('')
+  const [respuesta, setRespuesta] = useState(null)
+  const [preguntando, setPreguntando] = useState(false)
+  const [errorIA, setErrorIA] = useState(null)
   const [cargando, setCargando] = useState(true)
   const [error, setError] = useState(null)
   const [mesActual, setMesActual] = useState([])
@@ -110,7 +114,7 @@ export default function Analisis() {
       <p style={{ fontSize: 13, color: 'var(--text-muted)', margin: '0 0 16px' }}>{etiquetaPeriodo}</p>
 
       <div style={{ display: 'flex', gap: 8, marginBottom: 20 }}>
-        {[['resumen', t('an_tab_resumen')], ['distribucion', t('an_tab_distribucion')], ['tendencias', t('an_tab_tendencias')]].map(([id, label]) => (
+        {[['resumen', t('an_tab_resumen')], ['distribucion', t('an_tab_distribucion')], ['tendencias', t('an_tab_tendencias')], ['kairen', '✨ Kairen']].map(([id, label]) => (
           <button
             key={id}
             onClick={() => setTab(id)}
@@ -134,6 +138,18 @@ export default function Analisis() {
       )}
       {tab === 'tendencias' && (
         <TendenciasTab comparacion={comparacion} habitos={habitos} insights={insights} esRango={periodo.tipo === 'rango'} />
+      )}
+      {tab === 'kairen' && (
+        <KairenIATab
+          pregunta={pregunta}
+          setPregunta={setPregunta}
+          respuesta={respuesta}
+          setRespuesta={setRespuesta}
+          preguntando={preguntando}
+          setPreguntando={setPreguntando}
+          errorIA={errorIA}
+          setErrorIA={setErrorIA}
+        />
       )}
 
       {mostrarSelector && (
@@ -352,6 +368,160 @@ function Dona({ datos }) {
             <span style={{ fontWeight: 700 }}>{d.pct.toFixed(0)}%</span>
           </div>
         ))}
+      </div>
+    </div>
+  )
+}
+
+const SUGERENCIAS = [
+  '¿En qué gasto más dinero?',
+  '¿Cómo voy con mis metas?',
+  '¿Me alcanza para fin de mes?',
+  '¿Cuáles son mis peores hábitos de gasto?',
+  '¿Cómo puedo ahorrar más este mes?',
+  '¿Cómo estuvo mi mes financieramente?'
+]
+
+function KairenIATab({ pregunta, setPregunta, respuesta, setRespuesta, preguntando, setPreguntando, errorIA, setErrorIA }) {
+  const { t } = usePreferencias()
+
+  const handlePreguntar = async (texto) => {
+    const q = texto || pregunta
+    if (!q.trim() || preguntando) return
+    setPreguntando(true)
+    setRespuesta(null)
+    setErrorIA(null)
+    try {
+      const { data: { session } } = await supabase.auth.getSession()
+      if (!session) throw new Error('Sesión no disponible')
+      const res = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/preguntar-kairen`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${session.access_token}`,
+          'apikey': import.meta.env.VITE_SUPABASE_ANON_KEY
+        },
+        body: JSON.stringify({ pregunta: q })
+      })
+      const data = await res.json()
+      if (data.error) throw new Error(data.error)
+      setRespuesta(data.respuesta)
+    } catch (err) {
+      setErrorIA('No se pudo obtener respuesta. Intenta de nuevo.')
+    } finally {
+      setPreguntando(false)
+    }
+  }
+
+  return (
+    <div style={{ paddingBottom: 20 }}>
+      <div style={{
+        background: 'var(--gradient-brand)', borderRadius: 'var(--radius-lg)',
+        padding: 20, marginBottom: 16, textAlign: 'center'
+      }}>
+        <div style={{ fontSize: 32, marginBottom: 8 }}>✨</div>
+        <div style={{ color: '#fff', fontWeight: 700, fontSize: 16 }}>Pregunta a Kairen</div>
+        <div style={{ color: 'rgba(255,255,255,0.8)', fontSize: 12, marginTop: 4 }}>
+          Tu asistente financiero personal analiza tus datos reales
+        </div>
+      </div>
+
+      {!respuesta && !preguntando && (
+        <>
+          <div style={{ fontSize: 12, color: 'var(--text-muted)', marginBottom: 10, fontWeight: 600 }}>
+            PREGUNTAS SUGERIDAS
+          </div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 16 }}>
+            {SUGERENCIAS.map(s => (
+              <button
+                key={s}
+                onClick={() => { setPregunta(s); handlePreguntar(s) }}
+                style={{
+                  textAlign: 'left', padding: '12px 16px',
+                  background: 'var(--bg-surface)', borderRadius: 'var(--radius-md)',
+                  border: '1px solid var(--border-subtle)', fontSize: 13,
+                  color: 'var(--text-primary)', fontWeight: 500
+                }}
+              >
+                {s}
+              </button>
+            ))}
+          </div>
+        </>
+      )}
+
+      {preguntando && (
+        <div style={{
+          textAlign: 'center', padding: 32,
+          background: 'var(--bg-surface)', borderRadius: 'var(--radius-lg)',
+          border: '1px solid var(--border-subtle)', marginBottom: 16
+        }}>
+          <div style={{ fontSize: 28, marginBottom: 8 }}>🤔</div>
+          <div style={{ color: 'var(--text-secondary)', fontSize: 14 }}>
+            Kairen está analizando tus datos...
+          </div>
+        </div>
+      )}
+
+      {respuesta && !preguntando && (
+        <div style={{
+          background: 'var(--bg-surface)', borderRadius: 'var(--radius-lg)',
+          border: '1px solid var(--border-subtle)', padding: 20, marginBottom: 16
+        }}>
+          <div style={{ display: 'flex', gap: 10, marginBottom: 12 }}>
+            <div style={{
+              width: 32, height: 32, borderRadius: '50%', flexShrink: 0,
+              background: 'var(--gradient-brand)',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              fontSize: 16
+            }}>✨</div>
+            <div style={{ fontSize: 12, color: 'var(--text-muted)', fontStyle: 'italic', paddingTop: 6 }}>
+              "{pregunta}"
+            </div>
+          </div>
+          <div style={{ fontSize: 14, lineHeight: 1.65, color: 'var(--text-primary)', whiteSpace: 'pre-wrap' }}>
+            {respuesta}
+          </div>
+          <button
+            onClick={() => { setRespuesta(null); setPregunta('') }}
+            style={{
+              marginTop: 16, width: '100%', padding: '10px',
+              background: 'var(--bg-surface-2)', borderRadius: 'var(--radius-md)',
+              border: '1px solid var(--border-subtle)', fontSize: 13,
+              color: 'var(--text-secondary)', fontWeight: 600
+            }}
+          >
+            Nueva pregunta
+          </button>
+        </div>
+      )}
+
+      {errorIA && (
+        <p className="error-message">{errorIA}</p>
+      )}
+
+      <div style={{ display: 'flex', gap: 8 }}>
+        <div className="input-shell" style={{ flex: 1, margin: 0 }}>
+          <input
+            value={pregunta}
+            onChange={e => setPregunta(e.target.value)}
+            onKeyDown={e => e.key === 'Enter' && handlePreguntar()}
+            placeholder="Escribe tu pregunta financiera..."
+            disabled={preguntando}
+          />
+        </div>
+        <button
+          onClick={() => handlePreguntar()}
+          disabled={!pregunta.trim() || preguntando}
+          style={{
+            padding: '0 16px', borderRadius: 'var(--radius-md)',
+            background: pregunta.trim() ? 'var(--gradient-brand)' : 'var(--bg-surface-2)',
+            color: pregunta.trim() ? '#fff' : 'var(--text-muted)',
+            fontWeight: 700, fontSize: 18, flexShrink: 0
+          }}
+        >
+          ↑
+        </button>
       </div>
     </div>
   )
