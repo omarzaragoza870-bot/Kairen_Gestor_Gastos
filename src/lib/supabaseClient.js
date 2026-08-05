@@ -8,39 +8,15 @@ if (!supabaseUrl || !supabaseAnonKey) {
   console.warn('[Kairen Finanzas] Faltan variables VITE_SUPABASE_URL / VITE_SUPABASE_ANON_KEY en tu .env')
 }
 
-// Storage personalizado que usa @capacitor/preferences en nativo
-// — así el flow_state de PKCE persiste entre el WebView y el navegador externo
-const capacitorStorage = {
-  async getItem(key) {
-    try {
-      const { Preferences } = await import('@capacitor/preferences')
-      const { value } = await Preferences.get({ key })
-      return value
-    } catch {
-      return null
-    }
-  },
-  async setItem(key, value) {
-    try {
-      const { Preferences } = await import('@capacitor/preferences')
-      await Preferences.set({ key, value })
-    } catch {}
-  },
-  async removeItem(key) {
-    try {
-      const { Preferences } = await import('@capacitor/preferences')
-      await Preferences.remove({ key })
-    } catch {}
-  }
-}
-
 export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
   auth: {
-    // PKCE en todos los entornos — en nativo usamos Capacitor Preferences
-    // como storage para que el flow_state persista entre el WebView y el
-    // navegador externo (Safari/Chrome) donde se hace el login de Google.
-    flowType: 'pkce',
-    detectSessionInUrl: !esNativo(),
-    ...(esNativo() ? { storage: capacitorStorage } : {})
+    // En la app nativa usamos implicit flow: el navegador externo no comparte
+    // localStorage con el WebView, así que el PKCE "flow state" se pierde y
+    // exchangeCodeForSession falla con "flow_state_not_found". Con implicit
+    // flow el token llega directo en el hash de la URL, sin necesitar el state.
+    // En la web sí usamos PKCE (más seguro) — se selecciona automáticamente
+    // según esNativo().
+    flowType: esNativo() ? 'implicit' : 'pkce',
+    detectSessionInUrl: !esNativo()
   }
 })
