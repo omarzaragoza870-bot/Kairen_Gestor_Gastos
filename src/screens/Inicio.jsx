@@ -45,11 +45,10 @@ export default function Inicio({ onNuevo, onEditar, onVerTodas, refreshKey }) {
       if (aEliminar && !eliminando) { setAEliminar(null); return }
       if (verDetalle) { setVerDetalle(null); return }
       if (mostrarSelector) { setMostrarSelector(false); return }
-      if (mostrarOpciones) { setMostrarOpciones(false); return }
     }
     document.addEventListener('keydown', handleKeyDown)
     return () => document.removeEventListener('keydown', handleKeyDown)
-  }, [verDetalle, aEliminar, eliminando, mostrarSelector, mostrarOpciones])
+  }, [verDetalle, aEliminar, eliminando, mostrarSelector])
 
   const cargarDatos = useCallback(async uid => {
     setCargando(true)
@@ -289,13 +288,6 @@ export default function Inicio({ onNuevo, onEditar, onVerTodas, refreshKey }) {
 
       <button onClick={() => setMostrarOpciones(true)} aria-label="Nueva operación" className="floating-button">+</button>
 
-      {mostrarOpciones && (
-        <NuevaOperacion
-          onCerrar={() => setMostrarOpciones(false)}
-          onTransaccion={() => { setMostrarOpciones(false); onNuevo() }}
-          onTransferencia={() => { setMostrarOpciones(false); onNuevaTransferencia() }}
-        />
-      )}
 
       {mostrarSelector && (
         <SelectorPeriodo
