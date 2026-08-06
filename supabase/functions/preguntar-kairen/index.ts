@@ -41,7 +41,7 @@ Deno.serve(async (req) => {
     }
 
     const { pregunta } = await req.json()
-    if (!pregunta?.trim()) {
+    if (!pregunta?.trim() || pregunta.trim().length > 100) {
       return new Response(JSON.stringify({ error: 'Falta la pregunta' }), {
         status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' }
       })

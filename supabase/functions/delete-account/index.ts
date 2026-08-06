@@ -20,7 +20,7 @@ const serviceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')
 // Headers CORS — sin esto, el navegador bloquea la respuesta antes
 // de que tu app pueda leerla, aunque la función funcione bien por dentro.
 const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Origin': 'https://kairen-gestor-gastos.vercel.app',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
   'Access-Control-Allow-Methods': 'POST, OPTIONS'
 }

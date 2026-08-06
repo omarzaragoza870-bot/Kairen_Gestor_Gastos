@@ -449,7 +449,7 @@ function KairenIATab({ pregunta, setPregunta, respuesta, setRespuesta, preguntan
       <div style={{ display: 'flex', gap: 8 }}>
         <div className="input-shell" style={{ flex: 1, margin: 0 }}>
           <input value={pregunta} onChange={e => setPregunta(e.target.value)}
-            onKeyDown={e => e.key === 'Enter' && handlePreguntar()}
+            onKeyDown={e => e.key === 'Enter' && handlePreguntar()} maxLength={100}
             placeholder="Escribe tu pregunta financiera..." disabled={preguntando} />
         </div>
         <button onClick={() => handlePreguntar()} disabled={!pregunta.trim() || preguntando}
