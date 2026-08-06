@@ -215,7 +215,7 @@ button:disabled { cursor: not-allowed; opacity: .72; }
 .transaction-description { font-size: 12px; color: var(--text-secondary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 230px; }
 .transaction-date { font-size: 11px; color: var(--text-muted); }
 .amount { flex-shrink: 0; font-weight: 700; margin-left: 12px; }
-.floating-button { position: fixed; right: 20px; bottom: 96px; width: 56px; height: 56px; border-radius: 16px; background: var(--gradient-brand); color: #fff; font-size: 26px; font-weight: 700; box-shadow: 0 8px 24px rgba(79,107,255,.4); }
+.floating-button { position: fixed; right: 20px; bottom: calc(96px + var(--safe-bottom)); width: 56px; height: 56px; border-radius: 16px; background: var(--gradient-brand); color: #fff; font-size: 26px; font-weight: 700; box-shadow: 0 8px 24px rgba(79,107,255,.4); }
 .screen-header { display: flex; align-items: center; gap: 12px; margin-bottom: 18px; }
 .screen-header h1 { font-size: 18px; margin: 0; }
 .back-button { width: 42px; }
