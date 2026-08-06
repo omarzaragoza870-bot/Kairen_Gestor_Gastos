@@ -5,9 +5,8 @@
     android:layout_height="match_parent"
     android:orientation="vertical"
     android:background="@drawable/widget_background"
-    android:padding="20dp">
+    android:padding="14dp">
 
-    <!-- Fila superior: label + puntos -->
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
@@ -19,106 +18,109 @@
             android:layout_weight="1"
             android:text="Disponible ahora"
             android:textColor="#9BA3B8"
-            android:textSize="13sp" />
+            android:textSize="11sp" />
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:text="···"
             android:textColor="#9BA3B8"
-            android:textSize="16sp" />
+            android:textSize="13sp" />
     </LinearLayout>
 
-    <!-- Monto grande -->
     <TextView
         android:id="@+id/widget_disponible"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_marginTop="6dp"
-        android:layout_marginBottom="14dp"
+        android:layout_marginTop="2dp"
+        android:layout_marginBottom="8dp"
         android:text="$0.00"
         android:textColor="#FFFFFF"
-        android:textSize="34sp"
+        android:textSize="26sp"
         android:textStyle="bold" />
 
-    <!-- Chips Ingresos / Gastos -->
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:orientation="horizontal"
-        android:layout_marginBottom="14dp">
+        android:layout_marginBottom="8dp">
 
-        <!-- Chip Ingresos -->
         <LinearLayout
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_weight="1"
-            android:layout_marginEnd="6dp"
+            android:layout_marginEnd="4dp"
             android:orientation="vertical"
             android:background="@drawable/widget_chip_bg"
-            android:padding="12dp">
+            android:padding="8dp">
             <TextView
-                android:layout_width="wrap_content"
+                android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:text="↙"
                 android:textColor="#4ADE80"
-                android:textSize="18sp"
+                android:textSize="14sp"
+                android:gravity="center"
                 android:background="@drawable/widget_chip_icon_income"
-                android:padding="4dp" />
+                android:paddingTop="4dp"
+                android:paddingBottom="4dp"
+                android:paddingStart="8dp"
+                android:paddingEnd="8dp" />
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="6dp"
+                android:layout_marginTop="4dp"
                 android:text="Ingresos"
                 android:textColor="#9BA3B8"
-                android:textSize="11sp" />
+                android:textSize="10sp" />
             <TextView
                 android:id="@+id/widget_ingresos"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="2dp"
+                android:layout_marginTop="1dp"
                 android:text="$0.00"
                 android:textColor="#4ADE80"
-                android:textSize="14sp"
+                android:textSize="12sp"
                 android:textStyle="bold" />
         </LinearLayout>
 
-        <!-- Chip Gastos -->
         <LinearLayout
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_weight="1"
-            android:layout_marginStart="6dp"
+            android:layout_marginStart="4dp"
             android:orientation="vertical"
             android:background="@drawable/widget_chip_bg"
-            android:padding="12dp">
+            android:padding="8dp">
             <TextView
-                android:layout_width="wrap_content"
+                android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:text="↗"
                 android:textColor="#F87171"
-                android:textSize="18sp"
+                android:textSize="14sp"
+                android:gravity="center"
                 android:background="@drawable/widget_chip_icon_expense"
-                android:padding="4dp" />
+                android:paddingTop="4dp"
+                android:paddingBottom="4dp"
+                android:paddingStart="8dp"
+                android:paddingEnd="8dp" />
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="6dp"
+                android:layout_marginTop="4dp"
                 android:text="Gastos"
                 android:textColor="#9BA3B8"
-                android:textSize="11sp" />
+                android:textSize="10sp" />
             <TextView
                 android:id="@+id/widget_gastos"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="2dp"
+                android:layout_marginTop="1dp"
                 android:text="$0.00"
                 android:textColor="#F87171"
-                android:textSize="14sp"
+                android:textSize="12sp"
                 android:textStyle="bold" />
         </LinearLayout>
     </LinearLayout>
 
-    <!-- Botones -->
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
@@ -126,24 +128,24 @@
         <TextView
             android:id="@+id/widget_boton_ingreso"
             android:layout_width="0dp"
-            android:layout_height="48dp"
+            android:layout_height="44dp"
             android:layout_weight="1"
-            android:layout_marginEnd="6dp"
+            android:layout_marginEnd="4dp"
             android:gravity="center"
             android:text="+ Ingreso"
-            android:textSize="13sp"
+            android:textSize="12sp"
             android:textStyle="bold"
             android:textColor="#FFFFFF"
             android:background="@drawable/widget_button_ingreso" />
         <TextView
             android:id="@+id/widget_boton_gasto"
             android:layout_width="0dp"
-            android:layout_height="48dp"
+            android:layout_height="44dp"
             android:layout_weight="1"
-            android:layout_marginStart="6dp"
+            android:layout_marginStart="4dp"
             android:gravity="center"
             android:text="− Gasto"
-            android:textSize="13sp"
+            android:textSize="12sp"
             android:textStyle="bold"
             android:textColor="#FFFFFF"
             android:background="@drawable/widget_button_gasto" />

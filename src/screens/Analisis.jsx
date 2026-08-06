@@ -1,4 +1,5 @@
 import { useEffect, useState, useMemo } from 'react'
+import { BarChart, Bar, XAxis, Tooltip, ResponsiveContainer, Cell, PieChart, Pie } from 'recharts'
 import { supabase } from '../lib/supabaseClient.js'
 import { obtenerCuentas, obtenerTransaccionesPorMes, obtenerTransaccionesEnRango, obtenerTransaccionesUltimosMeses } from '../lib/db.js'
 import {
@@ -11,9 +12,7 @@ import { MESES_POR_IDIOMA } from '../i18n/translations.js'
 import Monto from '../components/Monto.jsx'
 import { usePreferencias } from '../context/PreferenciasContext.jsx'
 
-const fmt = (n) => Number(n).toLocaleString('es-MX', { style: 'currency', currency: 'MXN' })
 const fmtFechaCorta = iso => new Date(`${iso}T12:00:00`).toLocaleDateString('es-MX', { day: '2-digit', month: 'short' })
-
 const COLORES_CATEGORIA = ['#8B5CF6', '#4F6BFF', '#34D399', '#FBBF24', '#FB7185', '#22D3EE', '#F472B6', '#A78BFA']
 
 export default function Analisis() {
@@ -43,9 +42,7 @@ export default function Analisis() {
         const usuario = data.session?.user
         if (!usuario) throw new Error('Sesión no disponible.')
         const uid = usuario.id
-
         let actual, anterior, referenciaHistorico
-
         if (periodo.tipo === 'mes') {
           const fechaMes = new Date(periodo.anio, periodo.mes, 1)
           const claveMes = `analisis:${uid}:${periodo.anio}-${periodo.mes}`
@@ -59,15 +56,13 @@ export default function Analisis() {
           const hastaStr = hastaExclusivo.toISOString().slice(0, 10)
           const claveRango = `analisis:${uid}:${periodo.desde}_${hastaStr}`
           actual = await conRespaldoOffline(claveRango, () => obtenerTransaccionesEnRango(uid, periodo.desde, hastaStr))
-          anterior = [] // "vs mes anterior" no aplica a un rango libre
+          anterior = []
           referenciaHistorico = new Date(`${periodo.hasta}T12:00:00`)
         }
-
         const [historico, cuentas] = await Promise.all([
           conRespaldoOffline(`analisis-historico:${uid}`, () => obtenerTransaccionesUltimosMeses(uid, 6, referenciaHistorico)),
           conRespaldoOffline(`cuentas:${uid}`, () => obtenerCuentas(uid))
         ])
-
         setMesActual(actual)
         setMesAnterior(anterior)
         setUltimosMeses(historico)
@@ -84,7 +79,6 @@ export default function Analisis() {
   const gastos = sumar(mesActual, 'gasto')
   const balance = ingresos - gastos
   const tasaAhorro = ingresos > 0 ? (balance / ingresos) * 100 : 0
-
   const gastosPorCategoria = useMemo(() => agruparPorCategoria(mesActual, 'gasto'), [mesActual])
   const ingresosPorCategoria = useMemo(() => agruparPorCategoria(mesActual, 'ingreso'), [mesActual])
   const referenciaHistorico = periodo.tipo === 'mes' ? new Date(periodo.anio, periodo.mes, 1) : new Date(`${periodo.hasta}T12:00:00`)
@@ -92,18 +86,12 @@ export default function Analisis() {
   const habitos = useMemo(() => calcularHabitos(mesActual), [mesActual])
   const insights = useMemo(() => calcularInsights(mesActual, cuentasPorId), [mesActual, cuentasPorId])
   const comparacion = useMemo(() => compararConMesAnterior(mesActual, mesAnterior), [mesActual, mesAnterior])
-
   const etiquetaPeriodo = periodo.tipo === 'mes'
     ? `${MESES[periodo.mes]} ${periodo.anio}`
     : `${fmtFechaCorta(periodo.desde)} – ${fmtFechaCorta(periodo.hasta)}`
 
-  if (cargando) {
-    return <div style={{ padding: 40, textAlign: 'center', color: 'var(--text-secondary)' }}>{t('an_cargando')}</div>
-  }
-
-  if (error) {
-    return <div style={{ padding: 40 }}><p className="error-message">{error}</p></div>
-  }
+  if (cargando) return <div style={{ padding: 40, textAlign: 'center', color: 'var(--text-secondary)' }}>{t('an_cargando')}</div>
+  if (error) return <div style={{ padding: 40 }}><p className="error-message">{error}</p></div>
 
   return (
     <div style={{ padding: '16px 16px 100px', maxWidth: 680, margin: '0 auto' }}>
@@ -130,11 +118,12 @@ export default function Analisis() {
         ))}
       </div>
 
+      {/* key={tab} fuerza desmount/remount para reanimar las gráficas cada vez que cambias de pestaña */}
       {tab === 'resumen' && (
-        <ResumenTab ingresos={ingresos} gastos={gastos} balance={balance} tasaAhorro={tasaAhorro} porMes={porMes} />
+        <ResumenTab key={`resumen-${tab}-${periodo.anio}-${periodo.mes}`} ingresos={ingresos} gastos={gastos} balance={balance} tasaAhorro={tasaAhorro} porMes={porMes} />
       )}
       {tab === 'distribucion' && (
-        <DistribucionTab gastosPorCategoria={gastosPorCategoria} ingresosPorCategoria={ingresosPorCategoria} totalGastos={gastos} totalIngresos={ingresos} />
+        <DistribucionTab key={`dist-${tab}-${periodo.anio}-${periodo.mes}`} gastosPorCategoria={gastosPorCategoria} ingresosPorCategoria={ingresosPorCategoria} totalGastos={gastos} totalIngresos={ingresos} />
       )}
       {tab === 'tendencias' && (
         <TendenciasTab comparacion={comparacion} habitos={habitos} insights={insights} esRango={periodo.tipo === 'rango'} />
@@ -175,9 +164,12 @@ function Tarjeta({ children, style }) {
 }
 
 function ResumenTab({ ingresos, gastos, balance, tasaAhorro, porMes }) {
-  const { t, idioma } = usePreferencias()
-  const MESES = MESES_POR_IDIOMA[idioma] || MESES_POR_IDIOMA.es
-  const maxMensual = Math.max(...porMes.map(m => Math.max(m.ingresos, m.gastos)), 1)
+  const { t } = usePreferencias()
+  const balanceData = porMes.map(m => ({
+    etiqueta: m.etiqueta,
+    bal: m.ingresos - m.gastos,
+    positivo: (m.ingresos - m.gastos) >= 0
+  }))
 
   return (
     <>
@@ -191,36 +183,34 @@ function ResumenTab({ ingresos, gastos, balance, tasaAhorro, porMes }) {
       <Tarjeta>
         <h3 style={{ margin: '0 0 16px', fontSize: 14, fontWeight: 600 }}>{t('an_ingresos_vs_gastos')}</h3>
         <div style={{ display: 'flex', alignItems: 'flex-end', gap: 24, height: 140, justifyContent: 'center' }}>
-          <Barra etiqueta={t('inicio_ingresos')} valor={ingresos} max={Math.max(ingresos, gastos, 1)} color="var(--success)" />
-          <Barra etiqueta={t('nt_gasto')} valor={gastos} max={Math.max(ingresos, gastos, 1)} color="var(--danger)" />
+          <Barra etiqueta={t('inicio_ingresos')} valor={ingresos} color="#34D399" />
+          <Barra etiqueta={t('nt_gasto')} valor={gastos} color="#FB7185" />
         </div>
       </Tarjeta>
 
       <Tarjeta>
-        <h3 style={{ margin: '0 0 16px', fontSize: 14, fontWeight: 600 }}>{t('an_balance_6_meses')}</h3>
-        <div style={{ display: 'flex', alignItems: 'flex-end', gap: 10, height: 120 }}>
-          {porMes.map(m => {
-            const bal = m.ingresos - m.gastos
-            const alturaPct = Math.min(100, (Math.abs(bal) / maxMensual) * 100)
-            return (
-              <div key={m.clave} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6 }}>
-                <div style={{
-                  width: '100%', height: `${Math.max(alturaPct, 3)}%`, borderRadius: 6,
-                  background: bal >= 0 ? 'var(--gradient-brand)' : 'var(--danger)'
-                }} />
-                <span style={{ fontSize: 10, color: 'var(--text-muted)', textTransform: 'capitalize' }}>{m.etiqueta}</span>
-              </div>
-            )
-          })}
-        </div>
+        <h3 style={{ margin: '0 0 8px', fontSize: 14, fontWeight: 600 }}>{t('an_balance_6_meses')}</h3>
+        <ResponsiveContainer width="100%" height={140}>
+          <BarChart data={balanceData} margin={{ top: 8, right: 0, left: 0, bottom: 0 }}>
+            <XAxis dataKey="etiqueta" tick={{ fontSize: 10, fill: 'var(--text-muted)' }} axisLine={false} tickLine={false} />
+            <Tooltip
+              formatter={(v) => [`$${Math.abs(Number(v)).toLocaleString('es-MX', { minimumFractionDigits: 0 })}`, 'Balance']}
+              contentStyle={{ background: 'var(--bg-surface-2)', border: '1px solid var(--border-subtle)', borderRadius: 8, fontSize: 12, color: 'var(--text-primary)' }}
+            />
+            <Bar dataKey="bal" radius={[6, 6, 0, 0]} isAnimationActive={true} animationDuration={900} animationEasing="ease-out">
+              {balanceData.map((entry, i) => (
+                <Cell key={i} fill={entry.positivo ? '#6B8AFF' : '#FB7185'} />
+              ))}
+            </Bar>
+          </BarChart>
+        </ResponsiveContainer>
       </Tarjeta>
     </>
   )
 }
 
 function DistribucionTab({ gastosPorCategoria, ingresosPorCategoria, totalGastos, totalIngresos }) {
-  const { t, idioma } = usePreferencias()
-  const MESES = MESES_POR_IDIOMA[idioma] || MESES_POR_IDIOMA.es
+  const { t } = usePreferencias()
   return (
     <>
       <Tarjeta>
@@ -228,31 +218,21 @@ function DistribucionTab({ gastosPorCategoria, ingresosPorCategoria, totalGastos
           <h3 style={{ margin: 0, fontSize: 14, fontWeight: 600 }}>{t('an_total_gastos_card')}</h3>
           <span style={{ fontWeight: 700 }}><Monto valor={totalGastos} /></span>
         </div>
-        {gastosPorCategoria.length === 0 ? (
-          <EmptyMini texto={t('an_sin_gastos')} />
-        ) : (
-          <Dona datos={gastosPorCategoria} />
-        )}
+        {gastosPorCategoria.length === 0 ? <EmptyMini texto={t('an_sin_gastos')} /> : <Dona datos={gastosPorCategoria} />}
       </Tarjeta>
-
       <Tarjeta>
         <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 16 }}>
           <h3 style={{ margin: 0, fontSize: 14, fontWeight: 600 }}>{t('an_total_ingresos_card')}</h3>
           <span style={{ fontWeight: 700 }}><Monto valor={totalIngresos} /></span>
         </div>
-        {ingresosPorCategoria.length === 0 ? (
-          <EmptyMini texto={t('an_sin_ingresos')} />
-        ) : (
-          <Dona datos={ingresosPorCategoria} />
-        )}
+        {ingresosPorCategoria.length === 0 ? <EmptyMini texto={t('an_sin_ingresos')} /> : <Dona datos={ingresosPorCategoria} />}
       </Tarjeta>
     </>
   )
 }
 
 function TendenciasTab({ comparacion, habitos, insights, esRango }) {
-  const { t, idioma } = usePreferencias()
-  const MESES = MESES_POR_IDIOMA[idioma] || MESES_POR_IDIOMA.es
+  const { t } = usePreferencias()
   return (
     <>
       {!esRango && (
@@ -273,7 +253,6 @@ function TendenciasTab({ comparacion, habitos, insights, esRango }) {
           </div>
         </Tarjeta>
       )}
-
       {habitos && (
         <Tarjeta>
           <h3 style={{ margin: '0 0 14px', fontSize: 14, fontWeight: 600 }}>💡 {t('an_habitos')}</h3>
@@ -285,12 +264,9 @@ function TendenciasTab({ comparacion, habitos, insights, esRango }) {
           </div>
         </Tarjeta>
       )}
-
       <Tarjeta>
         <h3 style={{ margin: '0 0 14px', fontSize: 14, fontWeight: 600 }}>📈 {t('an_tendencias_detectadas')}</h3>
-        {insights.length === 0 ? (
-          <EmptyMini texto={t('an_sin_tendencias')} />
-        ) : (
+        {insights.length === 0 ? <EmptyMini texto={t('an_sin_tendencias')} /> : (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
             {insights.map((ins, i) => (
               <div key={i} style={{ display: 'flex', gap: 10, padding: 12, borderRadius: 'var(--radius-md)', border: '1px solid var(--border-subtle)' }}>
@@ -330,35 +306,41 @@ function EmptyMini({ texto }) {
   return <p style={{ fontSize: 13, color: 'var(--text-muted)', textAlign: 'center', margin: '20px 0' }}>{texto}</p>
 }
 
-function Barra({ etiqueta, valor, max, color }) {
-  const alturaPct = Math.max((valor / max) * 100, 3)
+function Barra({ etiqueta, valor, color }) {
+  const data = [{ name: etiqueta, valor }]
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8, width: 60 }}>
-      <div style={{ height: 100, width: '100%', display: 'flex', alignItems: 'flex-end' }}>
-        <div style={{ width: '100%', height: `${alturaPct}%`, background: color, borderRadius: 8 }} />
-      </div>
+    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8, width: 80 }}>
+      <ResponsiveContainer width="100%" height={100}>
+        <BarChart data={data} margin={{ top: 0, right: 0, left: 0, bottom: 0 }}>
+          <Bar dataKey="valor" fill={color} radius={[8, 8, 0, 0]}
+            isAnimationActive={true} animationDuration={800} animationEasing="ease-out" />
+        </BarChart>
+      </ResponsiveContainer>
       <span style={{ fontSize: 12, color: 'var(--text-secondary)' }}>{etiqueta}</span>
     </div>
   )
 }
 
-/** Dona construida con conic-gradient — sin dependencias externas. */
 function Dona({ datos }) {
-  let acumulado = 0
-  const stops = datos.map((d, i) => {
-    const inicio = acumulado
-    acumulado += d.pct
-    return `${COLORES_CATEGORIA[i % COLORES_CATEGORIA.length]} ${inicio}% ${acumulado}%`
-  }).join(', ')
-
+  const pieData = datos.map((d, i) => ({
+    name: d.nombre,
+    value: d.pct,
+    color: COLORES_CATEGORIA[i % COLORES_CATEGORIA.length]
+  }))
   return (
     <div style={{ display: 'flex', alignItems: 'center', gap: 20 }}>
-      <div style={{
-        width: 110, height: 110, borderRadius: '50%', flexShrink: 0,
-        background: `conic-gradient(${stops})`,
-        display: 'flex', alignItems: 'center', justifyContent: 'center'
-      }}>
-        <div style={{ width: 46, height: 46, borderRadius: '50%', background: 'var(--bg-surface)' }} />
+      <div style={{ width: 110, height: 110, flexShrink: 0 }}>
+        <ResponsiveContainer width="100%" height="100%">
+          <PieChart>
+            <Pie data={pieData} cx="50%" cy="50%" innerRadius={30} outerRadius={52}
+              dataKey="value" isAnimationActive={true} animationBegin={0}
+              animationDuration={900} animationEasing="ease-out">
+              {pieData.map((entry, index) => (
+                <Cell key={index} fill={entry.color} />
+              ))}
+            </Pie>
+          </PieChart>
+        </ResponsiveContainer>
       </div>
       <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 8 }}>
         {datos.map((d, i) => (
@@ -383,8 +365,6 @@ const SUGERENCIAS = [
 ]
 
 function KairenIATab({ pregunta, setPregunta, respuesta, setRespuesta, preguntando, setPreguntando, errorIA, setErrorIA }) {
-  const { t } = usePreferencias()
-
   const handlePreguntar = async (texto) => {
     const q = texto || pregunta
     if (!q.trim() || preguntando) return
@@ -428,98 +408,52 @@ function KairenIATab({ pregunta, setPregunta, respuesta, setRespuesta, preguntan
 
       {!respuesta && !preguntando && (
         <>
-          <div style={{ fontSize: 12, color: 'var(--text-muted)', marginBottom: 10, fontWeight: 600 }}>
-            PREGUNTAS SUGERIDAS
-          </div>
+          <div style={{ fontSize: 12, color: 'var(--text-muted)', marginBottom: 10, fontWeight: 600 }}>PREGUNTAS SUGERIDAS</div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 16 }}>
             {SUGERENCIAS.map(s => (
-              <button
-                key={s}
-                onClick={() => { setPregunta(s); handlePreguntar(s) }}
+              <button key={s} onClick={() => { setPregunta(s); handlePreguntar(s) }}
                 style={{
                   textAlign: 'left', padding: '12px 16px',
                   background: 'var(--bg-surface)', borderRadius: 'var(--radius-md)',
                   border: '1px solid var(--border-subtle)', fontSize: 13,
                   color: 'var(--text-primary)', fontWeight: 500
-                }}
-              >
-                {s}
-              </button>
+                }}>{s}</button>
             ))}
           </div>
         </>
       )}
 
       {preguntando && (
-        <div style={{
-          textAlign: 'center', padding: 32,
-          background: 'var(--bg-surface)', borderRadius: 'var(--radius-lg)',
-          border: '1px solid var(--border-subtle)', marginBottom: 16
-        }}>
+        <div style={{ textAlign: 'center', padding: 32, background: 'var(--bg-surface)', borderRadius: 'var(--radius-lg)', border: '1px solid var(--border-subtle)', marginBottom: 16 }}>
           <div style={{ fontSize: 28, marginBottom: 8 }}>🤔</div>
-          <div style={{ color: 'var(--text-secondary)', fontSize: 14 }}>
-            Kairen está analizando tus datos...
-          </div>
+          <div style={{ color: 'var(--text-secondary)', fontSize: 14 }}>Kairen está analizando tus datos...</div>
         </div>
       )}
 
       {respuesta && !preguntando && (
-        <div style={{
-          background: 'var(--bg-surface)', borderRadius: 'var(--radius-lg)',
-          border: '1px solid var(--border-subtle)', padding: 20, marginBottom: 16
-        }}>
+        <div style={{ background: 'var(--bg-surface)', borderRadius: 'var(--radius-lg)', border: '1px solid var(--border-subtle)', padding: 20, marginBottom: 16 }}>
           <div style={{ display: 'flex', gap: 10, marginBottom: 12 }}>
-            <div style={{
-              width: 32, height: 32, borderRadius: '50%', flexShrink: 0,
-              background: 'var(--gradient-brand)',
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-              fontSize: 16
-            }}>✨</div>
-            <div style={{ fontSize: 12, color: 'var(--text-muted)', fontStyle: 'italic', paddingTop: 6 }}>
-              "{pregunta}"
-            </div>
+            <div style={{ width: 32, height: 32, borderRadius: '50%', flexShrink: 0, background: 'var(--gradient-brand)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 16 }}>✨</div>
+            <div style={{ fontSize: 12, color: 'var(--text-muted)', fontStyle: 'italic', paddingTop: 6 }}>"{pregunta}"</div>
           </div>
-          <div style={{ fontSize: 14, lineHeight: 1.65, color: 'var(--text-primary)', whiteSpace: 'pre-wrap' }}>
-            {respuesta}
-          </div>
-          <button
-            onClick={() => { setRespuesta(null); setPregunta('') }}
-            style={{
-              marginTop: 16, width: '100%', padding: '10px',
-              background: 'var(--bg-surface-2)', borderRadius: 'var(--radius-md)',
-              border: '1px solid var(--border-subtle)', fontSize: 13,
-              color: 'var(--text-secondary)', fontWeight: 600
-            }}
-          >
+          <div style={{ fontSize: 14, lineHeight: 1.65, color: 'var(--text-primary)', whiteSpace: 'pre-wrap' }}>{respuesta}</div>
+          <button onClick={() => { setRespuesta(null); setPregunta('') }}
+            style={{ marginTop: 16, width: '100%', padding: '10px', background: 'var(--bg-surface-2)', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-subtle)', fontSize: 13, color: 'var(--text-secondary)', fontWeight: 600 }}>
             Nueva pregunta
           </button>
         </div>
       )}
 
-      {errorIA && (
-        <p className="error-message">{errorIA}</p>
-      )}
+      {errorIA && <p className="error-message">{errorIA}</p>}
 
       <div style={{ display: 'flex', gap: 8 }}>
         <div className="input-shell" style={{ flex: 1, margin: 0 }}>
-          <input
-            value={pregunta}
-            onChange={e => setPregunta(e.target.value)}
+          <input value={pregunta} onChange={e => setPregunta(e.target.value)}
             onKeyDown={e => e.key === 'Enter' && handlePreguntar()}
-            placeholder="Escribe tu pregunta financiera..."
-            disabled={preguntando}
-          />
+            placeholder="Escribe tu pregunta financiera..." disabled={preguntando} />
         </div>
-        <button
-          onClick={() => handlePreguntar()}
-          disabled={!pregunta.trim() || preguntando}
-          style={{
-            padding: '0 16px', borderRadius: 'var(--radius-md)',
-            background: pregunta.trim() ? 'var(--gradient-brand)' : 'var(--bg-surface-2)',
-            color: pregunta.trim() ? '#fff' : 'var(--text-muted)',
-            fontWeight: 700, fontSize: 18, flexShrink: 0
-          }}
-        >
+        <button onClick={() => handlePreguntar()} disabled={!pregunta.trim() || preguntando}
+          style={{ padding: '0 16px', borderRadius: 'var(--radius-md)', background: pregunta.trim() ? 'var(--gradient-brand)' : 'var(--bg-surface-2)', color: pregunta.trim() ? '#fff' : 'var(--text-muted)', fontWeight: 700, fontSize: 18, flexShrink: 0 }}>
           ↑
         </button>
       </div>

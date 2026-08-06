@@ -20,7 +20,7 @@ export const MONEDAS = [
 const PreferenciasContext = createContext({
   ocultarSaldos: false, toggleOcultarSaldos: () => {},
   moneda: 'MXN', setMoneda: () => {},
-  tema: 'sistema', setTema: () => {},
+  tema: 'claro', setTema: () => {},
   idioma: 'es', setIdioma: () => {},
   t: (clave) => clave
 })
@@ -33,7 +33,7 @@ export function PreferenciasProvider({ children }) {
     try { return localStorage.getItem(CLAVE_MONEDA) || 'MXN' } catch { return 'MXN' }
   })
   const [tema, setTema] = useState(() => {
-    try { return localStorage.getItem(CLAVE_TEMA) || 'sistema' } catch { return 'sistema' }
+    try { return localStorage.getItem(CLAVE_TEMA) || 'claro' } catch { return 'claro' }
   })
   const [idioma, setIdioma] = useState(() => {
     try { return localStorage.getItem(CLAVE_IDIOMA) || 'es' } catch { return 'es' }
