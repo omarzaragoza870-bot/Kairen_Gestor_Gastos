@@ -1,6 +1,6 @@
 import { useEffect, useState, lazy, Suspense } from 'react'
 import { supabase } from './lib/supabaseClient.js'
-import { asegurarCuentasPorDefecto, asegurarCategoriasPorDefecto, crearTransaccion, editarTransaccion, crearTransferencia, obtenerCuentas, obtenerCategorias, obtenerTransaccionesPorMes, obtenerMetas, obtenerAhorroExterno, procesarRecurrentes } from './lib/db.js'
+import { asegurarCuentasPorDefecto, asegurarCategoriasPorDefecto, crearTransaccion, editarTransaccion, obtenerCuentas, obtenerCategorias, obtenerTransaccionesPorMes, obtenerMetas, obtenerAhorroExterno, procesarRecurrentes } from './lib/db.js'
 import { logError } from './lib/logger.js'
 import { useEnLinea } from './hooks/useEnLinea.js'
 import { obtenerColaPendiente, sincronizarCola, conRespaldoOffline } from './lib/offline.js'
@@ -52,7 +52,6 @@ async function inicializarFirebaseMessaging(userId) {
 // — reduce el bundle inicial de ~510 KB a ~150-200 KB
 const Inicio = lazy(() => import('./screens/Inicio.jsx'))
 const NuevaTransaccion = lazy(() => import('./screens/NuevaTransaccion.jsx'))
-const NuevaTransferencia = lazy(() => import('./screens/NuevaTransferencia.jsx'))
 const Transacciones = lazy(() => import('./screens/Transacciones.jsx'))
 const Analisis = lazy(() => import('./screens/Analisis.jsx'))
 const AhorroExterno = lazy(() => import('./screens/AhorroExterno.jsx'))
@@ -88,7 +87,6 @@ function AppInner() {
   const ejecutarOperacionPendiente = async (op) => {
     if (op.accion === 'crearTransaccion') return crearTransaccion(op.datos)
     if (op.accion === 'editarTransaccion') return editarTransaccion(op.datos)
-    if (op.accion === 'crearTransferencia') return crearTransferencia(op.datos)
     throw new Error(`Acción offline desconocida: ${op.accion}`)
   }
 
@@ -251,8 +249,6 @@ function AppInner() {
   const abrirNueva = () => { setTransaccionEditar(null); setTipoPreseleccionado('gasto'); setVista('formulario') }
   const abrirEdicion = tx => { setTransaccionEditar(tx); setVista('formulario') }
   const guardada = () => { setRefreshKey(k => k + 1); actualizarConteoPendientes(); setVista(transaccionEditar ? 'lista' : 'principal'); setTransaccionEditar(null) }
-  const abrirTransferencia = () => setVista('transferencia')
-  const transferenciaGuardada = () => { setRefreshKey(k => k + 1); actualizarConteoPendientes(); setVista('principal') }
 
   return (
     <div id="app-scroll" style={{ height: '100dvh', overflowY: 'auto', WebkitOverflowScrolling: 'touch', paddingTop: 'var(--safe-top)' }}>
@@ -263,9 +259,6 @@ function AppInner() {
           <NuevaTransaccion transaccionEditar={transaccionEditar} tipoInicial={tipoPreseleccionado} onBack={() => setVista(transaccionEditar ? 'lista' : 'principal')} onGuardada={guardada} />
         )}
 
-        {vista === 'transferencia' && (
-          <NuevaTransferencia onBack={() => setVista('principal')} onGuardada={transferenciaGuardada} />
-        )}
 
         {vista === 'lista' && (
           <Transacciones refreshKey={refreshKey} onBack={() => setVista('principal')} onEditar={abrirEdicion} onCambio={() => setRefreshKey(k => k + 1)} />
@@ -273,7 +266,7 @@ function AppInner() {
 
         {vista === 'principal' && (
           <>
-            {tab === 'inicio' && <Inicio onNuevo={abrirNueva} onNuevaTransferencia={abrirTransferencia} onEditar={abrirEdicion} onVerTodas={() => setVista('lista')} refreshKey={refreshKey} />}
+            {tab === 'inicio' && <Inicio onNuevo={abrirNueva} onEditar={abrirEdicion} onVerTodas={() => setVista('lista')} refreshKey={refreshKey} />}
             {tab === 'analisis' && <Analisis />}
             {tab === 'ahorro' && <AhorroExterno />}
             {tab === 'metas' && <Metas />}

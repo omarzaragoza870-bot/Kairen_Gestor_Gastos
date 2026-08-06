@@ -10,23 +10,22 @@ import { usePreferencias } from '../context/PreferenciasContext.jsx'
 import AdministrarCuentas from './AdministrarCuentas.jsx'
 import { logError, logWarn } from '../lib/logger.js'
 import { conRespaldoOffline } from '../lib/offline.js'
-import NuevaOperacion from '../components/NuevaOperacion.jsx'
 import { mensajeAmigable } from '../lib/errores.js'
 import { useScrollLock } from '../hooks/useScrollLock.js'
 import { ArrowUpRight, ArrowDownRight, Landmark } from 'lucide-react'
+import CategoriaIcono from '../components/CategoriaIcono.jsx'
 
 const fmt = n => Number(n).toLocaleString('es-MX', { style: 'currency', currency: 'MXN' })
 const fmtFecha = fechaISO => new Date(`${fechaISO}T12:00:00`).toLocaleDateString('es-MX', { day: '2-digit', month: 'short', year: 'numeric' })
 const fmtFechaCorta = iso => new Date(`${iso}T12:00:00`).toLocaleDateString('es-MX', { day: '2-digit', month: 'short' })
 const fmtFechaLarga = iso => new Date(`${iso}T12:00:00`).toLocaleDateString('es-MX', { day: '2-digit', month: 'long', year: 'numeric' })
 
-export default function Inicio({ onNuevo, onNuevaTransferencia, onEditar, onVerTodas, refreshKey }) {
+export default function Inicio({ onNuevo, onEditar, onVerTodas, refreshKey }) {
   const [cargando, setCargando] = useState(true)
   const [error, setError] = useState(null)
   const [transacciones, setTransacciones] = useState([])
   const [userId, setUserId] = useState(null)
   const [mostrarCuentas, setMostrarCuentas] = useState(false)
-  const [mostrarOpciones, setMostrarOpciones] = useState(false)
   const [iconosPorCategoria, setIconosPorCategoria] = useState({})
   const [cuentas, setCuentas] = useState([])
   const [acumuladas, setAcumuladas] = useState([])
@@ -166,7 +165,7 @@ export default function Inicio({ onNuevo, onNuevaTransferencia, onEditar, onVerT
   }
 
   return (
-    <div style={{ padding: '16px 16px 100px', maxWidth: 680, margin: '0 auto' }}>
+    <div style={{ padding: '16px 16px 160px', maxWidth: 680, margin: '0 auto' }}>
       <header style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 16 }}>
         <button onClick={irAHoy} className="month-title" style={{ flex: 1, textAlign: 'left' }}>
           <span>{etiquetaPeriodo}</span>
@@ -229,7 +228,7 @@ export default function Inicio({ onNuevo, onNuevaTransferencia, onEditar, onVerT
       {visibles.map(tx => (
         <button key={tx.id} onClick={() => setVerDetalle(tx)} className="transaction-row">
           <div style={{ display: 'flex', alignItems: 'center', gap: 10, minWidth: 0, textAlign: 'left' }}>
-            <span style={{ fontSize: 20, flexShrink: 0 }}>{iconosPorCategoria[`${tx.tipo}:${tx.categoria_nombre}`] || '🏷️'}</span>
+            <span style={{ flexShrink: 0, display:'flex', alignItems:'center' }}><CategoriaIcono icono={iconosPorCategoria[`${tx.tipo}:${tx.categoria_nombre}`] || 'Tag'} size={20} color='var(--text-secondary)' /></span>
             <div style={{ minWidth: 0 }}>
               <div className="transaction-category">{tx.categoria_nombre}</div>
               {tx.descripcion && <div className="transaction-description">{tx.descripcion}</div>}
@@ -244,8 +243,8 @@ export default function Inicio({ onNuevo, onNuevaTransferencia, onEditar, onVerT
       {verDetalle && (
         <div className="modal-backdrop" onClick={() => setVerDetalle(null)}>
           <div className="modal-card" onClick={e => e.stopPropagation()} style={{ textAlign: 'center' }}>
-            <div style={{ fontSize: 44, marginBottom: 8 }}>
-              {iconosPorCategoria[`${verDetalle.tipo}:${verDetalle.categoria_nombre}`] || '🏷️'}
+            <div style={{ marginBottom: 8, display:'flex', justifyContent:'center' }}>
+              <CategoriaIcono icono={iconosPorCategoria[`${verDetalle.tipo}:${verDetalle.categoria_nombre}`] || 'Tag'} size={44} color='var(--accent-blue)' />
             </div>
             <h3 style={{ margin: '0 0 4px' }}>{verDetalle.categoria_nombre}</h3>
             <p style={{ color: 'var(--text-muted)', margin: '0 0 2px', fontSize: 13, fontWeight: 600 }}>{cuentaDe(verDetalle)}</p>
