@@ -47,6 +47,23 @@ Deno.serve(async (req) => {
       })
     }
 
+    // ── RATE LIMITING: máximo 5 preguntas por minuto por usuario ─────────
+    const adminClient = createClient(supabaseUrl, serviceKey)
+    const unMinutoAtras = new Date(Date.now() - 60 * 1000).toISOString()
+    const { count } = await adminClient
+      .from('ia_rate_limit')
+      .select('*', { count: 'exact', head: true })
+      .eq('user_id', user.id)
+      .gte('created_at', unMinutoAtras)
+
+    if (count !== null && count >= 5) {
+      return new Response(JSON.stringify({ error: 'Demasiadas preguntas. Espera un momento antes de continuar.' }), {
+        status: 429, headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      })
+    }
+    await adminClient.from('ia_rate_limit').insert({ user_id: user.id })
+    // ─────────────────────────────────────────────────────────────────────
+
     // Leer datos financieros del usuario
     const adminClient = createClient(supabaseUrl, serviceKey)
     const uid = user.id
