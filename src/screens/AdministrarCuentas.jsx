@@ -1,12 +1,21 @@
 import { useEffect, useState, useCallback } from 'react'
-import { obtenerCuentas, crearCuenta, editarCuenta, eliminarCuenta, obtenerTransferencias, eliminarTransferencia } from '../lib/db.js'
+import { obtenerCuentas, crearCuenta, editarCuenta, eliminarCuenta, obtenerTransferencias, eliminarTransferencia, pagarTarjetaCredito } from '../lib/db.js'
 import { useScrollLock } from '../hooks/useScrollLock.js'
 import { usePreferencias } from '../context/PreferenciasContext.jsx'
 import Monto from '../components/Monto.jsx'
 import { mensajeAmigable } from '../lib/errores.js'
 
-const TIPOS = ['efectivo', 'tarjeta', 'banco', 'otro']
-const ICONO_TIPO = { efectivo: '💵', tarjeta: '💳', banco: '🏦', otro: '📦' }
+const TIPOS = ['efectivo', 'tarjeta', 'tarjeta_credito', 'banco', 'otro']
+const ICONO_TIPO = { efectivo: '💵', tarjeta: '💳', tarjeta_credito: '💳', banco: '🏦', otro: '📦' }
+
+// Mismo filtro usado en NuevaTransaccion/NuevaTransferencia: solo dígitos y
+// un único punto decimal, sin importar si el texto llega escrito o pegado.
+const limpiarMonto = (valor) => {
+  let limpio = valor.replace(',', '.').replace(/[^0-9.]/g, '')
+  const partes = limpio.split('.')
+  if (partes.length > 2) limpio = partes[0] + '.' + partes.slice(1).join('')
+  return limpio
+}
 
 export default function AdministrarCuentas({ userId, onBack, onCambio }) {
   const { t } = usePreferencias()
@@ -15,9 +24,10 @@ export default function AdministrarCuentas({ userId, onBack, onCambio }) {
   const [error, setError] = useState(null)
   const [editando, setEditando] = useState(null) // null cerrado, {} nueva, {...cuenta} editar
   const [aEliminar, setAEliminar] = useState(null)
+  const [aPagar, setAPagar] = useState(null) // tarjeta de crédito seleccionada para pagar
   const [procesando, setProcesando] = useState(false)
   const [transferencias, setTransferencias] = useState([])
-  useScrollLock(editando !== null || Boolean(aEliminar))
+  useScrollLock(editando !== null || Boolean(aEliminar) || Boolean(aPagar))
 
   const cargar = useCallback(async () => {
     setCargando(true)
@@ -40,11 +50,32 @@ export default function AdministrarCuentas({ userId, onBack, onCambio }) {
     setError(null)
     try {
       if (form.id) {
-        await editarCuenta({ id: form.id, userId, nombre: form.nombre, tipo: form.tipo, saldo: form.saldo })
+        await editarCuenta({ id: form.id, userId, nombre: form.nombre, tipo: form.tipo, saldo: form.saldo, limiteCredito: form.limiteCredito, fechaCorte: form.fechaCorte, fechaPago: form.fechaPago })
       } else {
-        await crearCuenta({ userId, nombre: form.nombre, tipo: form.tipo, saldo: form.saldo })
+        await crearCuenta({ userId, nombre: form.nombre, tipo: form.tipo, saldo: form.saldo, limiteCredito: form.limiteCredito, fechaCorte: form.fechaCorte, fechaPago: form.fechaPago })
       }
       setEditando(null)
+      await cargar()
+      onCambio?.()
+    } catch (err) {
+      setError(mensajeAmigable(err))
+    } finally {
+      setProcesando(false)
+    }
+  }
+
+  const handlePagar = async (form) => {
+    setProcesando(true)
+    setError(null)
+    try {
+      await pagarTarjetaCredito({
+        tarjetaId: aPagar.id,
+        cuentaOrigenId: form.cuentaOrigenId,
+        monto: form.monto,
+        fecha: form.fecha,
+        descripcion: form.descripcion
+      })
+      setAPagar(null)
       await cargar()
       onCambio?.()
     } catch (err) {
@@ -101,8 +132,20 @@ export default function AdministrarCuentas({ userId, onBack, onCambio }) {
           <span style={{ fontSize: 20 }}>{ICONO_TIPO[c.tipo] || '📦'}</span>
           <div style={{ flex: 1, minWidth: 0 }}>
             <div style={{ fontSize: 14, fontWeight: 600 }}>{c.nombre}</div>
-            <div style={{ fontSize: 12, color: 'var(--success)' }}><Monto valor={c.saldo} /></div>
+            {c.tipo === 'tarjeta_credito' ? (
+              <>
+                <div style={{ fontSize: 12, color: 'var(--danger)' }}>{t('cu_deuda_actual')}: <Monto valor={c.saldo} /></div>
+                <div style={{ fontSize: 11, color: 'var(--text-muted)' }}>{t('cu_disponible')}: <Monto valor={Number(c.limite_credito || 0) - Number(c.saldo || 0)} /> {t('cu_de')} <Monto valor={c.limite_credito || 0} /></div>
+              </>
+            ) : (
+              <div style={{ fontSize: 12, color: 'var(--success)' }}><Monto valor={c.saldo} /></div>
+            )}
           </div>
+          {c.tipo === 'tarjeta_credito' && (
+            <button onClick={() => setAPagar(c)} style={{ background: 'var(--gradient-brand)', color: '#fff', fontSize: 12, fontWeight: 600, padding: '6px 12px', borderRadius: 999 }}>
+              {t('cu_pagar_tarjeta')}
+            </button>
+          )}
           <button onClick={() => setEditando(c)} style={{ background: 'transparent', color: 'var(--text-secondary)', fontSize: 16 }}>✏️</button>
           <button onClick={() => setAEliminar(c)} style={{ background: 'transparent', color: 'var(--danger)', fontSize: 16 }}>🗑️</button>
         </div>
@@ -154,6 +197,16 @@ export default function AdministrarCuentas({ userId, onBack, onCambio }) {
         />
       )}
 
+      {aPagar && (
+        <FormularioPago
+          tarjeta={aPagar}
+          cuentas={lista.filter(c => c.tipo !== 'tarjeta_credito')}
+          procesando={procesando}
+          onCancelar={() => setAPagar(null)}
+          onGuardar={handlePagar}
+        />
+      )}
+
       {aEliminar && (
         <div onClick={() => !procesando && setAEliminar(null)} className="modal-backdrop">
           <div onClick={(e) => e.stopPropagation()} className="modal-card">
@@ -177,13 +230,22 @@ function FormularioCuenta({ cuenta, onCancelar, onGuardar, procesando }) {
   const [nombre, setNombre] = useState(cuenta.nombre || '')
   const [tipo, setTipo] = useState(cuenta.tipo || 'otro')
   const [saldo, setSaldo] = useState(cuenta.saldo !== undefined ? String(cuenta.saldo) : '0')
+  const [limiteCredito, setLimiteCredito] = useState(cuenta.limite_credito !== undefined && cuenta.limite_credito !== null ? String(cuenta.limite_credito) : '')
+  const [fechaCorte, setFechaCorte] = useState(cuenta.fecha_corte !== undefined && cuenta.fecha_corte !== null ? String(cuenta.fecha_corte) : '')
+  const [fechaPago, setFechaPago] = useState(cuenta.fecha_pago !== undefined && cuenta.fecha_pago !== null ? String(cuenta.fecha_pago) : '')
 
+  const esCredito = tipo === 'tarjeta_credito'
   const saldoNum = Number(saldo)
-  const valido = nombre.trim().length > 0 && Number.isFinite(saldoNum)
+  const limiteNum = Number(limiteCredito || 0)
+  const corteNum = fechaCorte ? Number(fechaCorte) : null
+  const pagoNum = fechaPago ? Number(fechaPago) : null
+
+  const fechasValidas = (corteNum === null || (corteNum >= 1 && corteNum <= 31)) && (pagoNum === null || (pagoNum >= 1 && pagoNum <= 31))
+  const valido = nombre.trim().length > 0 && Number.isFinite(saldoNum) && (!esCredito || (Number.isFinite(limiteNum) && limiteNum > 0 && fechasValidas))
 
   return (
     <div onClick={onCancelar} className="modal-backdrop">
-      <div onClick={(e) => e.stopPropagation()} className="modal-card" style={{ maxWidth: 380 }}>
+      <div onClick={(e) => e.stopPropagation()} className="modal-card" style={{ maxWidth: 380, maxHeight: '85vh', overflowY: 'auto' }}>
         <h3>{cuenta.id ? t('cu_editar_titulo') : t('cu_nueva')}</h3>
 
         <label className="field-label">{t('cu_nombre')}</label>
@@ -192,13 +254,13 @@ function FormularioCuenta({ cuenta, onCancelar, onGuardar, procesando }) {
         </div>
 
         <label className="field-label">{t('cu_tipo')}</label>
-        <div style={{ display: 'flex', gap: 8, margin: '8px 0 16px' }}>
+        <div style={{ display: 'flex', gap: 8, margin: '8px 0 16px', flexWrap: 'wrap' }}>
           {TIPOS.map(id => (
             <button
               key={id}
               onClick={() => setTipo(id)}
               style={{
-                flex: 1, padding: 10, borderRadius: 'var(--radius-md)', fontSize: 18,
+                flex: '1 1 18%', minWidth: 44, padding: 10, borderRadius: 'var(--radius-md)', fontSize: 18,
                 background: tipo === id ? 'var(--gradient-brand)' : 'var(--bg-surface)',
                 border: '1px solid ' + (tipo === id ? 'transparent' : 'var(--border-subtle)')
               }}
@@ -210,20 +272,109 @@ function FormularioCuenta({ cuenta, onCancelar, onGuardar, procesando }) {
         </div>
         <p style={{ fontSize: 12, color: 'var(--text-secondary)', margin: '-10px 0 16px' }}>{t(`cu_tipo_${tipo}`)}</p>
 
-        <label className="field-label">{t('cu_saldo')}</label>
+        <label className="field-label">{esCredito ? t('cu_deuda_actual') : t('cu_saldo')}</label>
         <div className="input-shell">
           <span style={{ color: 'var(--text-muted)' }}>$</span>
-          <input inputMode="decimal" value={saldo} onChange={(e) => setSaldo(e.target.value.replace(',', '.'))} placeholder="0.00" />
+          <input inputMode="decimal" value={saldo} onChange={(e) => setSaldo(limpiarMonto(e.target.value))} placeholder="0.00" />
         </div>
+
+        {esCredito && (
+          <>
+            <label className="field-label">{t('cu_limite_credito')}</label>
+            <div className="input-shell">
+              <span style={{ color: 'var(--text-muted)' }}>$</span>
+              <input inputMode="decimal" value={limiteCredito} onChange={(e) => setLimiteCredito(limpiarMonto(e.target.value))} placeholder="0.00" />
+            </div>
+
+            <div style={{ display: 'flex', gap: 12 }}>
+              <div style={{ flex: 1 }}>
+                <label className="field-label">{t('cu_fecha_corte')}</label>
+                <div className="input-shell">
+                  <input inputMode="numeric" value={fechaCorte} onChange={(e) => setFechaCorte(e.target.value.replace(/[^0-9]/g, '').slice(0, 2))} placeholder="1-31" />
+                </div>
+              </div>
+              <div style={{ flex: 1 }}>
+                <label className="field-label">{t('cu_fecha_pago')}</label>
+                <div className="input-shell">
+                  <input inputMode="numeric" value={fechaPago} onChange={(e) => setFechaPago(e.target.value.replace(/[^0-9]/g, '').slice(0, 2))} placeholder="1-31" />
+                </div>
+              </div>
+            </div>
+            {!fechasValidas && <p style={{ fontSize: 11, color: 'var(--danger)', margin: '-10px 0 12px' }}>{t('cu_fechas_invalidas')}</p>}
+          </>
+        )}
 
         <div className="modal-actions" style={{ marginTop: 4 }}>
           <button onClick={onCancelar} disabled={procesando}>{t('comun_cancelar')}</button>
           <button
             disabled={!valido || procesando}
-            onClick={() => onGuardar({ id: cuenta.id, nombre: nombre.trim(), tipo, saldo: saldoNum })}
+            onClick={() => onGuardar({
+              id: cuenta.id, nombre: nombre.trim(), tipo, saldo: saldoNum,
+              limiteCredito: esCredito ? limiteNum : null,
+              fechaCorte: esCredito ? corteNum : null,
+              fechaPago: esCredito ? pagoNum : null
+            })}
             style={{ background: valido ? 'var(--gradient-brand)' : 'var(--bg-surface-2)', color: valido ? '#fff' : 'var(--text-muted)' }}
           >
             {procesando ? t('comun_guardando') : t('comun_guardar')}
+          </button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+function FormularioPago({ tarjeta, cuentas, onCancelar, onGuardar, procesando }) {
+  const { t } = usePreferencias()
+  const hoy = new Date().toISOString().slice(0, 10)
+  const [cuentaOrigenId, setCuentaOrigenId] = useState(cuentas[0]?.id || null)
+  const [monto, setMonto] = useState('')
+  const [fecha, setFecha] = useState(hoy)
+
+  const montoNum = Number(monto)
+  const valido = Boolean(cuentaOrigenId) && Number.isFinite(montoNum) && montoNum > 0
+
+  return (
+    <div onClick={onCancelar} className="modal-backdrop">
+      <div onClick={(e) => e.stopPropagation()} className="modal-card" style={{ maxWidth: 380 }}>
+        <h3>{t('cu_pagar_tarjeta_titulo')}</h3>
+        <p style={{ fontSize: 13, color: 'var(--text-secondary)', margin: '0 0 16px' }}>
+          {tarjeta.nombre} — {t('cu_deuda_actual')}: <Monto valor={tarjeta.saldo} />
+        </p>
+
+        <label className="field-label">{t('cu_pagar_desde')}</label>
+        <div style={{ display: 'flex', gap: 10, margin: '8px 0 16px', flexWrap: 'wrap' }}>
+          {cuentas.length === 0 && <div className="empty-inline">{t('cu_sin_cuentas_origen')}</div>}
+          {cuentas.map(c => (
+            <button key={c.id} onClick={() => setCuentaOrigenId(c.id)} style={{
+              flex: '1 1 45%', padding: 12, borderRadius: 'var(--radius-md)', background: 'var(--bg-surface)',
+              border: '1.5px solid ' + (cuentaOrigenId === c.id ? 'var(--accent-blue)' : 'var(--border-subtle)'), textAlign: 'left'
+            }}>
+              <div style={{ fontSize: 13, fontWeight: 600 }}>{ICONO_TIPO[c.tipo] || '📦'} {c.nombre}</div>
+              <div style={{ fontSize: 12, color: 'var(--success)' }}><Monto valor={c.saldo} /></div>
+            </button>
+          ))}
+        </div>
+
+        <label className="field-label">{t('cu_pagar_monto')}</label>
+        <div className="input-shell">
+          <span style={{ color: 'var(--text-muted)' }}>$</span>
+          <input inputMode="decimal" value={monto} onChange={(e) => setMonto(limpiarMonto(e.target.value))} placeholder="0.00" />
+        </div>
+
+        <label className="field-label">{t('nt_fecha')}</label>
+        <div className="input-shell" style={{ marginTop: 8 }}>
+          <input type="date" value={fecha} onChange={(e) => setFecha(e.target.value)} />
+        </div>
+
+        <div className="modal-actions" style={{ marginTop: 16 }}>
+          <button onClick={onCancelar} disabled={procesando}>{t('comun_cancelar')}</button>
+          <button
+            disabled={!valido || procesando}
+            onClick={() => onGuardar({ cuentaOrigenId, monto: montoNum, fecha })}
+            style={{ background: valido ? 'var(--gradient-brand)' : 'var(--bg-surface-2)', color: valido ? '#fff' : 'var(--text-muted)' }}
+          >
+            {procesando ? t('comun_guardando') : t('cu_pagar_tarjeta')}
           </button>
         </div>
       </div>

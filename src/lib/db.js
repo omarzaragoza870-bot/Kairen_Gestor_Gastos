@@ -88,17 +88,25 @@ export async function obtenerCuentas(userId) {
   return data || []
 }
 
-export async function crearCuenta({ userId, nombre, tipo, saldo }) {
+export async function crearCuenta({ userId, nombre, tipo, saldo, limiteCredito, fechaCorte, fechaPago }) {
   const { error } = await supabase.from('cuentas').insert({
-    user_id: userId, nombre, tipo: tipo || 'otro', saldo: saldo || 0
+    user_id: userId, nombre, tipo: tipo || 'otro', saldo: saldo || 0,
+    limite_credito: tipo === 'tarjeta_credito' ? (limiteCredito || 0) : null,
+    fecha_corte: tipo === 'tarjeta_credito' ? (fechaCorte || null) : null,
+    fecha_pago: tipo === 'tarjeta_credito' ? (fechaPago || null) : null
   })
   if (error) throw error
 }
 
-export async function editarCuenta({ id, userId, nombre, tipo, saldo }) {
+export async function editarCuenta({ id, userId, nombre, tipo, saldo, limiteCredito, fechaCorte, fechaPago }) {
   const { error } = await supabase
     .from('cuentas')
-    .update({ nombre, tipo, saldo })
+    .update({
+      nombre, tipo, saldo,
+      limite_credito: tipo === 'tarjeta_credito' ? (limiteCredito || 0) : null,
+      fecha_corte: tipo === 'tarjeta_credito' ? (fechaCorte || null) : null,
+      fecha_pago: tipo === 'tarjeta_credito' ? (fechaPago || null) : null
+    })
     .eq('id', id)
     .eq('user_id', userId)
   if (error) throw error
@@ -129,6 +137,28 @@ export async function crearTransferencia({ cuentaOrigenId, cuentaDestinoId, mont
   if (error) {
     if (esFuncionNoDisponible(error)) {
       throw new Error('Falta ejecutar src/sql/upgrade_v1_5_transferencias.sql en Supabase para poder transferir entre cuentas.')
+    }
+    throw error
+  }
+  return data
+}
+
+/**
+ * Pago a una tarjeta de crédito: sale de una cuenta normal (efectivo/débito)
+ * y reduce la deuda de la tarjeta. Se guarda en la misma tabla de
+ * transferencias para que aparezca en el historial de "Administrar Cuentas".
+ */
+export async function pagarTarjetaCredito({ tarjetaId, cuentaOrigenId, monto, fecha, descripcion }) {
+  const { data, error } = await supabase.rpc('pagar_tarjeta_credito', {
+    p_tarjeta_id: tarjetaId,
+    p_cuenta_origen_id: cuentaOrigenId,
+    p_monto: monto,
+    p_fecha: fecha,
+    p_descripcion: descripcion || null
+  })
+  if (error) {
+    if (esFuncionNoDisponible(error)) {
+      throw new Error('Falta ejecutar src/sql/upgrade_v2_2_tarjetas_credito.sql en Supabase para poder pagar tarjetas de crédito.')
     }
     throw error
   }

@@ -25,6 +25,16 @@ const hoy = () => {
 
   return `${año}-${mes}-${dia}`
 }
+
+// Filtra el texto del input de monto: solo dígitos y un único punto decimal.
+// Bloquea letras y símbolos aunque el usuario los pegue o use teclado físico
+// (inputMode="decimal" en el <input> solo cambia el teclado en móvil, no valida).
+const limpiarMonto = (valor) => {
+  let limpio = valor.replace(',', '.').replace(/[^0-9.]/g, '')
+  const partes = limpio.split('.')
+  if (partes.length > 2) limpio = partes[0] + '.' + partes.slice(1).join('')
+  return limpio
+}
 export default function NuevaTransaccion({ onBack, onGuardada, transaccionEditar = null, tipoInicial = 'gasto' }) {
   const editando = Boolean(transaccionEditar)
   // Al crear una nueva (no editando), respeta el tipo que venga preseleccionado
@@ -81,6 +91,9 @@ export default function NuevaTransaccion({ onBack, onGuardada, transaccionEditar
   }, [])
 
   const categorias = tipo === 'gasto' ? categoriasGasto : categoriasIngreso
+  // Una tarjeta de crédito no puede recibir ingresos directos (para eso está
+  // "Pagar tarjeta" en Administrar Cuentas) — se oculta como opción aquí.
+  const cuentasDisponibles = tipo === 'ingreso' ? cuentas.filter(c => c.tipo !== 'tarjeta_credito') : cuentas
   const cuentaSeleccionada = cuentas.find(c => c.id === cuentaId)
   const montoNumerico = Number(monto)
   const valido = Number.isFinite(montoNumerico) && montoNumerico > 0 && Boolean(categoria) && Boolean(cuentaId) && Boolean(userId) && Boolean(cuentaSeleccionada) && Boolean(fecha)
@@ -168,7 +181,11 @@ export default function NuevaTransaccion({ onBack, onGuardada, transaccionEditar
 
       <div style={{ display: 'flex', gap: 10, marginBottom: 20 }}>
         {['gasto', 'ingreso'].map(opcion => (
-          <button key={opcion} onClick={() => { setTipo(opcion); setCategoria(null) }} style={{
+          <button key={opcion} onClick={() => {
+            setTipo(opcion)
+            setCategoria(null)
+            if (opcion === 'ingreso' && cuentaSeleccionada?.tipo === 'tarjeta_credito') setCuentaId(null)
+          }} style={{
             flex: 1, padding: 14, borderRadius: 'var(--radius-md)',
             background: tipo === opcion ? 'var(--gradient-brand)' : 'var(--bg-surface)',
             color: tipo === opcion ? '#fff' : 'var(--text-secondary)', fontWeight: 600, fontSize: 14,
@@ -183,15 +200,19 @@ export default function NuevaTransaccion({ onBack, onGuardada, transaccionEditar
         <label style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-secondary)' }}>{t('nt_cuenta')}</label>
         <InfoTooltip title={t('nt_cuenta')} text={t('nt_cuenta_info')} />
       </div>
-      <div style={{ display: 'flex', gap: 10, marginBottom: 20 }}>
-        {cuentas.length === 0 && <div className="empty-inline">{t('nt_cargando_cuentas')}</div>}
-        {cuentas.map(c => (
+      <div style={{ display: 'flex', gap: 10, marginBottom: 20, flexWrap: 'wrap' }}>
+        {cuentasDisponibles.length === 0 && <div className="empty-inline">{t('nt_cargando_cuentas')}</div>}
+        {cuentasDisponibles.map(c => (
           <button key={c.id} onClick={() => setCuentaId(c.id)} style={{
-            flex: 1, padding: 12, borderRadius: 'var(--radius-md)', background: 'var(--bg-surface)',
+            flex: '1 1 45%', padding: 12, borderRadius: 'var(--radius-md)', background: 'var(--bg-surface)',
             border: '1.5px solid ' + (cuentaId === c.id ? 'var(--accent-blue)' : 'var(--border-subtle)'), textAlign: 'left'
           }}>
-            <div style={{ fontSize: 13, fontWeight: 600 }}>{c.tipo === 'tarjeta' ? '💳' : '💵'} {c.nombre}</div>
-            <div style={{ fontSize: 12, color: 'var(--success)' }}><Monto valor={c.saldo} /></div>
+            <div style={{ fontSize: 13, fontWeight: 600 }}>{c.tipo === 'tarjeta_credito' || c.tipo === 'tarjeta' ? '💳' : '💵'} {c.nombre}</div>
+            {c.tipo === 'tarjeta_credito' ? (
+              <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>{t('cu_disponible')}: <Monto valor={Number(c.limite_credito || 0) - Number(c.saldo || 0)} /></div>
+            ) : (
+              <div style={{ fontSize: 12, color: 'var(--success)' }}><Monto valor={c.saldo} /></div>
+            )}
           </button>
         ))}
       </div>
@@ -199,7 +220,7 @@ export default function NuevaTransaccion({ onBack, onGuardada, transaccionEditar
       <label className="field-label">{t('nt_monto')}</label>
       <div className="input-shell">
         <span style={{ color: 'var(--text-muted)' }}>$</span>
-        <input inputMode="decimal" value={monto} onChange={e => setMonto(e.target.value.replace(',', '.'))} placeholder="0.00" />
+        <input inputMode="decimal" value={monto} onChange={e => setMonto(limpiarMonto(e.target.value))} placeholder="0.00" />
       </div>
 
       <label className="field-label">{t('nt_categoria')}</label>
