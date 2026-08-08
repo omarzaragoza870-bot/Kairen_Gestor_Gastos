@@ -399,7 +399,7 @@ function KairenIATab({ pregunta, setPregunta, respuesta, setRespuesta, preguntan
         background: 'var(--gradient-brand)', borderRadius: 'var(--radius-lg)',
         padding: 20, marginBottom: 16, textAlign: 'center'
       }}>
-        <div style={{ fontSize: 32, marginBottom: 8 }}>✨</div>
+        <img src="/kairen-avatar.png" alt="Kairen" style={{ width: 56, height: 56, borderRadius: '50%', marginBottom: 8 }} />
         <div style={{ color: '#fff', fontWeight: 700, fontSize: 16 }}>Pregunta a Kairen</div>
         <div style={{ color: 'rgba(255,255,255,0.8)', fontSize: 12, marginTop: 4 }}>
           Tu asistente financiero personal analiza tus datos reales
@@ -425,15 +425,16 @@ function KairenIATab({ pregunta, setPregunta, respuesta, setRespuesta, preguntan
 
       {preguntando && (
         <div style={{ textAlign: 'center', padding: 32, background: 'var(--bg-surface)', borderRadius: 'var(--radius-lg)', border: '1px solid var(--border-subtle)', marginBottom: 16 }}>
-          <div style={{ fontSize: 28, marginBottom: 8 }}>🤔</div>
+          <img src="/kairen-avatar.png" alt="Kairen" style={{ width: 48, height: 48, borderRadius: '50%', marginBottom: 8, animation: 'pulso-kairen 1.4s ease-in-out infinite' }} />
           <div style={{ color: 'var(--text-secondary)', fontSize: 14 }}>Kairen está analizando tus datos...</div>
+          <style>{`@keyframes pulso-kairen { 0%, 100% { opacity: 1; transform: scale(1); } 50% { opacity: 0.75; transform: scale(0.94); } }`}</style>
         </div>
       )}
 
       {respuesta && !preguntando && (
         <div style={{ background: 'var(--bg-surface)', borderRadius: 'var(--radius-lg)', border: '1px solid var(--border-subtle)', padding: 20, marginBottom: 16 }}>
           <div style={{ display: 'flex', gap: 10, marginBottom: 12 }}>
-            <div style={{ width: 32, height: 32, borderRadius: '50%', flexShrink: 0, background: 'var(--gradient-brand)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 16 }}>✨</div>
+            <img src="/kairen-avatar.png" alt="Kairen" style={{ width: 32, height: 32, borderRadius: '50%', flexShrink: 0 }} />
             <div style={{ fontSize: 12, color: 'var(--text-muted)', fontStyle: 'italic', paddingTop: 6 }}>"{pregunta}"</div>
           </div>
           <div style={{ fontSize: 14, lineHeight: 1.65, color: 'var(--text-primary)', whiteSpace: 'pre-wrap' }}>{respuesta}</div>
