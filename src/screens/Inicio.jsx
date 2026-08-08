@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from 'react'
 import { supabase } from '../lib/supabaseClient.js'
-import { obtenerTransaccionesPorMes, obtenerTransaccionesEnRango, obtenerTransaccionesAcumuladasHasta, obtenerCategorias, obtenerCuentas, eliminarTransaccion, pagarTarjetaCredito } from '../lib/db.js'
+import { obtenerTransaccionesPorMes, obtenerTransaccionesEnRango, obtenerDisponibleHistorico, obtenerCategorias, obtenerCuentas, eliminarTransaccion, pagarTarjetaCredito } from '../lib/db.js'
 import InfoTooltip from '../components/InfoTooltip.jsx'
 import SelectorPeriodo from '../components/SelectorPeriodo.jsx'
 import { MESES_POR_IDIOMA } from '../i18n/translations.js'
@@ -29,7 +29,7 @@ export default function Inicio({ onNuevo, onEditar, onVerTodas, refreshKey }) {
   const [mostrarCuentas, setMostrarCuentas] = useState(false)
   const [iconosPorCategoria, setIconosPorCategoria] = useState({})
   const [cuentas, setCuentas] = useState([])
-  const [acumuladas, setAcumuladas] = useState([])
+  const [disponible, setDisponible] = useState(0)
   const [verDetalle, setVerDetalle] = useState(null)
   const [aEliminar, setAEliminar] = useState(null)
   const [eliminando, setEliminando] = useState(false)
@@ -77,9 +77,11 @@ export default function Inicio({ onNuevo, onEditar, onVerTodas, refreshKey }) {
       // "Dinero Disponible" es acumulado desde siempre hasta el fin del período
       // que estás viendo — así lo que te sobró en meses anteriores no se
       // resetea a $0. Ingresos/Gastos de abajo sí se quedan solo del período.
-      const claveAcumulado = `inicio-acumulado:${uid}:${hastaStr}`
-      const datosAcumulados = await conRespaldoOffline(claveAcumulado, () => obtenerTransaccionesAcumuladasHasta(uid, hastaStr))
-      setAcumuladas(datosAcumulados)
+      // Solo cuenta dinero real (efectivo/débito/banco): un gasto con tarjeta
+      // de crédito no lo baja, solo bajarlo cuando pagas esa tarjeta.
+      const claveDisponible = `inicio-disponible:${uid}:${hastaStr}`
+      const valorDisponible = await conRespaldoOffline(claveDisponible, () => obtenerDisponibleHistorico(uid, hastaStr))
+      setDisponible(valorDisponible)
     } catch (err) {
       logError('Error cargando inicio', err)
       setError('No se pudieron cargar los movimientos.')
@@ -126,9 +128,6 @@ export default function Inicio({ onNuevo, onEditar, onVerTodas, refreshKey }) {
 
   const ingresos = transacciones.filter(t => t.tipo === 'ingreso').reduce((s, t) => s + Number(t.monto), 0)
   const gastos = transacciones.filter(t => t.tipo === 'gasto').reduce((s, t) => s + Number(t.monto), 0)
-  const ingresosAcumulados = acumuladas.filter(t => t.tipo === 'ingreso').reduce((s, t) => s + Number(t.monto), 0)
-  const gastosAcumulados = acumuladas.filter(t => t.tipo === 'gasto').reduce((s, t) => s + Number(t.monto), 0)
-  const disponible = ingresosAcumulados - gastosAcumulados
   const saldoEfectivo = cuentas.filter(c => c.tipo === 'efectivo').reduce((s, c) => s + Number(c.saldo), 0)
   const saldoTarjeta = cuentas.filter(c => c.tipo === 'tarjeta').reduce((s, c) => s + Number(c.saldo), 0)
   const tarjetasCredito = cuentas.filter(c => c.tipo === 'tarjeta_credito')
@@ -162,7 +161,10 @@ export default function Inicio({ onNuevo, onEditar, onVerTodas, refreshKey }) {
         descripcion: form.descripcion
       })
       setAPagar(null)
-      if (userId) await cargarCuentas(userId)
+      if (userId) {
+        await cargarCuentas(userId)
+        await cargarDatos(userId) // el pago sí debe reflejarse en Dinero Disponible
+      }
     } catch (err) {
       setError(mensajeAmigable(err))
     } finally {

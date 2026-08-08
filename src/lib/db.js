@@ -292,6 +292,26 @@ export async function obtenerTransaccionesAcumuladasHasta(userId, hastaExclusiva
   return data || []
 }
 
+/**
+ * "Dinero Disponible" real: ingresos - gastos de cuentas líquidas (efectivo,
+ * débito, banco, otro) hasta la fecha dada, menos los pagos ya hechos hacia
+ * tarjetas de crédito. Los gastos hechos CON tarjeta de crédito no bajan
+ * este número — esa deuda se ve aparte, en la tarjeta misma — solo bajan
+ * cuando de verdad pagas la tarjeta desde una cuenta real.
+ */
+export async function obtenerDisponibleHistorico(userId, hastaExclusiva) {
+  const { data, error } = await supabase.rpc('obtener_disponible_historico', {
+    p_hasta: hastaExclusiva
+  })
+  if (error) {
+    if (esFuncionNoDisponible(error)) {
+      throw new Error('Falta ejecutar src/sql/upgrade_v2_3_disponible_sin_credito.sql en Supabase.')
+    }
+    throw error
+  }
+  return Number(data) || 0
+}
+
 /** Trae todas las transacciones de los últimos N meses, contados desde fechaReferencia (incluye ese mes). */
 export async function obtenerTransaccionesUltimosMeses(userId, n = 6, fechaReferencia = new Date()) {
   const desde = new Date(fechaReferencia.getFullYear(), fechaReferencia.getMonth() - (n - 1), 1).toISOString().slice(0, 10)
