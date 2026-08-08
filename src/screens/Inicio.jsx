@@ -1,10 +1,11 @@
 import { useCallback, useEffect, useState } from 'react'
 import { supabase } from '../lib/supabaseClient.js'
-import { obtenerTransaccionesPorMes, obtenerTransaccionesEnRango, obtenerTransaccionesAcumuladasHasta, obtenerCategorias, obtenerCuentas, eliminarTransaccion } from '../lib/db.js'
+import { obtenerTransaccionesPorMes, obtenerTransaccionesEnRango, obtenerTransaccionesAcumuladasHasta, obtenerCategorias, obtenerCuentas, eliminarTransaccion, pagarTarjetaCredito } from '../lib/db.js'
 import InfoTooltip from '../components/InfoTooltip.jsx'
 import SelectorPeriodo from '../components/SelectorPeriodo.jsx'
 import { MESES_POR_IDIOMA } from '../i18n/translations.js'
 import Monto from '../components/Monto.jsx'
+import FormularioPago from '../components/FormularioPago.jsx'
 import { actualizarWidget } from '../lib/widget.js'
 import { usePreferencias } from '../context/PreferenciasContext.jsx'
 import AdministrarCuentas from './AdministrarCuentas.jsx'
@@ -32,7 +33,9 @@ export default function Inicio({ onNuevo, onEditar, onVerTodas, refreshKey }) {
   const [verDetalle, setVerDetalle] = useState(null)
   const [aEliminar, setAEliminar] = useState(null)
   const [eliminando, setEliminando] = useState(false)
-  useScrollLock(Boolean(verDetalle) || Boolean(aEliminar))
+  const [aPagar, setAPagar] = useState(null) // tarjeta de crédito seleccionada para pagar
+  const [procesandoPago, setProcesandoPago] = useState(false)
+  useScrollLock(Boolean(verDetalle) || Boolean(aEliminar) || Boolean(aPagar))
   const hoy = new Date()
   const [periodo, setPeriodo] = useState({ tipo: 'mes', anio: hoy.getFullYear(), mes: hoy.getMonth() })
   const [mostrarSelector, setMostrarSelector] = useState(false)
@@ -85,6 +88,15 @@ export default function Inicio({ onNuevo, onEditar, onVerTodas, refreshKey }) {
     }
   }, [periodo])
 
+  const cargarCuentas = useCallback((uid) => {
+    // Misma clave de caché que usa el precargado de App.jsx — reutiliza offline.
+    // conRespaldoOffline siempre intenta la red primero, así que llamarla de
+    // nuevo tras un pago trae saldos frescos (no se queda pegada al caché).
+    return conRespaldoOffline(`cuentas:${uid}`, () => obtenerCuentas(uid))
+      .then(setCuentas)
+      .catch(err => logWarn('No se pudieron cargar las cuentas', err))
+  }, [])
+
   useEffect(() => {
     supabase.auth.getSession().then(({ data }) => {
       const usuario = data.session?.user
@@ -96,13 +108,10 @@ export default function Inicio({ onNuevo, onEditar, onVerTodas, refreshKey }) {
           cats.forEach(c => { mapa[`${c.tipo}:${c.nombre}`] = c.icono || '🏷️' })
           setIconosPorCategoria(mapa)
         }).catch(err => logWarn('No se pudieron cargar los íconos de categoría', err))
-        // Misma clave de caché que usa el precargado de App.jsx — reutiliza offline
-        conRespaldoOffline(`cuentas:${usuario.id}`, () => obtenerCuentas(usuario.id))
-          .then(setCuentas)
-          .catch(err => logWarn('No se pudieron cargar las cuentas', err))
+        cargarCuentas(usuario.id)
       }
     })
-  }, [cargarDatos, refreshKey])
+  }, [cargarDatos, cargarCuentas, refreshKey])
 
   const moverMes = cantidad => setPeriodo(p => {
     if (p.tipo !== 'mes') {
@@ -138,6 +147,26 @@ export default function Inicio({ onNuevo, onEditar, onVerTodas, refreshKey }) {
       setError(mensajeAmigable(err, 'No se pudo eliminar el movimiento.'))
     } finally {
       setEliminando(false)
+    }
+  }
+
+  const handlePagar = async (form) => {
+    setProcesandoPago(true)
+    setError(null)
+    try {
+      await pagarTarjetaCredito({
+        tarjetaId: aPagar.id,
+        cuentaOrigenId: form.cuentaOrigenId,
+        monto: form.monto,
+        fecha: form.fecha,
+        descripcion: form.descripcion
+      })
+      setAPagar(null)
+      if (userId) await cargarCuentas(userId)
+    } catch (err) {
+      setError(mensajeAmigable(err))
+    } finally {
+      setProcesandoPago(false)
     }
   }
 
@@ -224,7 +253,12 @@ export default function Inicio({ onNuevo, onEditar, onVerTodas, refreshKey }) {
                 background: 'var(--bg-surface)', border: '1px solid var(--border-subtle)',
                 borderRadius: 'var(--radius-md)', padding: '14px 16px', marginBottom: 8
               }}>
-                <div style={{ fontSize: 13, fontWeight: 600, marginBottom: 8 }}>💳 {tc.nombre}</div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+                  <div style={{ fontSize: 13, fontWeight: 600 }}>💳 {tc.nombre}</div>
+                  <button onClick={() => setAPagar(tc)} style={{ background: 'var(--gradient-brand)', color: '#fff', fontSize: 11, fontWeight: 600, padding: '5px 12px', borderRadius: 999 }}>
+                    {t('cu_pagar_tarjeta')}
+                  </button>
+                </div>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
                   <div>
                     <div style={{ fontSize: 11, color: 'var(--text-muted)' }}>{t('cu_disponible')}</div>
@@ -320,6 +354,16 @@ export default function Inicio({ onNuevo, onEditar, onVerTodas, refreshKey }) {
             </button>
           </div>
         </div>
+      )}
+
+      {aPagar && (
+        <FormularioPago
+          tarjeta={aPagar}
+          cuentas={cuentas.filter(c => c.tipo !== 'tarjeta_credito')}
+          procesando={procesandoPago}
+          onCancelar={() => setAPagar(null)}
+          onGuardar={handlePagar}
+        />
       )}
 
       {aEliminar && (
