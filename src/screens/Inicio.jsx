@@ -122,6 +122,7 @@ export default function Inicio({ onNuevo, onEditar, onVerTodas, refreshKey }) {
   const disponible = ingresosAcumulados - gastosAcumulados
   const saldoEfectivo = cuentas.filter(c => c.tipo === 'efectivo').reduce((s, c) => s + Number(c.saldo), 0)
   const saldoTarjeta = cuentas.filter(c => c.tipo === 'tarjeta').reduce((s, c) => s + Number(c.saldo), 0)
+  const tarjetasCredito = cuentas.filter(c => c.tipo === 'tarjeta_credito')
 
   const cuentaDe = (tx) => cuentas.find(c => c.id === tx.cuenta_id)?.nombre || '—'
 
@@ -213,6 +214,39 @@ export default function Inicio({ onNuevo, onEditar, onVerTodas, refreshKey }) {
         </div>
       </div>
 
+      {tarjetasCredito.length > 0 && (
+        <div style={{ marginTop: 14 }}>
+          {tarjetasCredito.map(tc => {
+            const disponibleTc = Number(tc.limite_credito || 0) - Number(tc.saldo || 0)
+            const porcentajeUsado = Number(tc.limite_credito) > 0 ? Math.min(100, (Number(tc.saldo) / Number(tc.limite_credito)) * 100) : 0
+            return (
+              <div key={tc.id} style={{
+                background: 'var(--bg-surface)', border: '1px solid var(--border-subtle)',
+                borderRadius: 'var(--radius-md)', padding: '14px 16px', marginBottom: 8
+              }}>
+                <div style={{ fontSize: 13, fontWeight: 600, marginBottom: 8 }}>💳 {tc.nombre}</div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
+                  <div>
+                    <div style={{ fontSize: 11, color: 'var(--text-muted)' }}>{t('cu_disponible')}</div>
+                    <div style={{ fontSize: 18, fontWeight: 700 }}>{cargando ? '…' : <Monto valor={disponibleTc} />}</div>
+                  </div>
+                  <div style={{ textAlign: 'right' }}>
+                    <div style={{ fontSize: 11, color: 'var(--text-muted)' }}>{t('cu_deuda_actual')}</div>
+                    <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--danger)' }}>{cargando ? '…' : <Monto valor={tc.saldo} />}</div>
+                  </div>
+                </div>
+                <div style={{ marginTop: 10, height: 6, borderRadius: 999, background: 'var(--bg-surface-2)', overflow: 'hidden' }}>
+                  <div style={{
+                    height: '100%', width: `${porcentajeUsado}%`, borderRadius: 999,
+                    background: porcentajeUsado >= 90 ? 'var(--danger)' : 'var(--gradient-brand)'
+                  }} />
+                </div>
+              </div>
+            )
+          })}
+        </div>
+      )}
+
       <button
         onClick={() => setMostrarCuentas(true)}
         style={{
@@ -227,6 +261,7 @@ export default function Inicio({ onNuevo, onEditar, onVerTodas, refreshKey }) {
         </span>
         <span>›</span>
       </button>
+
 
       <div className="section-heading">
         <h2>{t('inicio_transacciones')}</h2>
