@@ -47,23 +47,6 @@ Deno.serve(async (req) => {
       })
     }
 
-    // ── RATE LIMITING: máximo 5 preguntas por minuto por usuario ─────────
-    const adminClient = createClient(supabaseUrl, serviceKey)
-    const unMinutoAtras = new Date(Date.now() - 60 * 1000).toISOString()
-    const { count } = await adminClient
-      .from('ia_rate_limit')
-      .select('*', { count: 'exact', head: true })
-      .eq('user_id', user.id)
-      .gte('created_at', unMinutoAtras)
-
-    if (count !== null && count >= 5) {
-      return new Response(JSON.stringify({ error: 'Demasiadas preguntas. Espera un momento antes de continuar.' }), {
-        status: 429, headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-      })
-    }
-    await adminClient.from('ia_rate_limit').insert({ user_id: user.id })
-    // ─────────────────────────────────────────────────────────────────────
-
     // Leer datos financieros del usuario
     const adminClient = createClient(supabaseUrl, serviceKey)
     const uid = user.id
@@ -115,7 +98,7 @@ Deno.serve(async (req) => {
 Eres Kairen, un asistente financiero personal amigable y directo. 
 Hablas en español mexicano informal pero profesional.
 Respondes SOLO con base en los datos reales del usuario que se te proporcionan.
-Tus respuestas son concisas (máximo 150 palabras), prácticas y con emojis ocasionales.
+Tus respuestas son concisas (máximo 80 palabras), prácticas y con emojis ocasionales.
 Nunca inventas datos ni das consejos genéricos sin base en los números del usuario.
 
 DATOS FINANCIEROS DEL USUARIO (${hoy.toLocaleDateString('es-MX', { month: 'long', year: 'numeric' })}):
@@ -163,7 +146,7 @@ Número de transacciones este mes: ${(transaccionesMes || []).length}
           ],
           generationConfig: {
             temperature: 0.7,
-            maxOutputTokens: 150,
+            maxOutputTokens: 220,
             topP: 0.9
           }
         })
