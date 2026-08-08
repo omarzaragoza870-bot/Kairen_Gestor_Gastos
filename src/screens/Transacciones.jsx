@@ -71,6 +71,7 @@ export default function Transacciones({ onBack, onEditar, refreshKey, onCambio }
   }, [filtro, cuentaFiltro, busqueda, lista])
 
   const cuentaDe = (tx) => cuentas.find(c => c.id === tx.cuenta_id)?.nombre || '—'
+  const cuentaObjDe = (tx) => cuentas.find(c => c.id === tx.cuenta_id)
 
   const confirmarEliminar = async () => {
     if (!aEliminar || eliminando) return
@@ -136,17 +137,36 @@ export default function Transacciones({ onBack, onEditar, refreshKey, onCambio }
       {error && <p className="error-message">{error}</p>}
       {cargando && <div className="empty-state"><p>{t('comun_cargando')}</p></div>}
       {!cargando && filtradas.length === 0 && <div className="empty-state"><p>{t('tx_vacio')}</p></div>}
-      {filtradas.map(tx => (
-        <div key={tx.id} className="transaction-card">
-          <button onClick={() => setVerDetalle(tx)} className="transaction-main" style={{ width: '100%' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 10, minWidth: 0 }}>
-              <span style={{ flexShrink: 0, display:'flex', alignItems:'center' }}><CategoriaIcono icono={iconosPorCategoria[`${tx.tipo}:${tx.categoria_nombre}`] || 'Tag'} size={20} color='var(--text-secondary)' /></span>
-              <div style={{ minWidth: 0, textAlign: 'left' }}><strong>{tx.categoria_nombre}</strong>{tx.descripcion && <span>{tx.descripcion}</span>}<small>{fmtFecha(tx.fecha)}</small></div>
-            </div>
-            <div className={tx.tipo === 'gasto' ? 'amount expense' : 'amount income'}><Monto valor={tx.monto} prefijo={tx.tipo === 'gasto' ? '-' : '+'} /></div>
-          </button>
-        </div>
-      ))}
+      {filtradas.map(tx => {
+        const cuentaTx = cuentaObjDe(tx)
+        const esCredito = cuentaTx?.tipo === 'tarjeta_credito'
+        return (
+          <div key={tx.id} className="transaction-card">
+            <button onClick={() => setVerDetalle(tx)} className="transaction-main" style={{ width: '100%' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10, minWidth: 0 }}>
+                <span style={{ flexShrink: 0, display:'flex', alignItems:'center' }}><CategoriaIcono icono={iconosPorCategoria[`${tx.tipo}:${tx.categoria_nombre}`] || 'Tag'} size={20} color='var(--text-secondary)' /></span>
+                <div style={{ minWidth: 0, textAlign: 'left' }}>
+                  <strong>{tx.categoria_nombre}</strong>
+                  {tx.descripcion && <span>{tx.descripcion}</span>}
+                  <small style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+                    {fmtFecha(tx.fecha)}
+                    {cuentaTx && (
+                      <span style={{
+                        fontSize: 10, fontWeight: 700, padding: '1px 6px', borderRadius: 999,
+                        background: esCredito ? 'rgba(251, 113, 133, 0.15)' : 'var(--bg-surface-2)',
+                        color: esCredito ? 'var(--danger)' : 'var(--text-muted)'
+                      }}>
+                        {esCredito ? 'TDC' : cuentaTx.nombre}
+                      </span>
+                    )}
+                  </small>
+                </div>
+              </div>
+              <div className={tx.tipo === 'gasto' ? 'amount expense' : 'amount income'}><Monto valor={tx.monto} prefijo={tx.tipo === 'gasto' ? '-' : '+'} /></div>
+            </button>
+          </div>
+        )
+      })}
 
       {/* Cuadro de detalle al tocar una transacción — reemplaza los botones inline de Editar/Eliminar */}
       {verDetalle && (
