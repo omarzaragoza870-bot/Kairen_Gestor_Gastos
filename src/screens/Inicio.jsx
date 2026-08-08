@@ -120,6 +120,8 @@ export default function Inicio({ onNuevo, onEditar, onVerTodas, refreshKey }) {
   const ingresosAcumulados = acumuladas.filter(t => t.tipo === 'ingreso').reduce((s, t) => s + Number(t.monto), 0)
   const gastosAcumulados = acumuladas.filter(t => t.tipo === 'gasto').reduce((s, t) => s + Number(t.monto), 0)
   const disponible = ingresosAcumulados - gastosAcumulados
+  const saldoEfectivo = cuentas.filter(c => c.tipo === 'efectivo').reduce((s, c) => s + Number(c.saldo), 0)
+  const saldoTarjeta = cuentas.filter(c => c.tipo === 'tarjeta').reduce((s, c) => s + Number(c.saldo), 0)
 
   const cuentaDe = (tx) => cuentas.find(c => c.id === tx.cuenta_id)?.nombre || '—'
 
@@ -184,6 +186,18 @@ export default function Inicio({ onNuevo, onEditar, onVerTodas, refreshKey }) {
           <InfoTooltip title={t('inicio_dinero_disponible')} text={t('inicio_dinero_disponible_info')} />
         </div>
         <div className="available-amount">{cargando ? '…' : <Monto valor={disponible} />}</div>
+        {(saldoEfectivo !== 0 || saldoTarjeta !== 0) && (
+          <div style={{ display: 'flex', gap: 12, marginTop: 12, paddingTop: 12, borderTop: '1px solid rgba(255,255,255,0.15)' }}>
+            <div style={{ flex: 1 }}>
+              <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.5)', marginBottom: 2 }}>💵 {t('cu_tipo_efectivo')}</div>
+              <div style={{ fontSize: 16, fontWeight: 600 }}>{cargando ? '…' : <Monto valor={saldoEfectivo} />}</div>
+            </div>
+            <div style={{ flex: 1 }}>
+              <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.5)', marginBottom: 2 }}>💳 {t('cu_tipo_tarjeta')}</div>
+              <div style={{ fontSize: 16, fontWeight: 600 }}>{cargando ? '…' : <Monto valor={saldoTarjeta} />}</div>
+            </div>
+          </div>
+        )}
       </section>
 
       <div className="summary-grid">
