@@ -95,6 +95,11 @@ Deno.serve(async (req) => {
 
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!
     const serviceKey  = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
+    // Secreto propio para llamadas internas (triggers/cron de Postgres) — no
+    // depende de la Service Role Key de Supabase, que está migrando de JWT
+    // legacy a un formato nuevo (sb_secret_...) y puede no coincidir con lo
+    // que Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') resuelve en runtime.
+    const cronSecret  = Deno.env.get('INTERNAL_CRON_SECRET')
     const vapidPublic  = Deno.env.get('VAPID_PUBLIC_KEY')!
     const vapidPrivate = Deno.env.get('VAPID_PRIVATE_KEY')!
     const firebaseServiceAccountStr = Deno.env.get('FIREBASE_SERVICE_ACCOUNT')
@@ -110,11 +115,11 @@ Deno.serve(async (req) => {
 
     // ── VALIDACIÓN DE AUTORIZACIÓN ────────────────────────────────────────
     // Permitimos dos escenarios:
-    // 1. El JWT pertenece al propio usuario (se manda notificación a sí mismo)
-    // 2. El header usa la service_role_key (triggers internos de Postgres)
-    const esServiceRole = authHeader === `Bearer ${serviceKey}`
+    // 1. El header trae nuestro secreto interno (triggers/cron de Postgres)
+    // 2. El JWT pertenece al propio usuario (se manda notificación a sí mismo)
+    const esLlamadaInterna = Boolean(cronSecret) && authHeader === `Bearer ${cronSecret}`
 
-    if (!esServiceRole) {
+    if (!esLlamadaInterna) {
       // Verificar que el JWT corresponde al user_id solicitado
       const userClient = createClient(supabaseUrl, Deno.env.get('ANON_KEY')!, {
         global: { headers: { Authorization: authHeader } }
