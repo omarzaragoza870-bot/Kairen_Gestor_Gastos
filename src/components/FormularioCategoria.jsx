@@ -1,6 +1,18 @@
 import { useState } from 'react'
 import { usePreferencias } from '../context/PreferenciasContext.jsx'
 
+// Selección curada de emojis comunes para categorías de gasto/ingreso.
+// Se muestran en cuadrícula porque ningún sitio web puede forzar que el
+// teclado del sistema abra directo en la sección de emojis (limitación de
+// iOS/Android, no de esta app) — así el usuario elige con un toque, sin
+// depender de cambiar de teclado manualmente.
+const EMOJIS_COMUNES = [
+  '🍔', '🚗', '💡', '🎬', '👕', '❤️', '🏠', '📱',
+  '✈️', '🎮', '📚', '🐾', '🎁', '💰', '💼', '📈',
+  '🏥', '⚽', '☕', '🎵', '🛒', '💳', '🚌', '⛽',
+  '🧾', '🔧', '🎓', '🍺', '🏋️', '🌐', '📺', '🏷️'
+]
+
 /**
  * Modal para crear una categoría nueva. Se usa tanto desde Ajustes >
  * Categorías como desde el selector de categoría en Nueva Transacción —
@@ -14,11 +26,11 @@ export default function FormularioCategoria({ onCancelar, onGuardar, procesando 
 
   return (
     <div onClick={onCancelar} className="modal-backdrop">
-      <div onClick={(e) => e.stopPropagation()} className="modal-card" style={{ maxWidth: 380 }}>
+      <div onClick={(e) => e.stopPropagation()} className="modal-card" style={{ maxWidth: 380, maxHeight: '85vh', overflowY: 'auto' }}>
         <h3>{t('cat_nueva')}</h3>
 
-        <label className="field-label">Emoji (toca para elegir del teclado)</label>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 12, margin: '8px 0 16px' }}>
+        <label className="field-label">Emoji</label>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12, margin: '8px 0 12px' }}>
           <div style={{
             width: 60, height: 60, borderRadius: 'var(--radius-md)',
             background: 'var(--bg-surface)', border: '1px solid var(--border-subtle)',
@@ -41,6 +53,25 @@ export default function FormularioCategoria({ onCancelar, onGuardar, procesando 
               fontSize: 24, textAlign: 'center', color: 'var(--text-primary)'
             }}
           />
+        </div>
+
+        <div style={{
+          display: 'grid', gridTemplateColumns: 'repeat(8, 1fr)', gap: 6,
+          padding: 10, marginBottom: 16, background: 'var(--bg-surface)',
+          borderRadius: 'var(--radius-md)', border: '1px solid var(--border-subtle)'
+        }}>
+          {EMOJIS_COMUNES.map(e => (
+            <button
+              key={e}
+              onClick={() => setIcono(e)}
+              style={{
+                fontSize: 20, padding: 6, borderRadius: 'var(--radius-sm)',
+                background: icono === e ? 'var(--gradient-brand)' : 'transparent'
+              }}
+            >
+              {e}
+            </button>
+          ))}
         </div>
 
         <label className="field-label">{t('cat_nombre')}</label>
