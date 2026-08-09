@@ -1,17 +1,6 @@
 import { useState } from 'react'
 import { usePreferencias } from '../context/PreferenciasContext.jsx'
-
-// Selección curada de emojis comunes para categorías de gasto/ingreso.
-// Se muestran en cuadrícula porque ningún sitio web puede forzar que el
-// teclado del sistema abra directo en la sección de emojis (limitación de
-// iOS/Android, no de esta app) — así el usuario elige con un toque, sin
-// depender de cambiar de teclado manualmente.
-const EMOJIS_COMUNES = [
-  '🍔', '🚗', '💡', '🎬', '👕', '❤️', '🏠', '📱',
-  '✈️', '🎮', '📚', '🐾', '🎁', '💰', '💼', '📈',
-  '🏥', '⚽', '☕', '🎵', '🛒', '💳', '🚌', '⛽',
-  '🧾', '🔧', '🎓', '🍺', '🏋️', '🌐', '📺', '🏷️'
-]
+import CategoriaIcono, { ICONOS_DISPONIBLES } from './CategoriaIcono.jsx'
 
 /**
  * Modal para crear una categoría nueva. Se usa tanto desde Ajustes >
@@ -21,7 +10,7 @@ const EMOJIS_COMUNES = [
 export default function FormularioCategoria({ onCancelar, onGuardar, procesando }) {
   const { t } = usePreferencias()
   const [nombre, setNombre] = useState('')
-  const [icono, setIcono] = useState('🏷️')
+  const [icono, setIcono] = useState('Tag')
   const valido = nombre.trim().length > 0
 
   return (
@@ -29,47 +18,24 @@ export default function FormularioCategoria({ onCancelar, onGuardar, procesando 
       <div onClick={(e) => e.stopPropagation()} className="modal-card" style={{ maxWidth: 380, maxHeight: '85vh', overflowY: 'auto' }}>
         <h3>{t('cat_nueva')}</h3>
 
-        <label className="field-label">Emoji</label>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 12, margin: '8px 0 12px' }}>
-          <div style={{
-            width: 60, height: 60, borderRadius: 'var(--radius-md)',
-            background: 'var(--bg-surface)', border: '1px solid var(--border-subtle)',
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-            fontSize: 32, flexShrink: 0
-          }}>
-            {icono}
-          </div>
-          <input
-            value={icono}
-            onChange={e => {
-              const val = [...e.target.value].slice(-2).join('')
-              if (val.trim()) setIcono(val.trim())
-            }}
-            maxLength={4}
-            placeholder="🏷️"
-            style={{
-              flex: 1, padding: '14px 16px', borderRadius: 'var(--radius-md)',
-              background: 'var(--bg-surface)', border: '1px solid var(--border-subtle)',
-              fontSize: 24, textAlign: 'center', color: 'var(--text-primary)'
-            }}
-          />
-        </div>
-
+        <label className="field-label">Ícono</label>
         <div style={{
-          display: 'grid', gridTemplateColumns: 'repeat(8, 1fr)', gap: 6,
-          padding: 10, marginBottom: 16, background: 'var(--bg-surface)',
+          display: 'grid', gridTemplateColumns: 'repeat(6, 1fr)', gap: 8,
+          padding: 12, margin: '8px 0 16px', background: 'var(--bg-surface)',
           borderRadius: 'var(--radius-md)', border: '1px solid var(--border-subtle)'
         }}>
-          {EMOJIS_COMUNES.map(e => (
+          {ICONOS_DISPONIBLES.map(item => (
             <button
-              key={e}
-              onClick={() => setIcono(e)}
+              key={item.nombre}
+              onClick={() => setIcono(item.nombre)}
+              title={item.label}
               style={{
-                fontSize: 20, padding: 6, borderRadius: 'var(--radius-sm)',
-                background: icono === e ? 'var(--gradient-brand)' : 'transparent'
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                padding: 10, borderRadius: 'var(--radius-sm)',
+                background: icono === item.nombre ? 'var(--gradient-brand)' : 'transparent'
               }}
             >
-              {e}
+              <CategoriaIcono icono={item.nombre} size={20} color={icono === item.nombre ? '#fff' : 'var(--text-secondary)'} />
             </button>
           ))}
         </div>
@@ -79,7 +45,7 @@ export default function FormularioCategoria({ onCancelar, onGuardar, procesando 
           <input value={nombre} onChange={(e) => setNombre(e.target.value)} placeholder={t('cat_nombre_placeholder')} maxLength={30} autoFocus />
         </div>
 
-        <div className="modal-actions" style={{ marginTop: 4 }}>
+        <div className="modal-actions" style={{ marginTop: 16 }}>
           <button onClick={onCancelar} disabled={procesando}>{t('comun_cancelar')}</button>
           <button
             disabled={!valido || procesando}
