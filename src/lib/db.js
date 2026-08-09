@@ -25,21 +25,21 @@ export async function asegurarCuentasPorDefecto(userId) {
 const CATEGORIAS_GASTO_DEFECTO = {
   es: [
     ['Alimentación', 'UtensilsCrossed'], ['Transporte', 'Car'], ['Servicios', 'Zap'],
-    ['Entretenimiento', 'Clapperboard'], ['Ropa', 'Shirt'], ['Salud', 'Heart'], ['Otros', 'MoreHorizontal']
+    ['Entretenimiento', 'Clapperboard'], ['Ropa', 'Shirt'], ['Salud', 'Heart']
   ],
   en: [
     ['Food', 'UtensilsCrossed'], ['Transportation', 'Car'], ['Utilities', 'Zap'],
-    ['Entertainment', 'Clapperboard'], ['Clothing', 'Shirt'], ['Health', 'Heart'], ['Other', 'MoreHorizontal']
+    ['Entertainment', 'Clapperboard'], ['Clothing', 'Shirt'], ['Health', 'Heart']
   ]
 }
 const CATEGORIAS_INGRESO_DEFECTO = {
   es: [
     ['Salario', 'Banknote'], ['Inversiones', 'TrendingUp'], ['Negocios', 'Briefcase'],
-    ['Reembolsos', 'RotateCcw'], ['Regalos', 'Gift'], ['Otros', 'MoreHorizontal']
+    ['Reembolsos', 'RotateCcw'], ['Regalos', 'Gift']
   ],
   en: [
     ['Salary', 'Banknote'], ['Investments', 'TrendingUp'], ['Business', 'Briefcase'],
-    ['Refunds', 'RotateCcw'], ['Gifts', 'Gift'], ['Other', 'MoreHorizontal']
+    ['Refunds', 'RotateCcw'], ['Gifts', 'Gift']
   ]
 }
 
