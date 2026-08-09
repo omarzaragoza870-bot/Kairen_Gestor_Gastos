@@ -660,17 +660,15 @@ export async function importarTodosLosDatos(userId, datos) {
 
 /** Borra todos los datos del usuario pero conserva su sesión/cuenta. */
 export async function reiniciarCuentaActual(userId) {
-  await supabase.from('meta_contribuciones').delete().eq('user_id', userId)
-  await supabase.from('metas').delete().eq('user_id', userId)
-  await supabase.from('ahorro_externo').delete().eq('user_id', userId)
-  await supabase.from('transacciones').delete().eq('user_id', userId)
-  await supabase.from('categorias').delete().eq('user_id', userId)
-
-  // Las cuentas se conservan pero con saldo en cero
-  const { data: cuentas, error } = await supabase.from('cuentas').select('id').eq('user_id', userId)
-  if (error) throw error
-  for (const c of cuentas || []) {
-    await supabase.from('cuentas').update({ saldo: 0 }).eq('id', c.id)
+  // Todo el borrado + reseteo de saldos ocurre en una sola transacción
+  // atómica del servidor — si algo falla, lanza un error real (a diferencia
+  // de antes, que hacía updates individuales sin verificar si fallaban).
+  const { error } = await supabase.rpc('reiniciar_cuenta_segura')
+  if (error) {
+    if (esFuncionNoDisponible(error)) {
+      throw new Error('Falta ejecutar src/sql/upgrade_v2_7_reiniciar_seguro.sql en Supabase para poder reiniciar la cuenta.')
+    }
+    throw error
   }
 
   await asegurarCategoriasPorDefecto(userId)
