@@ -22,14 +22,26 @@ export async function asegurarCuentasPorDefecto(userId) {
   }
 }
 
-const CATEGORIAS_GASTO_DEFECTO = [
-  ['Alimentación', 'UtensilsCrossed'], ['Transporte', 'Car'], ['Servicios', 'Zap'],
-  ['Entretenimiento', 'Clapperboard'], ['Ropa', 'Shirt'], ['Salud', 'Heart'], ['Otros', 'MoreHorizontal']
-]
-const CATEGORIAS_INGRESO_DEFECTO = [
-  ['Salario', 'Banknote'], ['Inversiones', 'TrendingUp'], ['Negocios', 'Briefcase'],
-  ['Reembolsos', 'RotateCcw'], ['Regalos', 'Gift'], ['Otros', 'MoreHorizontal']
-]
+const CATEGORIAS_GASTO_DEFECTO = {
+  es: [
+    ['Alimentación', 'UtensilsCrossed'], ['Transporte', 'Car'], ['Servicios', 'Zap'],
+    ['Entretenimiento', 'Clapperboard'], ['Ropa', 'Shirt'], ['Salud', 'Heart'], ['Otros', 'MoreHorizontal']
+  ],
+  en: [
+    ['Food', 'UtensilsCrossed'], ['Transportation', 'Car'], ['Utilities', 'Zap'],
+    ['Entertainment', 'Clapperboard'], ['Clothing', 'Shirt'], ['Health', 'Heart'], ['Other', 'MoreHorizontal']
+  ]
+}
+const CATEGORIAS_INGRESO_DEFECTO = {
+  es: [
+    ['Salario', 'Banknote'], ['Inversiones', 'TrendingUp'], ['Negocios', 'Briefcase'],
+    ['Reembolsos', 'RotateCcw'], ['Regalos', 'Gift'], ['Otros', 'MoreHorizontal']
+  ],
+  en: [
+    ['Salary', 'Banknote'], ['Investments', 'TrendingUp'], ['Business', 'Briefcase'],
+    ['Refunds', 'RotateCcw'], ['Gifts', 'Gift'], ['Other', 'MoreHorizontal']
+  ]
+}
 
 export async function asegurarCategoriasPorDefecto(userId) {
   const { data: existentes, error } = await supabase
@@ -40,9 +52,16 @@ export async function asegurarCategoriasPorDefecto(userId) {
   if (error) throw error
 
   if (!existentes || existentes.length === 0) {
+    // Usa el idioma real del usuario (guardado por PreferenciasContext) en
+    // vez de crear siempre en español — así nunca quedan categorías
+    // mezcladas entre idiomas sin importar cuándo se generen.
+    let idioma = 'es'
+    try { idioma = localStorage.getItem('kairen_idioma') || 'es' } catch { /* noop */ }
+    const gastoDefecto = CATEGORIAS_GASTO_DEFECTO[idioma] || CATEGORIAS_GASTO_DEFECTO.es
+    const ingresoDefecto = CATEGORIAS_INGRESO_DEFECTO[idioma] || CATEGORIAS_INGRESO_DEFECTO.es
     const filas = [
-      ...CATEGORIAS_GASTO_DEFECTO.map(([nombre, icono]) => ({ user_id: userId, nombre, tipo: 'gasto', icono })),
-      ...CATEGORIAS_INGRESO_DEFECTO.map(([nombre, icono]) => ({ user_id: userId, nombre, tipo: 'ingreso', icono }))
+      ...gastoDefecto.map(([nombre, icono]) => ({ user_id: userId, nombre, tipo: 'gasto', icono })),
+      ...ingresoDefecto.map(([nombre, icono]) => ({ user_id: userId, nombre, tipo: 'ingreso', icono }))
     ]
     const { error: insertError } = await supabase.from('categorias').insert(filas)
     if (insertError) throw insertError
