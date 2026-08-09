@@ -5,6 +5,7 @@ import { agruparPorCategoria } from '../lib/estadisticas.js'
 import { useScrollLock } from '../hooks/useScrollLock.js'
 import { usePreferencias } from '../context/PreferenciasContext.jsx'
 import Monto from '../components/Monto.jsx'
+import CategoriaIcono from '../components/CategoriaIcono.jsx'
 import { mensajeAmigable } from '../lib/errores.js'
 
 export default function Presupuestos({ onBack }) {
@@ -197,10 +198,12 @@ function FormularioPresupuesto({ presupuesto, categoriasDisponibles, onCancelar,
                   flexShrink: 0, padding: '10px 14px', borderRadius: 999, fontSize: 13, fontWeight: 600,
                   background: categoriaNombre === c.nombre ? 'var(--gradient-brand)' : 'var(--bg-surface)',
                   color: categoriaNombre === c.nombre ? '#fff' : 'var(--text-secondary)',
-                  border: '1px solid ' + (categoriaNombre === c.nombre ? 'transparent' : 'var(--border-subtle)')
+                  border: '1px solid ' + (categoriaNombre === c.nombre ? 'transparent' : 'var(--border-subtle)'),
+                  display: 'flex', alignItems: 'center', gap: 6
                 }}
               >
-                {c.icono} {c.nombre}
+                <CategoriaIcono icono={c.icono || 'Tag'} size={14} color={categoriaNombre === c.nombre ? '#fff' : 'var(--text-muted)'} />
+                {c.nombre}
               </button>
             ))}
           </div>
