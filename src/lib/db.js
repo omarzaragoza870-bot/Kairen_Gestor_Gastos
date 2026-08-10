@@ -22,14 +22,26 @@ export async function asegurarCuentasPorDefecto(userId) {
   }
 }
 
-const CATEGORIAS_GASTO_DEFECTO = [
-  ['Alimentación', 'UtensilsCrossed'], ['Transporte', 'Car'], ['Servicios', 'Zap'],
-  ['Entretenimiento', 'Clapperboard'], ['Ropa', 'Shirt'], ['Salud', 'Heart'], ['Otros', 'MoreHorizontal']
-]
-const CATEGORIAS_INGRESO_DEFECTO = [
-  ['Salario', 'Banknote'], ['Inversiones', 'TrendingUp'], ['Negocios', 'Briefcase'],
-  ['Reembolsos', 'RotateCcw'], ['Regalos', 'Gift'], ['Otros', 'MoreHorizontal']
-]
+const CATEGORIAS_GASTO_DEFECTO = {
+  es: [
+    ['Alimentación', 'UtensilsCrossed'], ['Transporte', 'Car'], ['Servicios', 'Zap'],
+    ['Entretenimiento', 'Clapperboard'], ['Ropa', 'Shirt'], ['Salud', 'Heart']
+  ],
+  en: [
+    ['Food', 'UtensilsCrossed'], ['Transportation', 'Car'], ['Utilities', 'Zap'],
+    ['Entertainment', 'Clapperboard'], ['Clothing', 'Shirt'], ['Health', 'Heart']
+  ]
+}
+const CATEGORIAS_INGRESO_DEFECTO = {
+  es: [
+    ['Salario', 'Banknote'], ['Inversiones', 'TrendingUp'], ['Negocios', 'Briefcase'],
+    ['Reembolsos', 'RotateCcw'], ['Regalos', 'Gift']
+  ],
+  en: [
+    ['Salary', 'Banknote'], ['Investments', 'TrendingUp'], ['Business', 'Briefcase'],
+    ['Refunds', 'RotateCcw'], ['Gifts', 'Gift']
+  ]
+}
 
 export async function asegurarCategoriasPorDefecto(userId) {
   const { data: existentes, error } = await supabase
@@ -40,9 +52,16 @@ export async function asegurarCategoriasPorDefecto(userId) {
   if (error) throw error
 
   if (!existentes || existentes.length === 0) {
+    // Usa el idioma real del usuario (guardado por PreferenciasContext) en
+    // vez de crear siempre en español — así nunca quedan categorías
+    // mezcladas entre idiomas sin importar cuándo se generen.
+    let idioma = 'es'
+    try { idioma = localStorage.getItem('kairen_idioma') || 'es' } catch { /* noop */ }
+    const gastoDefecto = CATEGORIAS_GASTO_DEFECTO[idioma] || CATEGORIAS_GASTO_DEFECTO.es
+    const ingresoDefecto = CATEGORIAS_INGRESO_DEFECTO[idioma] || CATEGORIAS_INGRESO_DEFECTO.es
     const filas = [
-      ...CATEGORIAS_GASTO_DEFECTO.map(([nombre, icono]) => ({ user_id: userId, nombre, tipo: 'gasto', icono })),
-      ...CATEGORIAS_INGRESO_DEFECTO.map(([nombre, icono]) => ({ user_id: userId, nombre, tipo: 'ingreso', icono }))
+      ...gastoDefecto.map(([nombre, icono]) => ({ user_id: userId, nombre, tipo: 'gasto', icono })),
+      ...ingresoDefecto.map(([nombre, icono]) => ({ user_id: userId, nombre, tipo: 'ingreso', icono }))
     ]
     const { error: insertError } = await supabase.from('categorias').insert(filas)
     if (insertError) throw insertError
@@ -641,17 +660,15 @@ export async function importarTodosLosDatos(userId, datos) {
 
 /** Borra todos los datos del usuario pero conserva su sesión/cuenta. */
 export async function reiniciarCuentaActual(userId) {
-  await supabase.from('meta_contribuciones').delete().eq('user_id', userId)
-  await supabase.from('metas').delete().eq('user_id', userId)
-  await supabase.from('ahorro_externo').delete().eq('user_id', userId)
-  await supabase.from('transacciones').delete().eq('user_id', userId)
-  await supabase.from('categorias').delete().eq('user_id', userId)
-
-  // Las cuentas se conservan pero con saldo en cero
-  const { data: cuentas, error } = await supabase.from('cuentas').select('id').eq('user_id', userId)
-  if (error) throw error
-  for (const c of cuentas || []) {
-    await supabase.from('cuentas').update({ saldo: 0 }).eq('id', c.id)
+  // Todo el borrado + reseteo de saldos ocurre en una sola transacción
+  // atómica del servidor — si algo falla, lanza un error real (a diferencia
+  // de antes, que hacía updates individuales sin verificar si fallaban).
+  const { error } = await supabase.rpc('reiniciar_cuenta_segura')
+  if (error) {
+    if (esFuncionNoDisponible(error)) {
+      throw new Error('Falta ejecutar src/sql/upgrade_v2_7_reiniciar_seguro.sql en Supabase para poder reiniciar la cuenta.')
+    }
+    throw error
   }
 
   await asegurarCategoriasPorDefecto(userId)

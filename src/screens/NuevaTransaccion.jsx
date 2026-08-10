@@ -6,10 +6,15 @@ import {
   crearTransaccion,
   editarTransaccion,
   obtenerCuentas,
-  obtenerCategorias
+  obtenerCategorias,
+  crearCategoria,
+  obtenerPresupuestos,
+  obtenerTransaccionesPorMes
 } from '../lib/db.js'
 import InfoTooltip from '../components/InfoTooltip.jsx'
 import Monto from '../components/Monto.jsx'
+import AlertaPresupuesto from '../components/AlertaPresupuesto.jsx'
+import FormularioCategoria from '../components/FormularioCategoria.jsx'
 import { logError } from '../lib/logger.js'
 import { mensajeAmigable } from '../lib/errores.js'
 import { encolarOperacion, conRespaldoOffline, obtenerConectividad, marcarConectividad, pareceErrorDeRed } from '../lib/offline.js'
@@ -52,6 +57,9 @@ export default function NuevaTransaccion({ onBack, onGuardada, transaccionEditar
   const [categoriasIngreso, setCategoriasIngreso] = useState([])
   const [guardando, setGuardando] = useState(false)
   const [error, setError] = useState(null)
+  const [alertaPresupuesto, setAlertaPresupuesto] = useState(null) // { categoria, gastado, limite } | null
+  const [creandoCategoria, setCreandoCategoria] = useState(false)
+  const [procesandoCategoria, setProcesandoCategoria] = useState(false)
   const { t } = usePreferencias()
 
   useEffect(() => {
@@ -90,7 +98,7 @@ export default function NuevaTransaccion({ onBack, onGuardada, transaccionEditar
     cargarCuentas()
   }, [])
 
-  const categorias = tipo === 'gasto' ? categoriasGasto : categoriasIngreso
+  const categorias = (tipo === 'gasto' ? categoriasGasto : categoriasIngreso).filter(c => c.nombre !== 'Otros' && c.nombre !== 'Other')
   // Una tarjeta de crédito no puede recibir ingresos directos (para eso está
   // "Pagar tarjeta" en Administrar Cuentas) — se oculta como opción aquí.
   const cuentasDisponibles = tipo === 'ingreso' ? cuentas.filter(c => c.tipo !== 'tarjeta_credito') : cuentas
@@ -103,6 +111,56 @@ export default function NuevaTransaccion({ onBack, onGuardada, transaccionEditar
     if (!valido) return t('nt_completa_datos')
     return editando ? t('nt_boton_actualizar') : t('nt_boton_guardar')
   }, [editando, guardando, valido, t])
+
+  // Solo se llama tras guardar un GASTO nuevo (no ediciones, no ingresos).
+  // Si esa categoría tiene presupuesto y ya se excedió, guarda los datos en
+  // el estado para mostrar la alerta — si falla por lo que sea, no bloquea
+  // el guardado real, que ya se completó exitosamente antes de esto.
+  const verificarPresupuesto = async (uid, categoriaNombre) => {
+    try {
+      const [presupuestos, txMes] = await Promise.all([
+        obtenerPresupuestos(uid),
+        obtenerTransaccionesPorMes(uid)
+      ])
+      const presupuesto = presupuestos.find(p => p.categoria_nombre === categoriaNombre)
+      if (!presupuesto) return false
+
+      const gastado = txMes
+        .filter(t => t.tipo === 'gasto' && t.categoria_nombre === categoriaNombre)
+        .reduce((s, t) => s + Number(t.monto), 0)
+
+      if (gastado > Number(presupuesto.monto_limite)) {
+        setAlertaPresupuesto({ categoria: categoriaNombre, gastado, limite: Number(presupuesto.monto_limite) })
+        return true
+      }
+      return false
+    } catch (err) {
+      logError('No se pudo verificar el presupuesto tras guardar', err)
+      return false
+    }
+  }
+
+  const cerrarAlertaYContinuar = () => {
+    setAlertaPresupuesto(null)
+    onGuardada?.()
+  }
+
+  const handleCrearCategoria = async (nombre, icono) => {
+    setProcesandoCategoria(true)
+    setError(null)
+    try {
+      await crearCategoria({ userId, nombre, tipo, icono })
+      const todasCategorias = await obtenerCategorias(userId)
+      setCategoriasGasto(todasCategorias.filter(c => c.tipo === 'gasto'))
+      setCategoriasIngreso(todasCategorias.filter(c => c.tipo === 'ingreso'))
+      setCategoria(nombre)
+      setCreandoCategoria(false)
+    } catch (err) {
+      setError(mensajeAmigable(err, 'No se pudo crear la categoría.'))
+    } finally {
+      setProcesandoCategoria(false)
+    }
+  }
 
   const handleGuardar = async () => {
     if (!valido || guardando) return
@@ -148,15 +206,21 @@ export default function NuevaTransaccion({ onBack, onGuardada, transaccionEditar
     try {
       if (editando) {
         await editarTransaccion({ transaccionId: transaccionEditar.id, ...comunes })
+        marcarConectividad(true)
+        onGuardada?.()
       } else {
         await crearTransaccion({
           userId,
           cuentaSaldoActual: Number(cuentaSeleccionada.saldo),
           ...comunes
         })
+        marcarConectividad(true)
+        // Solo revisamos el presupuesto en gastos nuevos — si se excedió,
+        // verificarPresupuesto ya deja lista la alerta y AlertaPresupuesto
+        // se encarga de llamar a onGuardada() cuando el usuario la cierre.
+        const seExcedio = tipo === 'gasto' && await verificarPresupuesto(userId, categoria)
+        if (!seExcedio) onGuardada?.()
       }
-      marcarConectividad(true)
-      onGuardada?.()
     } catch (err) {
       // Si la red realmente falló (aunque navigator.onLine no lo supiera aún,
       // como pasa con la simulación de las DevTools), la tratamos como offline
@@ -240,6 +304,14 @@ export default function NuevaTransaccion({ onBack, onGuardada, transaccionEditar
             </button>
           )
         })}
+        <button onClick={() => setCreandoCategoria(true)} style={{
+          flexShrink: 0, padding: '8px 14px', borderRadius: 999,
+          background: 'var(--bg-surface)', color: 'var(--accent-blue)', fontSize: 13, fontWeight: 600,
+          border: '1px dashed var(--border-subtle)',
+          display: 'flex', alignItems: 'center', gap: 6
+        }}>
+          + {t('cat_nueva')}
+        </button>
       </div>
 
       <label className="field-label">{t('nt_descripcion').split(' (')[0]} <span style={{ fontWeight: 400, color: 'var(--text-muted)' }}>{t('nt_opcional')}</span></label>
@@ -258,6 +330,23 @@ export default function NuevaTransaccion({ onBack, onGuardada, transaccionEditar
         background: valido ? 'var(--gradient-brand)' : 'var(--bg-surface-2)',
         color: valido ? '#fff' : 'var(--text-muted)'
       }}>{etiquetaBoton}</button>
+
+      {alertaPresupuesto && (
+        <AlertaPresupuesto
+          categoria={alertaPresupuesto.categoria}
+          gastado={alertaPresupuesto.gastado}
+          limite={alertaPresupuesto.limite}
+          onCerrar={cerrarAlertaYContinuar}
+        />
+      )}
+
+      {creandoCategoria && (
+        <FormularioCategoria
+          procesando={procesandoCategoria}
+          onCancelar={() => setCreandoCategoria(false)}
+          onGuardar={handleCrearCategoria}
+        />
+      )}
     </div>
   )
 }
