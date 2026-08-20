@@ -7,14 +7,12 @@ import {
   editarTransaccion,
   obtenerCuentas,
   obtenerCategorias,
-  crearCategoria,
   obtenerPresupuestos,
   obtenerTransaccionesPorMes
 } from '../lib/db.js'
 import InfoTooltip from '../components/InfoTooltip.jsx'
 import Monto from '../components/Monto.jsx'
 import AlertaPresupuesto from '../components/AlertaPresupuesto.jsx'
-import FormularioCategoria from '../components/FormularioCategoria.jsx'
 import { logError } from '../lib/logger.js'
 import { mensajeAmigable } from '../lib/errores.js'
 import { encolarOperacion, conRespaldoOffline, obtenerConectividad, marcarConectividad, pareceErrorDeRed } from '../lib/offline.js'
@@ -58,8 +56,6 @@ export default function NuevaTransaccion({ onBack, onGuardada, transaccionEditar
   const [guardando, setGuardando] = useState(false)
   const [error, setError] = useState(null)
   const [alertaPresupuesto, setAlertaPresupuesto] = useState(null) // { categoria, gastado, limite } | null
-  const [creandoCategoria, setCreandoCategoria] = useState(false)
-  const [procesandoCategoria, setProcesandoCategoria] = useState(false)
   const { t } = usePreferencias()
 
   useEffect(() => {
@@ -98,7 +94,7 @@ export default function NuevaTransaccion({ onBack, onGuardada, transaccionEditar
     cargarCuentas()
   }, [])
 
-  const categorias = (tipo === 'gasto' ? categoriasGasto : categoriasIngreso).filter(c => c.nombre !== 'Otros' && c.nombre !== 'Other')
+  const categorias = tipo === 'gasto' ? categoriasGasto : categoriasIngreso
   // Una tarjeta de crédito no puede recibir ingresos directos (para eso está
   // "Pagar tarjeta" en Administrar Cuentas) — se oculta como opción aquí.
   const cuentasDisponibles = tipo === 'ingreso' ? cuentas.filter(c => c.tipo !== 'tarjeta_credito') : cuentas
@@ -143,23 +139,6 @@ export default function NuevaTransaccion({ onBack, onGuardada, transaccionEditar
   const cerrarAlertaYContinuar = () => {
     setAlertaPresupuesto(null)
     onGuardada?.()
-  }
-
-  const handleCrearCategoria = async (nombre, icono) => {
-    setProcesandoCategoria(true)
-    setError(null)
-    try {
-      await crearCategoria({ userId, nombre, tipo, icono })
-      const todasCategorias = await obtenerCategorias(userId)
-      setCategoriasGasto(todasCategorias.filter(c => c.tipo === 'gasto'))
-      setCategoriasIngreso(todasCategorias.filter(c => c.tipo === 'ingreso'))
-      setCategoria(nombre)
-      setCreandoCategoria(false)
-    } catch (err) {
-      setError(mensajeAmigable(err, 'No se pudo crear la categoría.'))
-    } finally {
-      setProcesandoCategoria(false)
-    }
   }
 
   const handleGuardar = async () => {
@@ -251,7 +230,7 @@ export default function NuevaTransaccion({ onBack, onGuardada, transaccionEditar
             if (opcion === 'ingreso' && cuentaSeleccionada?.tipo === 'tarjeta_credito') setCuentaId(null)
           }} style={{
             flex: 1, padding: 14, borderRadius: 'var(--radius-md)',
-            background: tipo === opcion ? 'var(--gradient-brand)' : 'var(--bg-surface)',
+            background: tipo === opcion ? (opcion === 'gasto' ? 'var(--danger)' : 'var(--success)') : 'var(--bg-surface)',
             color: tipo === opcion ? '#fff' : 'var(--text-secondary)', fontWeight: 600, fontSize: 14,
             border: '1px solid ' + (tipo === opcion ? 'transparent' : 'var(--border-subtle)')
           }}>
@@ -304,14 +283,6 @@ export default function NuevaTransaccion({ onBack, onGuardada, transaccionEditar
             </button>
           )
         })}
-        <button onClick={() => setCreandoCategoria(true)} style={{
-          flexShrink: 0, padding: '8px 14px', borderRadius: 999,
-          background: 'var(--bg-surface)', color: 'var(--accent-blue)', fontSize: 13, fontWeight: 600,
-          border: '1px dashed var(--border-subtle)',
-          display: 'flex', alignItems: 'center', gap: 6
-        }}>
-          + {t('cat_nueva')}
-        </button>
       </div>
 
       <label className="field-label">{t('nt_descripcion').split(' (')[0]} <span style={{ fontWeight: 400, color: 'var(--text-muted)' }}>{t('nt_opcional')}</span></label>
@@ -337,14 +308,6 @@ export default function NuevaTransaccion({ onBack, onGuardada, transaccionEditar
           gastado={alertaPresupuesto.gastado}
           limite={alertaPresupuesto.limite}
           onCerrar={cerrarAlertaYContinuar}
-        />
-      )}
-
-      {creandoCategoria && (
-        <FormularioCategoria
-          procesando={procesandoCategoria}
-          onCancelar={() => setCreandoCategoria(false)}
-          onGuardar={handleCrearCategoria}
         />
       )}
     </div>
