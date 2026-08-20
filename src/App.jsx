@@ -4,10 +4,12 @@ import { asegurarCuentasPorDefecto, asegurarCategoriasPorDefecto, crearTransacci
 import { logError } from './lib/logger.js'
 import { useEnLinea } from './hooks/useEnLinea.js'
 import { obtenerColaPendiente, sincronizarCola, conRespaldoOffline } from './lib/offline.js'
+import { pushSoportado, permisoPush } from './lib/push.js'
 import BannerSinConexion from './components/BannerSinConexion.jsx'
 import BottomNav from './components/BottomNav.jsx'
 import Login from './screens/Login.jsx'
 import OnboardingTour, { TOUR_STORAGE_KEY } from './components/OnboardingTour.jsx'
+import PopupNotificaciones, { debeMostrarPopupPush } from './components/PopupNotificaciones.jsx'
 import { PreferenciasProvider } from './context/PreferenciasContext.jsx'
 import { esNativo } from './lib/capacitor.js'
 import { obtenerVerifier, limpiarVerifier } from './lib/pkce.js'
@@ -75,6 +77,8 @@ function AppInner() {
   const [session, setSession] = useState(undefined)
   const [refreshKey, setRefreshKey] = useState(0)
   const [mostrarTour, setMostrarTour] = useState(false)
+  const [mostrarPopupPush, setMostrarPopupPush] = useState(false)
+  const [userIdActual, setUserIdActual] = useState(null)
   const [tipoPreseleccionado, setTipoPreseleccionado] = useState('gasto')
   const enLinea = useEnLinea()
   const [pendientes, setPendientes] = useState(0)
@@ -116,6 +120,17 @@ function AppInner() {
     conRespaldoOffline(`analisis:${uid}:${hoy.getFullYear()}-${hoy.getMonth()}`, () => obtenerTransaccionesPorMes(uid, hoy)).catch(() => {})
     conRespaldoOffline(`metas:${uid}`, () => obtenerMetas(uid)).catch(() => {})
     conRespaldoOffline(`ahorro-externo:${uid}`, () => obtenerAhorroExterno(uid)).catch(() => {})
+  }
+
+  // En la app nativa (Android empaquetado) el permiso ya se pide solo, vía
+  // Firebase (inicializarFirebaseMessaging arriba) — este popup es solo
+  // para la versión web/PWA, donde si el usuario dice "no" a nivel de
+  // navegador ya no se le puede volver a preguntar, así que conviene
+  // explicarle antes de que el navegador le muestre el diálogo nativo.
+  const evaluarPopupPush = () => {
+    if (esNativo()) return
+    if (!pushSoportado()) return
+    if (debeMostrarPopupPush(permisoPush())) setMostrarPopupPush(true)
   }
 
   useEffect(() => {
@@ -218,12 +233,20 @@ function AppInner() {
     const inicializarUsuario = (uid) => {
       if (yaInicializado) return
       yaInicializado = true
+      setUserIdActual(uid)
       asegurarCuentasPorDefecto(uid).catch(err => logError('Error creando cuentas por defecto', err))
       asegurarCategoriasPorDefecto(uid).catch(err => logError('Error creando categorías por defecto', err))
       precargarOffline(uid)
       procesarRecurrentes().then(n => { if (n > 0) setRefreshKey(k => k + 1) }).catch(() => {})
       inicializarFirebaseMessaging(uid)
-      if (!yaVistoAntes) setMostrarTour(true)
+      if (!yaVistoAntes) {
+        setMostrarTour(true)
+      } else {
+        // Si no hay tour de por medio, se evalúa el popup de push de una
+        // vez — si sí hay tour, se evalúa al cerrarlo (ver onFinalizar más
+        // abajo) para no mostrar dos modales encimados.
+        evaluarPopupPush()
+      }
     }
 
     supabase.auth.getSession().then(({ data }) => {
@@ -276,7 +299,11 @@ function AppInner() {
         )}
       </Suspense>
 
-      {mostrarTour && <OnboardingTour onFinalizar={() => setMostrarTour(false)} />}
+      {mostrarTour && <OnboardingTour onFinalizar={() => { setMostrarTour(false); evaluarPopupPush() }} />}
+
+      {mostrarPopupPush && userIdActual && (
+        <PopupNotificaciones userId={userIdActual} onCerrar={() => setMostrarPopupPush(false)} />
+      )}
     </div>
   )
 }
