@@ -45,6 +45,10 @@ export const traducciones = {
 
     // Ajustes
     ajustes_titulo: 'Ajustes',
+    push_popup_titulo: '¡Actívalas para no perderte nada!',
+    push_popup_texto: 'Te avisamos si te acercas a un presupuesto, la fecha de corte o pago de tus tarjetas, y un recordatorio diario para registrar tus gastos.',
+    push_popup_activar: 'Activar notificaciones',
+    push_popup_ahora_no: 'Ahora no',
     ajustes_sesion_google: 'Sesión iniciada con Google',
     ajustes_seccion_cuenta: 'Cuenta',
     ajustes_ver_tutorial: 'Ver tutorial de nuevo',
@@ -363,6 +367,10 @@ export const traducciones = {
     ajustes_vinculando: 'Linking…',
 
     ajustes_titulo: 'Settings',
+    push_popup_titulo: 'Turn them on so you never miss a thing!',
+    push_popup_texto: "We'll let you know if you're close to a budget limit, your credit card statement or due date, and a daily reminder to log your expenses.",
+    push_popup_activar: 'Enable notifications',
+    push_popup_ahora_no: 'Not now',
     ajustes_sesion_google: 'Signed in with Google',
     ajustes_seccion_cuenta: 'Account',
     ajustes_ver_tutorial: 'Watch tutorial again',
