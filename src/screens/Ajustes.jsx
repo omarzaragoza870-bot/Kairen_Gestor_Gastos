@@ -9,6 +9,7 @@ import Categorias from './Categorias.jsx'
 import Presupuestos from './Presupuestos.jsx'
 import Recurrentes from './Recurrentes.jsx'
 import Reportes from './Reportes.jsx'
+import Colaborar from './Colaborar.jsx'
 import { pushSoportado, permisoPush, suscribirPush, desuscribirPush, estaSuscrito } from '../lib/push.js'
 import SelectorMoneda from './SelectorMoneda.jsx'
 import SelectorTema from './SelectorTema.jsx'
@@ -23,6 +24,7 @@ export default function Ajustes({ onVerTutorial }) {
   const [mostrarPresupuestos, setMostrarPresupuestos] = useState(false)
   const [mostrarRecurrentes, setMostrarRecurrentes] = useState(false)
   const [mostrarReportes, setMostrarReportes] = useState(false)
+  const [mostrarColaborar, setMostrarColaborar] = useState(false)
   const [pushActivo, setPushActivo] = useState(false)
   const [cargandoPush, setCargandoPush] = useState(false)
 
@@ -202,6 +204,7 @@ export default function Ajustes({ onVerTutorial }) {
   const email = user?.email
   const esInvitado = Boolean(user?.is_anonymous)
 
+  if (mostrarColaborar) return <Colaborar onBack={() => setMostrarColaborar(false)} />
   if (mostrarCategorias && user) {
     return <Categorias userId={user.id} onBack={() => setMostrarCategorias(false)} />
   }
@@ -419,6 +422,20 @@ export default function Ajustes({ onVerTutorial }) {
       {mensaje && (
         <p style={{ color: 'var(--success)', fontSize: 13, margin: '10px 0 0' }}>{mensaje}</p>
       )}
+
+      {/* Colaborar */}
+      <div style={{ margin: '24px 0 8px' }}>
+        <h2 style={{ fontSize: 14, fontWeight: 600, color: 'var(--text-secondary)', margin: 0 }}>👥 Colaborar</h2>
+      </div>
+
+      <section style={{
+        background: 'var(--bg-surface)', borderRadius: 'var(--radius-lg)',
+        border: '1px solid var(--border-subtle)', overflow: 'hidden', marginBottom: 16
+      }}>
+        <button onClick={() => setMostrarColaborar(true)} style={{ width: '100%', textAlign: 'left', background: 'transparent' }}>
+          <FilaAjuste icono="🤝" titulo="Metas y presupuestos compartidos" subtitulo="Colabora con tu pareja o familia manteniendo tu privacidad" flecha />
+        </button>
+      </section>
 
       {/* Datos */}
       <div style={{ margin: '24px 0 8px' }}>
