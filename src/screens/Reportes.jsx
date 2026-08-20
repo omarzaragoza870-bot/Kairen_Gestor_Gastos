@@ -190,16 +190,36 @@ export default function Reportes({ onBack }) {
       y += 8
 
       cuentas.forEach(c => {
+        if (y > 270) { doc.addPage(); y = 20 }
+        const esCredito = c.tipo === 'tarjeta_credito'
+
         doc.setFontSize(9)
         doc.setFont('helvetica', 'normal')
         doc.setTextColor(30, 35, 60)
         doc.text(c.nombre, 14, y + 4)
-        doc.setFont('helvetica', 'bold')
-        doc.setTextColor(52, 211, 153)
-        doc.text(fmt(c.saldo), W - 14, y + 4, { align: 'right' })
-        doc.setDrawColor(230, 233, 245)
-        doc.line(14, y + 7, W - 14, y + 7)
-        y += 10
+
+        if (esCredito) {
+          // Para tarjeta de crédito, "saldo" es deuda — mostrarla en rojo,
+          // y calcular el disponible real (límite - deuda) por separado.
+          const disponible = Number(c.limite_credito || 0) - Number(c.saldo || 0)
+          doc.setFont('helvetica', 'bold')
+          doc.setTextColor(52, 211, 153)
+          doc.text(`Disponible: ${fmt(disponible)}`, W - 14, y + 4, { align: 'right' })
+          doc.setFontSize(8)
+          doc.setFont('helvetica', 'normal')
+          doc.setTextColor(220, 60, 60)
+          doc.text(`Deuda: ${fmt(c.saldo)}`, W - 14, y + 9, { align: 'right' })
+          doc.setDrawColor(230, 233, 245)
+          doc.line(14, y + 12, W - 14, y + 12)
+          y += 15
+        } else {
+          doc.setFont('helvetica', 'bold')
+          doc.setTextColor(52, 211, 153)
+          doc.text(fmt(c.saldo), W - 14, y + 4, { align: 'right' })
+          doc.setDrawColor(230, 233, 245)
+          doc.line(14, y + 7, W - 14, y + 7)
+          y += 10
+        }
       })
 
       // ─── Footer ───────────────────────────────────────────────
