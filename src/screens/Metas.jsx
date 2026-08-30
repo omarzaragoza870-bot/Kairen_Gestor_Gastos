@@ -4,6 +4,7 @@ import { obtenerMetas, crearMeta, editarMeta, marcarMetaCompletada, eliminarMeta
 import { useScrollLock } from '../hooks/useScrollLock.js'
 import MetaDetalle from './MetaDetalle.jsx'
 import Monto from '../components/Monto.jsx'
+import CategoriaIcono, { ICONOS_DISPONIBLES } from '../components/CategoriaIcono.jsx'
 import { usePreferencias } from '../context/PreferenciasContext.jsx'
 import { conRespaldoOffline } from '../lib/offline.js'
 import { mensajeAmigable } from '../lib/errores.js'
@@ -11,7 +12,6 @@ import { mensajeAmigable } from '../lib/errores.js'
 const fmt = (n) => Number(n).toLocaleString('es-MX', { style: 'currency', currency: 'MXN' })
 const fmtFecha = (f) => f ? new Date(`${f}T12:00:00`).toLocaleDateString('es-MX', { day: '2-digit', month: 'short', year: 'numeric' }) : null
 
-const ICONOS = ['🎯', '✈️', '🏠', '🚗', '💍', '🎓', '💻', '🏥', '🐾', '🎉', '📱', '💰']
 const PRIORIDADES_IDS = [
   ['baja', 'var(--text-secondary)'],
   ['media', 'var(--warning)'],
@@ -236,9 +236,16 @@ function FormularioMeta({ meta, onCancelar, onGuardar, guardando }) {
   const { t } = usePreferencias()
   const PRIORIDADES = PRIORIDADES_IDS.map(([id, color]) => [id, t(`metas_prioridad_${id}`), color])
   const esNueva = !meta.id
+
+  // Detectar si el icono guardado es un emoji antiguo o un nombre Lucide.
+  // Si es un emoji (no está en ICONOS_DISPONIBLES), migrarlo a 'Target' por defecto.
+  const iconoInicial = ICONOS_DISPONIBLES.find(i => i.nombre === meta.icono)
+    ? meta.icono
+    : 'Target'
+
   const [nombre, setNombre] = useState(meta.nombre || '')
   const [descripcion, setDescripcion] = useState(meta.descripcion || '')
-  const [icono, setIcono] = useState(meta.icono || '🎯')
+  const [icono, setIcono] = useState(iconoInicial)
   const [prioridad, setPrioridad] = useState(meta.prioridad || 'media')
   const [montoObjetivo, setMontoObjetivo] = useState(meta.monto_objetivo ? String(meta.monto_objetivo) : '')
   const [montoActual, setMontoActual] = useState(meta.monto_actual ? String(meta.monto_actual) : '0')
@@ -253,31 +260,26 @@ function FormularioMeta({ meta, onCancelar, onGuardar, guardando }) {
       <div onClick={(e) => e.stopPropagation()} className="modal-card" style={{ maxWidth: 420, maxHeight: '85vh', overflowY: 'auto' }}>
         <h3>{esNueva ? t('metas_form_nueva') : t('metas_form_editar')}</h3>
 
-        <label className="field-label">Emoji de la meta</label>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 12, margin: '8px 0 16px' }}>
-          <div style={{
-            width: 56, height: 56, borderRadius: 'var(--radius-md)',
-            background: 'var(--bg-surface)', border: '1px solid var(--border-subtle)',
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-            fontSize: 28, flexShrink: 0
-          }}>
-            {icono}
-          </div>
-          <input
-            value={icono}
-            onChange={e => {
-              const val = [...e.target.value].slice(-2).join('')
-              if (val.trim()) setIcono(val.trim())
-            }}
-            maxLength={4}
-            placeholder="🎯"
-            style={{
-              flex: 1, padding: '14px 16px', borderRadius: 'var(--radius-md)',
-              background: 'var(--bg-surface)', border: '1px solid var(--border-subtle)',
-              fontSize: 24, textAlign: 'center', color: 'var(--text-primary)',
-              fontFamily: 'inherit'
-            }}
-          />
+        <label className="field-label">Ícono de la meta</label>
+        <div style={{
+          display: 'grid', gridTemplateColumns: 'repeat(6, 1fr)', gap: 8,
+          padding: 12, margin: '8px 0 16px', background: 'var(--bg-surface)',
+          borderRadius: 'var(--radius-md)', border: '1px solid var(--border-subtle)'
+        }}>
+          {ICONOS_DISPONIBLES.map(item => (
+            <button
+              key={item.nombre}
+              onClick={() => setIcono(item.nombre)}
+              title={item.label}
+              style={{
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                padding: 10, borderRadius: 'var(--radius-sm)',
+                background: icono === item.nombre ? 'var(--gradient-brand)' : 'transparent'
+              }}
+            >
+              <CategoriaIcono icono={item.nombre} size={20} color={icono === item.nombre ? '#fff' : 'var(--text-secondary)'} />
+            </button>
+          ))}
         </div>
 
         <label className="field-label">{t('metas_nombre')}</label>
