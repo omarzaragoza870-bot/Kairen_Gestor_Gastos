@@ -385,12 +385,8 @@ export async function eliminarAhorroExterno(id, userId) {
 }
 
 export async function obtenerMetas(userId) {
-  const { data, error } = await supabase
-    .from('metas')
-    .select('*')
-    .eq('user_id', userId)
-    .order('created_at', { ascending: false })
-
+  // Usa la función RPC que incluye metas propias + compartidas en grupos
+  const { data, error } = await supabase.rpc('obtener_metas_visibles')
   if (error) throw error
   return data || []
 }
