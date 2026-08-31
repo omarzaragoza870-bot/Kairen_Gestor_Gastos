@@ -58,23 +58,31 @@ export default function Metas() {
   const completadas = useMemo(() => lista.filter(m => m.completada), [lista])
   const mostrar = tab === 'activas' ? activas : completadas
 
-  const handleGuardar = async (form) => {
-    setProcesando(true)
-    setError(null)
-    try {
-      if (form.id) {
-        await editarMeta({ id: form.id, userId, ...form })
-      } else {
-        await crearMeta({ userId, ...form })
-      }
-      setEditando(null)
-      await cargar(userId)
-    } catch (err) {
-      setError(mensajeAmigable(err, 'No se pudo guardar la meta.'))
-    } finally {
-      setProcesando(false)
+const handleGuardar = async (form) => {
+  setProcesando(true)
+  setError(null)
+  try {
+    let uid = userId
+    if (!uid) {
+      const { data } = await supabase.auth.getSession()
+      uid = data.session?.user?.id
+      if (uid) setUserId(uid)
     }
+    if (!uid) throw new Error('No hay sesión activa')
+
+    if (form.id) {
+      await editarMeta({ id: form.id, userId: uid, ...form })
+    } else {
+      await crearMeta({ userId: uid, ...form })
+    }
+    setEditando(null)
+    await cargar(uid)
+  } catch (err) {
+    setError(mensajeAmigable(err, 'No se pudo guardar la meta.'))
+  } finally {
+    setProcesando(false)
   }
+}
 
   const handleToggleCompletada = async (meta) => {
     try {
