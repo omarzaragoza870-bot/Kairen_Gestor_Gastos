@@ -18,3 +18,8 @@ android/local.properties
 *.keystore
 *.jks
 dev-dist/
+
+# Android Studio local config
+.idea/
+*.iml
+
