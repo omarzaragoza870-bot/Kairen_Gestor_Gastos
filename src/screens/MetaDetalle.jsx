@@ -4,6 +4,7 @@ import { useScrollLock } from '../hooks/useScrollLock.js'
 import Monto from '../components/Monto.jsx'
 import { usePreferencias } from '../context/PreferenciasContext.jsx'
 import { mensajeAmigable } from '../lib/errores.js'
+import CategoriaIcono from '../components/CategoriaIcono.jsx'
 
 const fmt = (n) => Number(n).toLocaleString('es-MX', { style: 'currency', currency: 'MXN' })
 const fmtFecha = (f) => f ? new Date(`${f}T12:00:00`).toLocaleDateString('es-MX', { day: '2-digit', month: 'short', year: 'numeric' }) : '—'
@@ -73,7 +74,9 @@ export default function MetaDetalle({ meta, userId, onBack, onCambio }) {
           <button onClick={onBack} aria-label={t('tour_atras')} className="icon-button" style={{ background: 'rgba(255,255,255,0.08)', border: 'none' }}>←</button>
           <span style={{ width: 42 }} />
         </div>
-        <div style={{ fontSize: 56, marginBottom: 8 }}>{meta.icono || '🎯'}</div>
+        <div style={{ marginBottom: 8, display: 'flex', justifyContent: 'center' }}>
+          <CategoriaIcono icono={meta.icono || 'Target'} size={56} color="var(--accent-blue)" />
+        </div>
         <h1 style={{ fontSize: 22, fontWeight: 700, margin: 0 }}>{meta.nombre}</h1>
         {meta.descripcion && <p style={{ fontSize: 13, color: 'var(--text-secondary)', margin: '4px 0 0' }}>{meta.descripcion}</p>}
       </div>
