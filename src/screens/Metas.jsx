@@ -165,7 +165,9 @@ const handleGuardar = async (form) => {
             <div onClick={() => setDetalle(meta)} style={{ cursor: 'pointer' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 10, gap: 10 }}>
               <div style={{ display: 'flex', gap: 10, minWidth: 0 }}>
-                <span style={{ fontSize: 24, flexShrink: 0 }}>{meta.icono || '🎯'}</span>
+                <span style={{ flexShrink: 0, display: 'flex', alignItems: 'center' }}>
+                  <CategoriaIcono icono={meta.icono || 'Target'} size={24} color="var(--text-secondary)" />
+                </span>
                 <div style={{ minWidth: 0 }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                     <span style={{ fontWeight: 700, fontSize: 15 }}>{meta.nombre}</span>
