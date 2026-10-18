@@ -5,13 +5,32 @@
 // Lee los datos reales del usuario y responde preguntas financieras personalizadas.
 
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
+import { corsHeadersPara } from '../_shared/cors.ts'
 
-const corsHeaders = {
-  'Access-Control-Allow-Origin': 'https://kairen-gestor-gastos.vercel.app',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+// El servidor de Supabase corre en UTC. Sin una zona horaria, el último
+// día del mes después de las 6 pm (hora de México) ya se consideraba el
+// mes siguiente y los totales salían en cero.
+const ZONA_POR_DEFECTO = 'America/Mexico_City'
+
+function zonaValida(zona: unknown): zona is string {
+  if (typeof zona !== 'string' || zona.length > 64) return false
+  try {
+    new Intl.DateTimeFormat('en-US', { timeZone: zona })
+    return true
+  } catch {
+    return false
+  }
+}
+
+/** Fecha de hoy ('YYYY-MM-DD') en la zona horaria indicada. */
+function hoyEnZona(zona: string): string {
+  // en-CA formatea como YYYY-MM-DD
+  return new Intl.DateTimeFormat('en-CA', { timeZone: zona, year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date())
 }
 
 Deno.serve(async (req) => {
+  const corsHeaders = corsHeadersPara(req)
+
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders })
   }
@@ -40,7 +59,7 @@ Deno.serve(async (req) => {
       })
     }
 
-    const { pregunta } = await req.json()
+    const { pregunta, zonaHoraria } = await req.json()
     if (!pregunta?.trim() || pregunta.trim().length > 100) {
       return new Response(JSON.stringify({ error: 'Falta la pregunta' }), {
         status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' }
@@ -50,23 +69,41 @@ Deno.serve(async (req) => {
     // Leer datos financieros del usuario
     const adminClient = createClient(supabaseUrl, serviceKey)
     const uid = user.id
-    const hoy = new Date()
-    const inicioMes = new Date(hoy.getFullYear(), hoy.getMonth(), 1).toISOString().slice(0, 10)
+    const zona = zonaValida(zonaHoraria) ? zonaHoraria : ZONA_POR_DEFECTO
+    const hoyStr = hoyEnZona(zona)
+    const anio = Number(hoyStr.slice(0, 4))
+    const mes = Number(hoyStr.slice(5, 7)) // 1-12
+    const inicioMes = `${hoyStr.slice(0, 7)}-01`
+    const inicioSiguiente = mes === 12
+      ? `${anio + 1}-01-01`
+      : `${anio}-${String(mes + 1).padStart(2, '0')}-01`
+    const nombreMes = new Date(Date.UTC(anio, mes - 1, 15)).toLocaleDateString('es-MX', { month: 'long', year: 'numeric', timeZone: 'UTC' })
+
+    // TODOS los movimientos del mes, en páginas de 1000. Antes se tomaban
+    // solo los últimos 50, y con más movimientos los totales salían mal.
+    const transaccionesMes: { tipo: string, monto: number, categoria_nombre: string }[] = []
+    for (let desde = 0; desde < 50000; desde += 1000) {
+      const { data, error } = await adminClient.from('transacciones')
+        .select('id, tipo, monto, categoria_nombre')
+        .eq('user_id', uid)
+        .gte('fecha', inicioMes)
+        .lt('fecha', inicioSiguiente)
+        .order('id', { ascending: true })
+        .range(desde, desde + 999)
+      if (error) throw error
+      transaccionesMes.push(...(data || []))
+      if (!data || data.length < 1000) break
+    }
 
     const [
       { data: cuentas },
-      { data: transaccionesMes },
       { data: metas },
-      { data: presupuestos },
-      { data: categorias }
+      { data: presupuestos }
     ] = await Promise.all([
       adminClient.from('cuentas').select('nombre, saldo, tipo').eq('user_id', uid),
-      adminClient.from('transacciones').select('tipo, monto, categoria_nombre, descripcion, fecha')
-        .eq('user_id', uid).gte('fecha', inicioMes).order('fecha', { ascending: false }).limit(50),
       adminClient.from('metas').select('nombre, monto_objetivo, monto_actual, fecha_limite, completada')
         .eq('user_id', uid).eq('completada', false),
-      adminClient.from('presupuestos').select('categoria_nombre, monto_limite').eq('user_id', uid),
-      adminClient.from('categorias').select('nombre, tipo').eq('user_id', uid)
+      adminClient.from('presupuestos').select('categoria_nombre, monto_limite').eq('user_id', uid)
     ])
 
     // Calcular resumen financiero
@@ -77,7 +114,11 @@ Deno.serve(async (req) => {
       .filter(t => t.tipo === 'gasto')
       .reduce((s, t) => s + Number(t.monto), 0)
     const balanceMes = ingresosMes - gastosMes
-    const saldoTotal = (cuentas || []).reduce((s, c) => s + Number(c.saldo), 0)
+    // En tarjetas de crédito `saldo` es DEUDA: no puede sumarse como dinero.
+    const cuentasLiquidas = (cuentas || []).filter(c => c.tipo !== 'tarjeta_credito')
+    const tarjetasCredito = (cuentas || []).filter(c => c.tipo === 'tarjeta_credito')
+    const saldoTotal = cuentasLiquidas.reduce((s, c) => s + Number(c.saldo), 0)
+    const deudaTarjetas = tarjetasCredito.reduce((s, c) => s + Number(c.saldo), 0)
 
     // Agrupar gastos por categoría
     const gastosPorCategoria = {}
@@ -101,11 +142,14 @@ Respondes SOLO con base en los datos reales del usuario que se te proporcionan.
 Tus respuestas son concisas (máximo 80 palabras), prácticas y con emojis ocasionales.
 Nunca inventas datos ni das consejos genéricos sin base en los números del usuario.
 
-DATOS FINANCIEROS DEL USUARIO (${hoy.toLocaleDateString('es-MX', { month: 'long', year: 'numeric' })}):
+DATOS FINANCIEROS DEL USUARIO (${nombreMes}):
 
-💰 Saldo total en cuentas: ${fmt(saldoTotal)}
-${(cuentas || []).map(c => `  - ${c.nombre}: ${fmt(c.saldo)}`).join('\n')}
-
+💰 Dinero en cuentas (efectivo, débito, banco): ${fmt(saldoTotal)}
+${cuentasLiquidas.map(c => `  - ${c.nombre}: ${fmt(c.saldo)}`).join('\n')}
+${tarjetasCredito.length > 0 ? `
+💳 Deuda en tarjetas de crédito: ${fmt(deudaTarjetas)}
+${tarjetasCredito.map(c => `  - ${c.nombre}: debe ${fmt(c.saldo)}`).join('\n')}
+` : ''}
 📊 Este mes:
   - Ingresos: ${fmt(ingresosMes)}
   - Gastos: ${fmt(gastosMes)}
@@ -131,7 +175,7 @@ ${(presupuestos || []).length > 0
 Número de transacciones este mes: ${(transaccionesMes || []).length}
 `.trim()
 
-    // Llamar a Gemini 2.0 Flash
+    // Llamar a Gemini
     const geminiRes = await fetch(
       `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-lite:generateContent?key=${geminiKey}`,
       {
@@ -153,10 +197,11 @@ Número de transacciones este mes: ${(transaccionesMes || []).length}
       }
     )
 
-        const geminiData = await geminiRes.json()
-        console.log('[gemini status]', geminiRes.status)
-        console.log('[gemini response]', JSON.stringify(geminiData))
-        const respuesta = geminiData?.candidates?.[0]?.content?.parts?.[0]?.text
+    const geminiData = await geminiRes.json()
+    // Solo el estado: la respuesta completa contiene datos financieros del
+    // usuario y no debe quedar en los logs de Supabase.
+    if (!geminiRes.ok) console.error('[preguntar-kairen] Gemini respondió', geminiRes.status)
+    const respuesta = geminiData?.candidates?.[0]?.content?.parts?.[0]?.text
 
     if (!respuesta) {
       return new Response(JSON.stringify({ error: 'No se pudo obtener respuesta de la IA' }), {
@@ -170,7 +215,7 @@ Número de transacciones este mes: ${(transaccionesMes || []).length}
 
   } catch (err) {
     console.error('[preguntar-kairen]', err)
-    return new Response(JSON.stringify({ error: err.message }), {
+    return new Response(JSON.stringify({ error: 'No se pudo procesar la pregunta.' }), {
       status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' }
     })
   }

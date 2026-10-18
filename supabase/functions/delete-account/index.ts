@@ -13,19 +13,17 @@
 //   npx supabase functions deploy delete-account
 
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
+import { corsHeadersPara } from '../_shared/cors.ts'
 
 const supabaseUrl = Deno.env.get('SUPABASE_URL')
 const serviceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')
 
-// Headers CORS — sin esto, el navegador bloquea la respuesta antes
-// de que tu app pueda leerla, aunque la función funcione bien por dentro.
-const corsHeaders = {
-  'Access-Control-Allow-Origin': 'https://kairen-gestor-gastos.vercel.app',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-  'Access-Control-Allow-Methods': 'POST, OPTIONS'
-}
-
 Deno.serve(async (req) => {
+  // Headers CORS — sin esto, el navegador bloquea la respuesta antes
+  // de que tu app pueda leerla, aunque la función funcione bien por dentro.
+  // Se calculan por petición para aceptar web (Vercel) y app nativa (Capacitor).
+  const corsHeaders = corsHeadersPara(req)
+
   // El navegador manda un "preflight" OPTIONS antes del POST real —
   // hay que responderlo explícitamente o nunca deja pasar el POST.
   if (req.method === 'OPTIONS') {
@@ -67,7 +65,8 @@ Deno.serve(async (req) => {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' }
     })
   } catch (err) {
-    return new Response(JSON.stringify({ error: err.message }), {
+    console.error('[delete-account]', err)
+    return new Response(JSON.stringify({ error: 'No se pudo eliminar la cuenta.' }), {
       status: 500,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' }
     })
