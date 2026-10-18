@@ -4,7 +4,9 @@ import InfoTooltip from '../components/InfoTooltip.jsx'
 import { useScrollLock } from '../hooks/useScrollLock.js'
 import { usePreferencias, MONEDAS } from '../context/PreferenciasContext.jsx'
 import { exportarTodosLosDatos, importarTodosLosDatos, reiniciarCuentaActual } from '../lib/db.js'
+import { hoyLocal } from '../lib/fechas.js'
 import { logError } from '../lib/logger.js'
+import { mensajeAmigable } from '../lib/errores.js'
 import Categorias from './Categorias.jsx'
 import Presupuestos from './Presupuestos.jsx'
 import Recurrentes from './Recurrentes.jsx'
@@ -122,7 +124,7 @@ export default function Ajustes({ onVerTutorial }) {
       const url = URL.createObjectURL(blob)
       const a = document.createElement('a')
       a.href = url
-      a.download = `kairen-finanzas-respaldo-${new Date().toISOString().slice(0, 10)}.json`
+      a.download = `kairen-finanzas-respaldo-${hoyLocal()}.json`
       document.body.appendChild(a)
       a.click()
       a.remove()
@@ -171,10 +173,22 @@ export default function Ajustes({ onVerTutorial }) {
         throw new Error('El archivo no tiene el formato de un respaldo de Kairen Finanzas.')
       }
 
-      await importarTodosLosDatos(user.id, datos)
-      setMensaje('Datos importados correctamente. Los verás reflejados en Inicio, Análisis, etc.')
+      // La restauración es atómica: o entra todo, o no entra nada. El
+      // servidor solo la permite sobre una cuenta vacía (para no duplicar)
+      // y, si no lo está, responde con un mensaje que se muestra tal cual.
+      const { restaurado, diferencias } = await importarTodosLosDatos(user.id, datos)
+      const total = Number(restaurado.transacciones || 0)
+      if (diferencias.length === 0) {
+        setMensaje(`Respaldo restaurado: ${total} movimientos, ${Number(restaurado.cuentas || 0)} cuentas y ${Number(restaurado.metas || 0)} metas. Los verás reflejados en Inicio, Análisis, etc.`)
+      } else {
+        const detalle = diferencias.map(d => `${d.tabla}: ${d.restaurado} de ${d.esperado}`).join(', ')
+        setMensaje(`Respaldo restaurado, pero no coincidieron algunas cantidades (${detalle}). Revisa tus datos.`)
+        logError('Diferencias al restaurar respaldo', diferencias)
+      }
     } catch (err) {
-      setError('No se pudo importar el archivo. Verifica que sea un respaldo válido de Kairen Finanzas.')
+      setError(err instanceof SyntaxError
+        ? 'El archivo no es un respaldo válido de Kairen Finanzas.'
+        : mensajeAmigable(err, 'No se pudo importar el archivo. Verifica que sea un respaldo válido de Kairen Finanzas.'))
       logError('Error al importar datos', err)
     } finally {
       setImportando(false)

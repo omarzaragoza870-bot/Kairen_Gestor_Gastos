@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { supabase } from '../lib/supabaseClient.js'
 import {
   asegurarCuentasPorDefecto,
@@ -15,19 +15,10 @@ import Monto from '../components/Monto.jsx'
 import AlertaPresupuesto from '../components/AlertaPresupuesto.jsx'
 import { logError } from '../lib/logger.js'
 import { mensajeAmigable } from '../lib/errores.js'
-import { encolarOperacion, conRespaldoOffline, obtenerConectividad, marcarConectividad, pareceErrorDeRed } from '../lib/offline.js'
+import { encolarOperacion, conRespaldoOffline, obtenerConectividad, marcarConectividad, pareceErrorDeRed, generarIdOperacion } from '../lib/offline.js'
+import { hoyLocal } from '../lib/fechas.js'
 import { usePreferencias } from '../context/PreferenciasContext.jsx'
 import CategoriaIcono from '../components/CategoriaIcono.jsx'
-
-const hoy = () => {
-  const fecha = new Date()
-
-  const año = fecha.getFullYear()
-  const mes = String(fecha.getMonth() + 1).padStart(2, "0")
-  const dia = String(fecha.getDate()).padStart(2, "0")
-
-  return `${año}-${mes}-${dia}`
-}
 
 // Filtra el texto del input de monto: solo dígitos y un único punto decimal.
 // Bloquea letras y símbolos aunque el usuario los pegue o use teclado físico
@@ -49,7 +40,7 @@ export default function NuevaTransaccion({ onBack, onGuardada, transaccionEditar
   const [monto, setMonto] = useState(transaccionEditar ? String(transaccionEditar.monto) : '')
   const [categoria, setCategoria] = useState(transaccionEditar?.categoria_nombre || null)
   const [descripcion, setDescripcion] = useState(transaccionEditar?.descripcion || '')
-  const [fecha, setFecha] = useState(transaccionEditar?.fecha || hoy())
+  const [fecha, setFecha] = useState(transaccionEditar?.fecha || hoyLocal())
   const [userId, setUserId] = useState(null)
   const [categoriasGasto, setCategoriasGasto] = useState([])
   const [categoriasIngreso, setCategoriasIngreso] = useState([])
@@ -57,6 +48,10 @@ export default function NuevaTransaccion({ onBack, onGuardada, transaccionEditar
   const [error, setError] = useState(null)
   const [alertaPresupuesto, setAlertaPresupuesto] = useState(null) // { categoria, gastado, limite } | null
   const { t } = usePreferencias()
+  // Identificador único de ESTE movimiento. Se crea una sola vez al abrir el
+  // formulario y se reutiliza en cualquier reintento (incluida la cola sin
+  // conexión): el servidor lo usa para no registrar el mismo gasto dos veces.
+  const idOperacion = useRef(generarIdOperacion())
 
   useEffect(() => {
     const cargarCuentas = async () => {
@@ -162,7 +157,7 @@ export default function NuevaTransaccion({ onBack, onGuardada, transaccionEditar
       try {
         await encolarOperacion({
           accion: 'crearTransaccion',
-          datos: { userId, cuentaSaldoActual: Number(cuentaSeleccionada.saldo), ...comunes }
+          datos: { clientOpId: idOperacion.current, ...comunes }
         })
         onGuardada?.()
       } catch (err) {
@@ -188,11 +183,7 @@ export default function NuevaTransaccion({ onBack, onGuardada, transaccionEditar
         marcarConectividad(true)
         onGuardada?.()
       } else {
-        await crearTransaccion({
-          userId,
-          cuentaSaldoActual: Number(cuentaSeleccionada.saldo),
-          ...comunes
-        })
+        await crearTransaccion({ clientOpId: idOperacion.current, ...comunes })
         marcarConectividad(true)
         // Solo revisamos el presupuesto en gastos nuevos — si se excedió,
         // verificarPresupuesto ya deja lista la alerta y AlertaPresupuesto

@@ -9,6 +9,8 @@
 // 2. "cola"   — guarda operaciones de escritura (crear transacción,
 //    transferencia, etc.) que no se pudieron mandar por falta de red,
 //    para reintentarlas automáticamente cuando vuelva la conexión.
+//    Cada operación lleva un clientOpId: el servidor no la registra dos
+//    veces aunque se reintente (ver upgrade_v2_8_estabilidad.sql).
 //
 // Esto es 100% web estándar (IndexedDB + evento 'online'), así que
 // funciona igual dentro de un WebView de Capacitor cuando empaquetes
@@ -50,9 +52,53 @@ export function suscribirseConectividad(callback) {
   return () => emisorConectividad.removeEventListener('cambio', manejador)
 }
 
+/**
+ * ¿El error se debe a que no hubo conexión con el servidor?
+ *
+ * Solo reconoce los mensajes que generan los navegadores/WebViews cuando la
+ * petición nunca llegó o nunca regresó ("Failed to fetch" en Chrome/Android,
+ * "Load failed" en Safari/iOS, "NetworkError…" en Firefox). Antes bastaba
+ * con que el mensaje contuviera "failed", y eso hacía que errores reales del
+ * servidor se guardaran como "pendientes sin conexión".
+ */
 export function pareceErrorDeRed(err) {
-  const msg = (err?.message || '').toLowerCase()
-  return !navigator.onLine || msg.includes('fetch') || msg.includes('network') || msg.includes('failed')
+  if (typeof navigator !== 'undefined' && navigator.onLine === false) return true
+  const msg = String(err?.message || err || '').toLowerCase()
+  return (
+    msg.includes('failed to fetch') ||
+    msg.includes('load failed') ||
+    msg.includes('networkerror') ||
+    msg.includes('network request failed') ||
+    msg.includes('network error') ||
+    msg.includes('fetch failed') ||
+    msg.includes('err_internet_disconnected') ||
+    msg.includes('err_network_changed') ||
+    msg.includes('timed out') ||
+    msg.includes('timeout')
+  )
+}
+
+/**
+ * Identificador único para una operación de escritura. Se genera UNA vez por
+ * operación (al abrir el formulario) y viaja con ella hasta el servidor, que
+ * lo usa para no registrarla dos veces aunque la app la reintente.
+ */
+export function generarIdOperacion() {
+  try {
+    if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
+      return crypto.randomUUID()
+    }
+  } catch { /* noop */ }
+  const bytes = new Uint8Array(16)
+  if (typeof crypto !== 'undefined' && typeof crypto.getRandomValues === 'function') {
+    crypto.getRandomValues(bytes)
+  } else {
+    for (let i = 0; i < bytes.length; i++) bytes[i] = Math.floor(Math.random() * 256)
+  }
+  bytes[6] = (bytes[6] & 0x0f) | 0x40
+  bytes[8] = (bytes[8] & 0x3f) | 0x80
+  const hex = Array.from(bytes, b => b.toString(16).padStart(2, '0')).join('')
+  return `${hex.slice(0, 8)}-${hex.slice(8, 12)}-${hex.slice(12, 16)}-${hex.slice(16, 20)}-${hex.slice(20)}`
 }
 
 function abrirDB() {
@@ -137,21 +183,31 @@ export async function conRespaldoOffline(clave, fnRed) {
 
 // ---------- Cola de escritura pendiente ----------
 
-/** Agrega una operación a la cola (ej. { tipo: 'crearTransaccion', datos: {...} }). */
+// Tras este número de intentos fallidos por un error que NO es de red
+// (ej. la cuenta ya no existe), la operación sale de la cola y se guarda
+// aparte para no bloquear ni reintentar para siempre.
+const MAX_INTENTOS = 5
+const CLAVE_FALLIDAS = 'cola-fallidas'
+
+/** Agrega una operación a la cola (ej. { accion: 'crearTransaccion', datos: {...} }). */
 export async function encolarOperacion(operacion) {
   return conTienda(STORE_COLA, 'readwrite', tienda => {
-    tienda.add({ ...operacion, creadoEn: new Date().toISOString() })
+    tienda.add({ ...operacion, intentos: 0, creadoEn: new Date().toISOString() })
   })
 }
 
 export async function obtenerColaPendiente() {
-  return new Promise(async (resolve) => {
-    const db = await abrirDB()
-    const tx = db.transaction(STORE_COLA, 'readonly')
-    const req = tx.objectStore(STORE_COLA).getAll()
-    req.onsuccess = () => resolve(req.result || [])
-    req.onerror = () => resolve([])
-  })
+  try {
+    return await new Promise(async (resolve) => {
+      const db = await abrirDB()
+      const tx = db.transaction(STORE_COLA, 'readonly')
+      const req = tx.objectStore(STORE_COLA).getAll()
+      req.onsuccess = () => resolve(req.result || [])
+      req.onerror = () => resolve([])
+    })
+  } catch {
+    return []
+  }
 }
 
 export async function eliminarDeCola(id) {
@@ -160,23 +216,86 @@ export async function eliminarDeCola(id) {
   })
 }
 
+async function actualizarEnCola(op) {
+  return conTienda(STORE_COLA, 'readwrite', tienda => {
+    tienda.put(op)
+  })
+}
+
+/** Operaciones que el servidor rechazó varias veces y ya no se reintentan. */
+export async function obtenerOperacionesFallidas() {
+  return (await leerDeCache(CLAVE_FALLIDAS)) || []
+}
+
+async function moverAFallidas(op, err) {
+  const fallidas = await obtenerOperacionesFallidas()
+  fallidas.push({ ...op, error: String(err?.message || err), descartadaEn: new Date().toISOString() })
+  await guardarEnCache(CLAVE_FALLIDAS, fallidas)
+  await eliminarDeCola(op.id)
+}
+
 /**
- * Procesa toda la cola pendiente ejecutando `ejecutor(operacion)` por cada una.
- * Si una falla, se detiene ahí (no borra las que quedan) para no perder el orden.
+ * Clave estable para operaciones encoladas por versiones anteriores de la
+ * app (que no traían clientOpId): siempre es la misma para la misma
+ * operación, así el servidor tampoco la duplica.
+ */
+export function idOperacionDe(op) {
+  return op?.datos?.clientOpId || `legacy-${op.id}-${op.creadoEn || ''}`
+}
+
+// Sesión vencida o inexistente: no es culpa de la operación, así que no
+// cuenta como intento fallido.
+function esErrorDeSesion(err) {
+  const msg = String(err?.message || '').toLowerCase()
+  return (
+    err?.status === 401 ||
+    err?.code === 'PGRST301' ||
+    err?.code === 'PGRST303' ||
+    msg.includes('jwt') ||
+    msg.includes('sesión expiró')
+  )
+}
+
+let sincronizando = null
+
+/**
+ * Procesa la cola pendiente ejecutando `ejecutor(operacion)` por cada una.
+ * - Si falla por red: se detiene (se reintenta cuando vuelva la conexión).
+ * - Si el servidor la rechaza: suma un intento y sigue con las demás; tras
+ *   MAX_INTENTOS se mueve a "fallidas" para no bloquear la cola.
+ * Nunca corre dos veces en paralelo.
  * Regresa cuántas se sincronizaron con éxito.
  */
 export async function sincronizarCola(ejecutor) {
-  const pendientes = await obtenerColaPendiente()
-  let sincronizadas = 0
-  for (const op of pendientes) {
-    try {
-      await ejecutor(op)
-      await eliminarDeCola(op.id)
-      sincronizadas++
-    } catch (err) {
-      console.warn('[Kairen Finanzas] No se pudo sincronizar una operación pendiente:', err.message)
-      break
+  if (sincronizando) return sincronizando
+  sincronizando = (async () => {
+    const pendientes = await obtenerColaPendiente()
+    let sincronizadas = 0
+    for (const op of pendientes) {
+      try {
+        await ejecutor(op)
+        await eliminarDeCola(op.id)
+        sincronizadas++
+      } catch (err) {
+        if (pareceErrorDeRed(err)) {
+          marcarConectividad(false)
+          break
+        }
+        if (esErrorDeSesion(err)) break // se reintenta cuando haya sesión válida, sin gastar intentos
+        console.warn('[Kairen Finanzas] El servidor rechazó una operación pendiente:', err?.message)
+        const intentos = (op.intentos || 0) + 1
+        if (intentos >= MAX_INTENTOS) {
+          await moverAFallidas(op, err)
+        } else {
+          await actualizarEnCola({ ...op, intentos, ultimoError: String(err?.message || err) })
+        }
+      }
     }
+    return sincronizadas
+  })()
+  try {
+    return await sincronizando
+  } finally {
+    sincronizando = null
   }
-  return sincronizadas
 }

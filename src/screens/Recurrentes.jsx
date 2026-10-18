@@ -5,6 +5,7 @@ import { useScrollLock } from '../hooks/useScrollLock.js'
 import { usePreferencias } from '../context/PreferenciasContext.jsx'
 import { mensajeAmigable } from '../lib/errores.js'
 import Monto from '../components/Monto.jsx'
+import { hoyLocal } from '../lib/fechas.js'
 
 const FRECUENCIAS = [
   { id: 'diario',    label: 'Diario',     emoji: '📅' },
@@ -14,7 +15,9 @@ const FRECUENCIAS = [
   { id: 'anual',     label: 'Anual',      emoji: '🎯' },
 ]
 
-const hoy = () => new Date().toISOString().slice(0, 10)
+// Fecha local (no UTC): con toISOString, después de las 6 pm en México
+// proponía como primera fecha el día de mañana.
+const hoy = () => hoyLocal()
 
 export default function Recurrentes({ onBack }) {
   const { t } = usePreferencias()

@@ -1,54 +1,88 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { supabase } from '../lib/supabaseClient.js'
 import { obtenerCuentas, crearTransferencia } from '../lib/db.js'
 import { usePreferencias } from '../context/PreferenciasContext.jsx'
 import Monto from '../components/Monto.jsx'
 import { mensajeAmigable } from '../lib/errores.js'
-import { encolarOperacion, conRespaldoOffline, obtenerConectividad, marcarConectividad, pareceErrorDeRed } from '../lib/offline.js'
+import { logError } from '../lib/logger.js'
+import { encolarOperacion, conRespaldoOffline, obtenerConectividad, marcarConectividad, pareceErrorDeRed, generarIdOperacion } from '../lib/offline.js'
+import { hoyLocal } from '../lib/fechas.js'
 
-const hoy = () => {
-  const fecha = new Date()
-  return `${fecha.getFullYear()}-${String(fecha.getMonth() + 1).padStart(2, '0')}-${String(fecha.getDate()).padStart(2, '0')}`
+// Mismo filtro usado en NuevaTransaccion: solo dígitos y un único punto decimal.
+const limpiarMonto = (valor) => {
+  let limpio = valor.replace(',', '.').replace(/[^0-9.]/g, '')
+  const partes = limpio.split('.')
+  if (partes.length > 2) limpio = partes[0] + '.' + partes.slice(1).join('')
+  return limpio
 }
+
+const ICONO_TIPO = { efectivo: '💵', tarjeta: '💳', banco: '🏦', otro: '📦' }
 
 export default function NuevaTransferencia({ onBack, onGuardada }) {
   const { t } = usePreferencias()
   const [cuentas, setCuentas] = useState([])
+  const [cargando, setCargando] = useState(true)
   const [origenId, setOrigenId] = useState(null)
   const [destinoId, setDestinoId] = useState(null)
   const [monto, setMonto] = useState('')
   const [descripcion, setDescripcion] = useState('')
-  const [fecha, setFecha] = useState(hoy())
+  const [fecha, setFecha] = useState(hoyLocal())
   const [guardando, setGuardando] = useState(false)
   const [error, setError] = useState(null)
+  // Identificador único de ESTA transferencia: se reutiliza en cualquier
+  // reintento para que el servidor no la registre dos veces.
+  const idOperacion = useRef(generarIdOperacion())
 
   useEffect(() => {
-    supabase.auth.getSession().then(async ({ data }) => {
-      const usuario = data.session?.user
-      if (!usuario) return
-      const lista = await conRespaldoOffline(`cuentas:${usuario.id}`, () => obtenerCuentas(usuario.id))
-      setCuentas(lista)
-      if (lista.length > 0) setOrigenId(lista[0].id)
-      if (lista.length > 1) setDestinoId(lista[1].id)
-    })
+    let cancelado = false
+    ;(async () => {
+      try {
+        const { data } = await supabase.auth.getSession()
+        const usuario = data.session?.user
+        if (!usuario) throw new Error('No encontramos una sesión activa.')
+        const lista = await conRespaldoOffline(`cuentas:${usuario.id}`, () => obtenerCuentas(usuario.id))
+        // Las tarjetas de crédito no participan en transferencias: su "saldo"
+        // es deuda. Para abonarles está "Pagar tarjeta" en Administrar Cuentas.
+        const transferibles = lista.filter(c => c.tipo !== 'tarjeta_credito')
+        if (cancelado) return
+        setCuentas(transferibles)
+        if (transferibles.length > 0) setOrigenId(transferibles[0].id)
+        if (transferibles.length > 1) setDestinoId(transferibles[1].id)
+      } catch (err) {
+        logError('Error cargando cuentas para transferencia', err)
+        if (!cancelado) setError(mensajeAmigable(err, 'No se pudieron cargar tus cuentas.'))
+      } finally {
+        if (!cancelado) setCargando(false)
+      }
+    })()
+    return () => { cancelado = true }
   }, [])
 
   const montoNum = Number(monto)
-  const valido = origenId && destinoId && origenId !== destinoId && Number.isFinite(montoNum) && montoNum > 0
+  const valido = Boolean(origenId && destinoId) && origenId !== destinoId && Number.isFinite(montoNum) && montoNum > 0 && Boolean(fecha)
+
+  const elegirOrigen = (id) => {
+    setOrigenId(id)
+    // Si el destino quedó igual al nuevo origen, se mueve a otra cuenta
+    if (id === destinoId) setDestinoId(cuentas.find(c => c.id !== id)?.id || null)
+  }
 
   const handleGuardar = async () => {
+    if (guardando) return
     if (origenId === destinoId) {
       setError(t('tf_error_misma_cuenta'))
       return
     }
+    if (!valido) return
     setGuardando(true)
     setError(null)
 
     const datosTransferencia = {
+      clientOpId: idOperacion.current,
       cuentaOrigenId: origenId,
       cuentaDestinoId: destinoId,
       monto: montoNum,
-      descripcion,
+      descripcion: descripcion.trim() || null,
       fecha
     }
 
@@ -57,6 +91,7 @@ export default function NuevaTransferencia({ onBack, onGuardada }) {
         await encolarOperacion({ accion: 'crearTransferencia', datos: datosTransferencia })
         onGuardada ? onGuardada() : onBack()
       } catch (err) {
+        logError('Error encolando transferencia offline', err)
         setError('No se pudo guardar localmente. Intenta de nuevo.')
         setGuardando(false)
       }
@@ -77,59 +112,57 @@ export default function NuevaTransferencia({ onBack, onGuardada }) {
         await intentarEncolar()
         return
       }
-      setError(mensajeAmigable(err))
+      logError('Error guardando transferencia', err)
+      setError(mensajeAmigable(err, 'No se pudo guardar la transferencia. Intenta de nuevo.'))
       setGuardando(false)
     }
   }
 
+  const tarjetaCuenta = (c, seleccionada, onClick, deshabilitada = false) => (
+    <button
+      key={c.id}
+      onClick={onClick}
+      disabled={deshabilitada}
+      style={{
+        flex: '1 1 45%', padding: 12, borderRadius: 'var(--radius-md)', textAlign: 'left',
+        background: 'var(--bg-surface)', opacity: deshabilitada ? 0.4 : 1,
+        border: '1.5px solid ' + (seleccionada ? 'var(--accent-blue)' : 'var(--border-subtle)')
+      }}
+    >
+      <div style={{ fontSize: 13, fontWeight: 600 }}>{ICONO_TIPO[c.tipo] || '💵'} {c.nombre}</div>
+      <div style={{ fontSize: 12, color: 'var(--success)' }}><Monto valor={c.saldo} /></div>
+    </button>
+  )
+
+  const faltanCuentas = !cargando && cuentas.length < 2
+
   return (
     <div style={{ padding: '16px 16px 40px', maxWidth: 680, margin: '0 auto' }}>
       <div className="screen-header">
-        <button onClick={onBack} className="back-button">←</button>
+        <button onClick={onBack} className="back-button" aria-label="Volver">←</button>
         <h1>{t('tf_titulo')}</h1>
       </div>
 
+      {faltanCuentas && (
+        <p style={{ fontSize: 13, color: 'var(--text-muted)', margin: '0 0 20px' }}>
+          Necesitas al menos dos cuentas (que no sean tarjetas de crédito) para transferir. Puedes agregarlas desde Inicio → Administrar Cuentas.
+        </p>
+      )}
+
       <label className="field-label">{t('tf_cuenta_origen')}</label>
-      <div style={{ display: 'flex', gap: 10, margin: '8px 0 20px' }}>
-        {cuentas.map(c => (
-          <button
-            key={c.id}
-            onClick={() => setOrigenId(c.id)}
-            style={{
-              flex: 1, padding: 12, borderRadius: 'var(--radius-md)', textAlign: 'left',
-              background: 'var(--bg-surface)',
-              border: '1.5px solid ' + (origenId === c.id ? 'var(--accent-blue)' : 'var(--border-subtle)')
-            }}
-          >
-            <div style={{ fontSize: 13, fontWeight: 600 }}>{c.nombre}</div>
-            <div style={{ fontSize: 12, color: 'var(--success)' }}><Monto valor={c.saldo} /></div>
-          </button>
-        ))}
+      <div style={{ display: 'flex', gap: 10, margin: '8px 0 20px', flexWrap: 'wrap' }}>
+        {cuentas.map(c => tarjetaCuenta(c, origenId === c.id, () => elegirOrigen(c.id)))}
       </div>
 
       <label className="field-label">{t('tf_cuenta_destino')}</label>
-      <div style={{ display: 'flex', gap: 10, margin: '8px 0 20px' }}>
-        {cuentas.map(c => (
-          <button
-            key={c.id}
-            onClick={() => setDestinoId(c.id)}
-            disabled={c.id === origenId}
-            style={{
-              flex: 1, padding: 12, borderRadius: 'var(--radius-md)', textAlign: 'left',
-              background: 'var(--bg-surface)', opacity: c.id === origenId ? 0.4 : 1,
-              border: '1.5px solid ' + (destinoId === c.id ? 'var(--accent-blue)' : 'var(--border-subtle)')
-            }}
-          >
-            <div style={{ fontSize: 13, fontWeight: 600 }}>{c.nombre}</div>
-            <div style={{ fontSize: 12, color: 'var(--success)' }}><Monto valor={c.saldo} /></div>
-          </button>
-        ))}
+      <div style={{ display: 'flex', gap: 10, margin: '8px 0 20px', flexWrap: 'wrap' }}>
+        {cuentas.map(c => tarjetaCuenta(c, destinoId === c.id, () => setDestinoId(c.id), c.id === origenId))}
       </div>
 
       <label className="field-label">{t('tf_monto')}</label>
       <div className="input-shell" style={{ marginBottom: 20 }}>
         <span style={{ color: 'var(--text-muted)' }}>$</span>
-        <input inputMode="decimal" value={monto} onChange={(e) => setMonto(e.target.value.replace(',', '.'))} placeholder="0.00" />
+        <input inputMode="decimal" value={monto} onChange={(e) => setMonto(limpiarMonto(e.target.value))} placeholder="0.00" />
       </div>
 
       <label className="field-label">{t('tf_descripcion')}</label>

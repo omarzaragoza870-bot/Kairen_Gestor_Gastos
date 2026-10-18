@@ -1,12 +1,13 @@
 import { useEffect, useState, lazy, Suspense } from 'react'
 import { supabase } from './lib/supabaseClient.js'
-import { asegurarCuentasPorDefecto, asegurarCategoriasPorDefecto, crearTransaccion, editarTransaccion, obtenerCuentas, obtenerCategorias, obtenerTransaccionesPorMes, obtenerMetas, obtenerAhorroExterno, procesarRecurrentes } from './lib/db.js'
+import { asegurarCuentasPorDefecto, asegurarCategoriasPorDefecto, crearTransaccion, crearTransferencia, editarTransaccion, obtenerCuentas, obtenerCategorias, obtenerTransaccionesPorMes, obtenerMetas, obtenerAhorroExterno, procesarRecurrentes } from './lib/db.js'
 import { logError } from './lib/logger.js'
 import { useEnLinea } from './hooks/useEnLinea.js'
-import { obtenerColaPendiente, sincronizarCola, conRespaldoOffline } from './lib/offline.js'
+import { obtenerColaPendiente, sincronizarCola, conRespaldoOffline, idOperacionDe } from './lib/offline.js'
 import { pushSoportado, permisoPush } from './lib/push.js'
 import BannerSinConexion from './components/BannerSinConexion.jsx'
 import BottomNav from './components/BottomNav.jsx'
+import NuevaOperacion from './components/NuevaOperacion.jsx'
 import Login from './screens/Login.jsx'
 import OnboardingTour, { TOUR_STORAGE_KEY } from './components/OnboardingTour.jsx'
 import PopupNotificaciones, { debeMostrarPopupPush } from './components/PopupNotificaciones.jsx'
@@ -54,6 +55,7 @@ async function inicializarFirebaseMessaging(userId) {
 // — reduce el bundle inicial de ~510 KB a ~150-200 KB
 const Inicio = lazy(() => import('./screens/Inicio.jsx'))
 const NuevaTransaccion = lazy(() => import('./screens/NuevaTransaccion.jsx'))
+const NuevaTransferencia = lazy(() => import('./screens/NuevaTransferencia.jsx'))
 const Transacciones = lazy(() => import('./screens/Transacciones.jsx'))
 const Analisis = lazy(() => import('./screens/Analisis.jsx'))
 const AhorroExterno = lazy(() => import('./screens/AhorroExterno.jsx'))
@@ -80,6 +82,7 @@ function AppInner() {
   const [mostrarPopupPush, setMostrarPopupPush] = useState(false)
   const [userIdActual, setUserIdActual] = useState(null)
   const [tipoPreseleccionado, setTipoPreseleccionado] = useState('gasto')
+  const [mostrarSelectorOperacion, setMostrarSelectorOperacion] = useState(false)
   const enLinea = useEnLinea()
   const [pendientes, setPendientes] = useState(0)
 
@@ -88,8 +91,13 @@ function AppInner() {
     setPendientes(cola.length)
   }
 
+  // Cada operación viaja con su clientOpId (o una clave estable si fue
+  // encolada por una versión anterior de la app), así el servidor no la
+  // registra dos veces aunque se reintente.
   const ejecutarOperacionPendiente = async (op) => {
-    if (op.accion === 'crearTransaccion') return crearTransaccion(op.datos)
+    const clientOpId = idOperacionDe(op)
+    if (op.accion === 'crearTransaccion') return crearTransaccion({ ...op.datos, clientOpId })
+    if (op.accion === 'crearTransferencia') return crearTransferencia({ ...op.datos, clientOpId })
     if (op.accion === 'editarTransaccion') return editarTransaccion(op.datos)
     throw new Error(`Acción offline desconocida: ${op.accion}`)
   }
@@ -98,8 +106,12 @@ function AppInner() {
     actualizarConteoPendientes()
   }, [])
 
+  const usuarioSesionId = session?.user?.id || null
+
   useEffect(() => {
-    if (!enLinea) return
+    // Solo se sincroniza con conexión Y con sesión activa: sin sesión el
+    // servidor rechazaría todo y se gastarían los reintentos.
+    if (!enLinea || !usuarioSesionId) return
     // Al recuperar conexión, intenta sincronizar todo lo que quedó pendiente
     sincronizarCola(ejecutarOperacionPendiente)
       .then(sincronizadas => {
@@ -108,7 +120,7 @@ function AppInner() {
       })
       .catch(err => logError('Error sincronizando cola offline', err))
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [enLinea])
+  }, [enLinea, usuarioSesionId])
 
   const precargarOffline = (uid) => {
     // Precarga en segundo plano todo lo que las pantallas principales
@@ -270,6 +282,11 @@ function AppInner() {
   if (!session) return <Login />
 
   const abrirNueva = () => { setTransaccionEditar(null); setTipoPreseleccionado('gasto'); setVista('formulario') }
+  // El botón "+" de Inicio pregunta primero qué operación registrar
+  const abrirSelectorOperacion = () => setMostrarSelectorOperacion(true)
+  const elegirTransaccion = () => { setMostrarSelectorOperacion(false); abrirNueva() }
+  const elegirTransferencia = () => { setMostrarSelectorOperacion(false); setVista('transferencia') }
+  const transferenciaGuardada = () => { setRefreshKey(k => k + 1); actualizarConteoPendientes(); setVista('principal') }
   const abrirEdicion = tx => { setTransaccionEditar(tx); setVista('formulario') }
   const guardada = () => { setRefreshKey(k => k + 1); actualizarConteoPendientes(); setVista(transaccionEditar ? 'lista' : 'principal'); setTransaccionEditar(null) }
 
@@ -283,13 +300,17 @@ function AppInner() {
         )}
 
 
+        {vista === 'transferencia' && (
+          <NuevaTransferencia onBack={() => setVista('principal')} onGuardada={transferenciaGuardada} />
+        )}
+
         {vista === 'lista' && (
           <Transacciones refreshKey={refreshKey} onBack={() => setVista('principal')} onEditar={abrirEdicion} onCambio={() => setRefreshKey(k => k + 1)} />
         )}
 
         {vista === 'principal' && (
           <>
-            {tab === 'inicio' && <Inicio onNuevo={abrirNueva} onEditar={abrirEdicion} onVerTodas={() => setVista('lista')} refreshKey={refreshKey} />}
+            {tab === 'inicio' && <Inicio onNuevo={abrirSelectorOperacion} onEditar={abrirEdicion} onVerTodas={() => setVista('lista')} refreshKey={refreshKey} />}
             {tab === 'analisis' && <Analisis />}
             {tab === 'ahorro' && <AhorroExterno />}
             {tab === 'metas' && <Metas />}
@@ -298,6 +319,14 @@ function AppInner() {
           </>
         )}
       </Suspense>
+
+      {mostrarSelectorOperacion && (
+        <NuevaOperacion
+          onCerrar={() => setMostrarSelectorOperacion(false)}
+          onTransaccion={elegirTransaccion}
+          onTransferencia={elegirTransferencia}
+        />
+      )}
 
       {mostrarTour && <OnboardingTour onFinalizar={() => { setMostrarTour(false); evaluarPopupPush() }} />}
 

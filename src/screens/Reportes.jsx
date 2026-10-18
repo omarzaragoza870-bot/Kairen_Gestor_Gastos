@@ -28,8 +28,10 @@ export default function Reportes({ onBack }) {
     setError(null)
 
     try {
-      // Cargar jsPDF dinámicamente
-      const { jsPDF } = await import('https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js')
+      // jsPDF se carga solo cuando se genera un reporte (no infla el bundle
+      // inicial). Antes se importaba el build UMD desde un CDN, que no exporta
+      // como módulo: `jsPDF` llegaba como undefined y el PDF nunca se generaba.
+      const { jsPDF } = await import('jspdf')
       const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' })
 
       const [transacciones, cuentas] = await Promise.all([

@@ -1,9 +1,34 @@
 import { supabase } from './supabaseClient.js'
+import { fechaLocalISO, hoyLocal } from './fechas.js'
 
+// Solo cuenta como "función no instalada" si Supabase/Postgres lo dice con
+// su código específico. Antes bastaba con que el mensaje contuviera la
+// palabra "function", y cualquier error legítimo podía confundirse.
 const esFuncionNoDisponible = (error) =>
   error?.code === 'PGRST202' ||
   error?.code === '42883' ||
-  String(error?.message || '').toLowerCase().includes('function')
+  /could not find the function/i.test(String(error?.message || ''))
+
+const errorFuncionFaltante = (nombreFuncion, archivoSql) =>
+  new Error(`Falta la función ${nombreFuncion} en Supabase. Ejecuta ${archivoSql} en el SQL Editor.`)
+
+// Supabase devuelve como máximo ~1000 filas por consulta (según la
+// configuración del proyecto). Esta función pide la información en páginas
+// hasta traerla completa. `construirConsulta` debe regresar una consulta
+// NUEVA cada vez y con un orden estable (por eso se agrega `id` al final).
+const TAMANO_PAGINA = 1000
+
+async function traerTodasLasPaginas(construirConsulta) {
+  const filas = []
+  for (let desde = 0; ; desde += TAMANO_PAGINA) {
+    const { data, error } = await construirConsulta().range(desde, desde + TAMANO_PAGINA - 1)
+    if (error) throw error
+    const pagina = data || []
+    filas.push(...pagina)
+    if (pagina.length < TAMANO_PAGINA) break
+  }
+  return filas
+}
 
 export async function asegurarCuentasPorDefecto(userId) {
   const { data: existentes, error } = await supabase
@@ -145,18 +170,30 @@ export async function eliminarCuenta(id, userId) {
   if (error) throw error
 }
 
-export async function crearTransferencia({ cuentaOrigenId, cuentaDestinoId, monto, descripcion, fecha }) {
-  const { data, error } = await supabase.rpc('crear_transferencia_segura', {
+/**
+ * Crea una transferencia entre cuentas. `clientOpId` identifica la operación:
+ * si la app la reintenta (por ejemplo, desde la cola sin conexión), el
+ * servidor no la registra dos veces.
+ */
+export async function crearTransferencia({ clientOpId, cuentaOrigenId, cuentaDestinoId, monto, descripcion, fecha }) {
+  const parametros = {
     p_cuenta_origen_id: cuentaOrigenId,
     p_cuenta_destino_id: cuentaDestinoId,
     p_monto: monto,
     p_descripcion: descripcion || null,
     p_fecha: fecha
-  })
+  }
+
+  if (clientOpId) {
+    const { data, error } = await supabase.rpc('crear_transferencia_idempotente', { p_client_op_id: clientOpId, ...parametros })
+    if (!error) return data
+    if (!esFuncionNoDisponible(error)) throw error
+    // upgrade_v2_8 aún no se ejecuta: se usa la versión atómica sin protección contra duplicados
+  }
+
+  const { data, error } = await supabase.rpc('crear_transferencia_segura', parametros)
   if (error) {
-    if (esFuncionNoDisponible(error)) {
-      throw new Error('Falta ejecutar src/sql/upgrade_v1_5_transferencias.sql en Supabase para poder transferir entre cuentas.')
-    }
+    if (esFuncionNoDisponible(error)) throw errorFuncionFaltante('crear_transferencia_segura', 'src/sql/upgrade_v1_5_transferencias.sql')
     throw error
   }
   return data
@@ -177,11 +214,27 @@ export async function pagarTarjetaCredito({ tarjetaId, cuentaOrigenId, monto, fe
   })
   if (error) {
     if (esFuncionNoDisponible(error)) {
-      throw new Error('Falta ejecutar src/sql/upgrade_v2_2_tarjetas_credito.sql en Supabase para poder pagar tarjetas de crédito.')
+      throw errorFuncionFaltante('pagar_tarjeta_credito', 'src/sql/upgrade_v2_3_tarjetas_credito.sql')
     }
     throw error
   }
   return data
+}
+
+/** Todas las transferencias del usuario (para respaldos). */
+export async function obtenerTodasLasTransferencias(userId) {
+  try {
+    return await traerTodasLasPaginas(() => supabase
+      .from('transferencias')
+      .select('*')
+      .eq('user_id', userId)
+      .order('fecha', { ascending: false })
+      .order('created_at', { ascending: false })
+      .order('id', { ascending: true }))
+  } catch (err) {
+    console.warn('[Kairen Finanzas] Transferencias no disponibles aún:', err.message)
+    return []
+  }
 }
 
 export async function obtenerTransferencias(userId, limite = 20) {
@@ -208,7 +261,7 @@ export async function eliminarTransferencia(transferenciaId) {
   })
   if (error) {
     if (esFuncionNoDisponible(error)) {
-      throw new Error('Falta ejecutar src/sql/upgrade_v1_5_transferencias.sql en Supabase para poder eliminar transferencias.')
+      throw errorFuncionFaltante('eliminar_transferencia_segura', 'src/sql/upgrade_v1_5_transferencias.sql')
     }
     throw error
   }
@@ -247,12 +300,10 @@ export async function eliminarPresupuesto(id, userId) {
 }
 
 export async function obtenerTransaccionesPorMes(userId, fechaReferencia = new Date()) {
-  const inicioMes = new Date(fechaReferencia.getFullYear(), fechaReferencia.getMonth(), 1)
-  const inicioSiguiente = new Date(fechaReferencia.getFullYear(), fechaReferencia.getMonth() + 1, 1)
-  const desde = inicioMes.toISOString().slice(0, 10)
-  const hasta = inicioSiguiente.toISOString().slice(0, 10)
+  const desde = fechaLocalISO(new Date(fechaReferencia.getFullYear(), fechaReferencia.getMonth(), 1))
+  const hasta = fechaLocalISO(new Date(fechaReferencia.getFullYear(), fechaReferencia.getMonth() + 1, 1))
 
-  const { data, error } = await supabase
+  return traerTodasLasPaginas(() => supabase
     .from('transacciones')
     .select('*')
     .eq('user_id', userId)
@@ -260,9 +311,7 @@ export async function obtenerTransaccionesPorMes(userId, fechaReferencia = new D
     .lt('fecha', hasta)
     .order('fecha', { ascending: false })
     .order('created_at', { ascending: false })
-
-  if (error) throw error
-  return data || []
+    .order('id', { ascending: true }))
 }
 
 export async function obtenerTransaccionesDelMes(userId) {
@@ -270,28 +319,24 @@ export async function obtenerTransaccionesDelMes(userId) {
 }
 
 export async function obtenerTodasLasTransacciones(userId) {
-  const { data, error } = await supabase
+  return traerTodasLasPaginas(() => supabase
     .from('transacciones')
     .select('*')
     .eq('user_id', userId)
     .order('fecha', { ascending: false })
     .order('created_at', { ascending: false })
-
-  if (error) throw error
-  return data || []
+    .order('id', { ascending: true }))
 }
 
 export async function obtenerTransaccionesEnRango(userId, desde, hasta) {
-  const { data, error } = await supabase
+  return traerTodasLasPaginas(() => supabase
     .from('transacciones')
     .select('*')
     .eq('user_id', userId)
     .gte('fecha', desde)
     .lt('fecha', hasta)
     .order('fecha', { ascending: true })
-
-  if (error) throw error
-  return data || []
+    .order('id', { ascending: true }))
 }
 
 /**
@@ -301,14 +346,12 @@ export async function obtenerTransaccionesEnRango(userId, desde, hasta) {
  * siguientes en vez de resetearse a $0 cada mes.
  */
 export async function obtenerTransaccionesAcumuladasHasta(userId, hastaExclusiva) {
-  const { data, error } = await supabase
+  return traerTodasLasPaginas(() => supabase
     .from('transacciones')
-    .select('tipo, monto')
+    .select('id, tipo, monto')
     .eq('user_id', userId)
     .lt('fecha', hastaExclusiva)
-
-  if (error) throw error
-  return data || []
+    .order('id', { ascending: true }))
 }
 
 /**
@@ -324,7 +367,7 @@ export async function obtenerDisponibleHistorico(userId, hastaExclusiva) {
   })
   if (error) {
     if (esFuncionNoDisponible(error)) {
-      throw new Error('Falta ejecutar src/sql/upgrade_v2_3_disponible_sin_credito.sql en Supabase.')
+      throw errorFuncionFaltante('obtener_disponible_historico', 'el respaldo del esquema de producción (supabase/schema_produccion.sql)')
     }
     throw error
   }
@@ -333,8 +376,8 @@ export async function obtenerDisponibleHistorico(userId, hastaExclusiva) {
 
 /** Trae todas las transacciones de los últimos N meses, contados desde fechaReferencia (incluye ese mes). */
 export async function obtenerTransaccionesUltimosMeses(userId, n = 6, fechaReferencia = new Date()) {
-  const desde = new Date(fechaReferencia.getFullYear(), fechaReferencia.getMonth() - (n - 1), 1).toISOString().slice(0, 10)
-  const hasta = new Date(fechaReferencia.getFullYear(), fechaReferencia.getMonth() + 1, 1).toISOString().slice(0, 10)
+  const desde = fechaLocalISO(new Date(fechaReferencia.getFullYear(), fechaReferencia.getMonth() - (n - 1), 1))
+  const hasta = fechaLocalISO(new Date(fechaReferencia.getFullYear(), fechaReferencia.getMonth() + 1, 1))
   return obtenerTransaccionesEnRango(userId, desde, hasta)
 }
 
@@ -455,70 +498,63 @@ export async function obtenerContribucionesMeta(metaId, userId) {
   return data || []
 }
 
-/** Registra un abono o retiro y ajusta el monto_actual de la meta correspondiente. */
-export async function registrarContribucionMeta({ metaId, userId, tipo, monto, nota, montoActualPrevio, montoObjetivo }) {
-  const { error: insertError } = await supabase.from('meta_contribuciones').insert({
-    user_id: userId,
-    meta_id: metaId,
-    tipo,
-    monto,
-    nota: nota || null,
-    fecha: new Date().toISOString().slice(0, 10)
+/**
+ * Registra un abono o retiro y ajusta el total de la meta en UNA sola
+ * operación del servidor: o se guardan las dos cosas, o ninguna. El nuevo
+ * total lo calcula el servidor con el valor real de la base (no con el que
+ * tenía la pantalla), así que dos abonos simultáneos —por ejemplo, de dos
+ * colaboradores de una meta compartida— se suman correctamente.
+ *
+ * Regresa el nuevo monto acumulado de la meta.
+ */
+export async function registrarContribucionMeta({ metaId, tipo, monto, nota }) {
+  const { data, error } = await supabase.rpc('registrar_contribucion_meta', {
+    p_meta_id: metaId,
+    p_tipo: tipo,
+    p_monto: monto,
+    p_nota: nota || null,
+    p_fecha: hoyLocal()
   })
-  if (insertError) throw insertError
-
-  const nuevoMonto = tipo === 'contribucion' ? montoActualPrevio + monto : Math.max(0, montoActualPrevio - monto)
-
-  const { error: updateError } = await supabase
-    .from('metas')
-    .update({ monto_actual: nuevoMonto, completada: nuevoMonto >= montoObjetivo })
-    .eq('id', metaId)
-    .eq('user_id', userId)
-  if (updateError) throw updateError
-
-  return nuevoMonto
+  if (error) {
+    if (esFuncionNoDisponible(error)) throw errorFuncionFaltante('registrar_contribucion_meta', 'src/sql/upgrade_v2_8_estabilidad.sql')
+    throw error
+  }
+  return Number(data)
 }
 
-async function crearTransaccionLegacy({ userId, cuentaId, categoriaNombre, tipo, monto, descripcion, fecha, cuentaSaldoActual }) {
-  const { error: insertError } = await supabase.from('transacciones').insert({
-    user_id: userId,
-    cuenta_id: cuentaId,
-    categoria_nombre: categoriaNombre,
-    tipo,
-    monto,
-    descripcion: descripcion || null,
-    fecha
-  })
-  if (insertError) throw insertError
-
-  const nuevoSaldo = tipo === 'gasto'
-    ? cuentaSaldoActual - monto
-    : cuentaSaldoActual + monto
-
-  const { error: updateError } = await supabase
-    .from('cuentas')
-    .update({ saldo: nuevoSaldo })
-    .eq('id', cuentaId)
-    .eq('user_id', userId)
-
-  if (updateError) throw updateError
-}
-
+/**
+ * Crea un movimiento y ajusta el saldo de su cuenta en una sola operación
+ * del servidor. `clientOpId` identifica la operación: si la app la
+ * reintenta (por ejemplo, desde la cola sin conexión), el servidor no la
+ * registra dos veces.
+ *
+ * Ya no existe el camino "legacy" que insertaba el movimiento y luego
+ * escribía el saldo calculado en el teléfono: podía dejar saldos
+ * desajustados. Si falta la función en Supabase, ahora se avisa.
+ */
 export async function crearTransaccion(datos) {
-  const { data, error } = await supabase.rpc('crear_transaccion_segura', {
+  const parametros = {
     p_cuenta_id: datos.cuentaId,
     p_categoria_nombre: datos.categoriaNombre,
     p_tipo: datos.tipo,
     p_monto: datos.monto,
     p_descripcion: datos.descripcion || null,
     p_fecha: datos.fecha
-  })
+  }
 
-  if (!error) return data
+  if (datos.clientOpId) {
+    const { data, error } = await supabase.rpc('crear_transaccion_idempotente', { p_client_op_id: datos.clientOpId, ...parametros })
+    if (!error) return data
+    if (!esFuncionNoDisponible(error)) throw error
+    // upgrade_v2_8 aún no se ejecuta: se usa la versión atómica sin protección contra duplicados
+  }
 
-  // Mantiene compatibilidad hasta que se ejecute upgrade_v1_1.sql.
-  if (esFuncionNoDisponible(error)) return crearTransaccionLegacy(datos)
-  throw error
+  const { data, error } = await supabase.rpc('crear_transaccion_segura', parametros)
+  if (error) {
+    if (esFuncionNoDisponible(error)) throw errorFuncionFaltante('crear_transaccion_segura', 'src/sql/upgrade_v2_3_tarjetas_credito.sql')
+    throw error
+  }
+  return data
 }
 
 export async function editarTransaccion({ transaccionId, cuentaId, categoriaNombre, tipo, monto, descripcion, fecha }) {
@@ -534,7 +570,7 @@ export async function editarTransaccion({ transaccionId, cuentaId, categoriaNomb
 
   if (error) {
     if (esFuncionNoDisponible(error)) {
-      throw new Error('Falta ejecutar src/sql/upgrade_v1_1.sql en Supabase para poder editar movimientos.')
+      throw errorFuncionFaltante('editar_transaccion_segura', 'src/sql/upgrade_v2_3_tarjetas_credito.sql')
     }
     throw error
   }
@@ -548,7 +584,7 @@ export async function eliminarTransaccion(transaccionId) {
 
   if (error) {
     if (esFuncionNoDisponible(error)) {
-      throw new Error('Falta ejecutar src/sql/upgrade_v1_1.sql en Supabase para poder eliminar movimientos.')
+      throw errorFuncionFaltante('eliminar_transaccion_segura', 'src/sql/upgrade_v2_8_estabilidad.sql')
     }
     throw error
   }
@@ -559,99 +595,85 @@ export async function eliminarTransaccion(transaccionId) {
 // Exportar / Importar / Reiniciar cuenta
 // ============================================================
 
+/**
+ * Respaldo completo (versión 2). Incluye todo lo que el usuario puede
+ * restaurar: cuentas (con la configuración de tarjetas), categorías,
+ * movimientos, transferencias, presupuestos, recurrentes, metas propias y
+ * sus contribuciones, y ahorro externo.
+ *
+ * Las metas compartidas por otras personas NO se incluyen: son de ellas.
+ */
 export async function exportarTodosLosDatos(userId) {
-  const [cuentas, categorias, transacciones, metas, ahorroExterno] = await Promise.all([
+  const [cuentas, categorias, transacciones, transferencias, presupuestos, recurrentes, metasVisibles, ahorroExterno] = await Promise.all([
     obtenerCuentas(userId),
     obtenerCategorias(userId),
     obtenerTodasLasTransacciones(userId),
+    obtenerTodasLasTransferencias(userId),
+    obtenerPresupuestos(userId),
+    obtenerRecurrentes(userId),
     obtenerMetas(userId),
     obtenerAhorroExterno(userId)
   ])
 
-  // Contribuciones de todas las metas juntas
-  const contribuciones = []
-  for (const meta of metas) {
-    const propias = await obtenerContribucionesMeta(meta.id, userId)
-    contribuciones.push(...propias)
-  }
+  const metas = metasVisibles.filter(m => m.user_id === userId)
+  const idsMetas = metas.map(m => m.id)
+
+  const meta_contribuciones = idsMetas.length === 0 ? [] : await traerTodasLasPaginas(() => supabase
+    .from('meta_contribuciones')
+    .select('*')
+    .eq('user_id', userId)
+    .in('meta_id', idsMetas)
+    .order('fecha', { ascending: true })
+    .order('id', { ascending: true }))
 
   return {
-    version: 1,
+    app: 'kairen-finanzas',
+    version: 2,
     exportado_en: new Date().toISOString(),
     cuentas,
     categorias,
     transacciones,
+    transferencias,
+    presupuestos,
+    recurrentes,
     metas,
-    meta_contribuciones: contribuciones,
+    meta_contribuciones,
     ahorro_externo: ahorroExterno
   }
 }
 
 /**
- * Importa un respaldo generado por exportarTodosLosDatos. Como los IDs
- * viejos no existen en esta base, se crean filas nuevas y se arma un
- * mapa id-viejo -> id-nuevo para que las referencias (cuenta_id,
- * categoria_id, meta_id) sigan apuntando correctamente.
+ * Restaura un respaldo (versión 1 o 2) en UNA sola operación del servidor:
+ * si algo falla, no se guarda nada. Solo funciona sobre una cuenta vacía
+ * (sin movimientos, metas, recurrentes ni ahorro externo) para no duplicar
+ * información; el servidor lo valida y da un mensaje claro si no lo está.
+ *
+ * Regresa cuántas filas se restauraron de cada tipo y si coinciden con el
+ * contenido del archivo.
  */
 export async function importarTodosLosDatos(userId, datos) {
-  const mapaCuentas = new Map()
-  const mapaCategorias = new Map()
-  const mapaMetas = new Map()
-
-  for (const c of datos.cuentas || []) {
-    const { data, error } = await supabase.from('cuentas')
-      .insert({ user_id: userId, nombre: c.nombre, tipo: c.tipo, saldo: c.saldo })
-      .select('id').single()
-    if (error) throw error
-    mapaCuentas.set(c.id, data.id)
+  const { data, error } = await supabase.rpc('importar_respaldo', { p_datos: datos })
+  if (error) {
+    if (esFuncionNoDisponible(error)) throw errorFuncionFaltante('importar_respaldo', 'src/sql/upgrade_v2_8_estabilidad.sql')
+    throw error
   }
 
-  for (const c of datos.categorias || []) {
-    const { data, error } = await supabase.from('categorias')
-      .insert({ user_id: userId, nombre: c.nombre, tipo: c.tipo, icono: c.icono })
-      .select('id').single()
-    if (error) throw error
-    mapaCategorias.set(c.id, data.id)
+  const restaurado = data || {}
+  // Comprobación posterior: lo que entró contra lo que traía el archivo.
+  // (Las metas de otras personas en respaldos v1 se omiten a propósito.)
+  const esperado = {
+    cuentas: (datos.cuentas || []).length,
+    categorias: (datos.categorias || []).length,
+    transacciones: (datos.transacciones || []).length,
+    transferencias: (datos.transferencias || []).length,
+    recurrentes: (datos.recurrentes || []).length,
+    ahorro_externo: (datos.ahorro_externo || []).length
   }
+  const diferencias = Object.entries(esperado)
+    .filter(([tabla, cantidad]) => Number(restaurado[tabla] ?? 0) !== cantidad)
+    .map(([tabla, cantidad]) => ({ tabla, esperado: cantidad, restaurado: Number(restaurado[tabla] ?? 0) }))
 
-  for (const m of datos.metas || []) {
-    const { data, error } = await supabase.from('metas')
-      .insert({
-        user_id: userId, nombre: m.nombre, descripcion: m.descripcion, icono: m.icono,
-        prioridad: m.prioridad, monto_objetivo: m.monto_objetivo, monto_actual: m.monto_actual,
-        fecha_limite: m.fecha_limite, completada: m.completada
-      })
-      .select('id').single()
-    if (error) throw error
-    mapaMetas.set(m.id, data.id)
-  }
-
-  for (const t of datos.transacciones || []) {
-    const { error } = await supabase.from('transacciones').insert({
-      user_id: userId,
-      cuenta_id: mapaCuentas.get(t.cuenta_id) || null,
-      categoria_id: mapaCategorias.get(t.categoria_id) || null,
-      categoria_nombre: t.categoria_nombre,
-      tipo: t.tipo, monto: t.monto, descripcion: t.descripcion, fecha: t.fecha
-    })
-    if (error) throw error
-  }
-
-  for (const mc of datos.meta_contribuciones || []) {
-    const metaNueva = mapaMetas.get(mc.meta_id)
-    if (!metaNueva) continue
-    const { error } = await supabase.from('meta_contribuciones').insert({
-      user_id: userId, meta_id: metaNueva, tipo: mc.tipo, monto: mc.monto, nota: mc.nota, fecha: mc.fecha
-    })
-    if (error) throw error
-  }
-
-  for (const a of datos.ahorro_externo || []) {
-    const { error } = await supabase.from('ahorro_externo').insert({
-      user_id: userId, nombre_banco: a.nombre_banco, monto: a.monto, fecha_registro: a.fecha_registro, nota: a.nota
-    })
-    if (error) throw error
-  }
+  return { restaurado, diferencias }
 }
 
 /** Borra todos los datos del usuario pero conserva su sesión/cuenta. */
@@ -662,7 +684,7 @@ export async function reiniciarCuentaActual(userId) {
   const { error } = await supabase.rpc('reiniciar_cuenta_segura')
   if (error) {
     if (esFuncionNoDisponible(error)) {
-      throw new Error('Falta ejecutar src/sql/upgrade_v2_7_reiniciar_seguro.sql en Supabase para poder reiniciar la cuenta.')
+      throw errorFuncionFaltante('reiniciar_cuenta_segura', 'el respaldo del esquema de producción (supabase/schema_produccion.sql)')
     }
     throw error
   }
@@ -721,7 +743,13 @@ export async function eliminarRecurrente(id, userId) {
 
 export async function procesarRecurrentes() {
   try {
-    const { data, error } = await supabase.rpc('procesar_recurrentes')
+    // Se manda la fecha local del dispositivo: el servidor está en UTC y,
+    // sin esto, después de las 6 pm en México procesaba las del día siguiente.
+    let { data, error } = await supabase.rpc('procesar_recurrentes', { p_hoy: hoyLocal() })
+    if (error && esFuncionNoDisponible(error)) {
+      // upgrade_v2_8 aún no se ejecuta: versión anterior, sin parámetros
+      ;({ data, error } = await supabase.rpc('procesar_recurrentes'))
+    }
     if (error) throw error
     return data || 0
   } catch (err) {

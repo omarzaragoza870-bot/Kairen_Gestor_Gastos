@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { usePreferencias } from '../context/PreferenciasContext.jsx'
 import Monto from './Monto.jsx'
+import { hoyLocal } from '../lib/fechas.js'
 
 const ICONO_TIPO = { efectivo: '💵', tarjeta: '💳', tarjeta_credito: '💳', banco: '🏦', otro: '📦' }
 
@@ -19,7 +20,9 @@ const limpiarMonto = (valor) => {
  */
 export default function FormularioPago({ tarjeta, cuentas, onCancelar, onGuardar, procesando }) {
   const { t } = usePreferencias()
-  const hoy = new Date().toISOString().slice(0, 10)
+  // Fecha local (no UTC): con toISOString, un pago hecho después de las
+  // 6 pm en México se registraba con la fecha de mañana.
+  const hoy = hoyLocal()
   const [cuentaOrigenId, setCuentaOrigenId] = useState(cuentas[0]?.id || null)
   const [monto, setMonto] = useState('')
   const [fecha, setFecha] = useState(hoy)
