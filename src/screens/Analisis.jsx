@@ -381,7 +381,9 @@ function KairenIATab({ pregunta, setPregunta, respuesta, setRespuesta, preguntan
           'Authorization': `Bearer ${session.access_token}`,
           'apikey': import.meta.env.VITE_SUPABASE_ANON_KEY
         },
-        body: JSON.stringify({ pregunta: q })
+        // La zona horaria del teléfono: así "este mes" es el mes del usuario,
+        // no el del servidor (que está en UTC).
+        body: JSON.stringify({ pregunta: q, zonaHoraria: Intl.DateTimeFormat().resolvedOptions().timeZone })
       })
       const data = await res.json()
       if (data.error) throw new Error(data.error)

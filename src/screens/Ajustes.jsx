@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from 'react'
 import { supabase } from '../lib/supabaseClient.js'
+import { Capacitor } from '@capacitor/core'
 import InfoTooltip from '../components/InfoTooltip.jsx'
 import { useScrollLock } from '../hooks/useScrollLock.js'
 import { usePreferencias, MONEDAS } from '../context/PreferenciasContext.jsx'
@@ -120,11 +121,38 @@ export default function Ajustes({ onVerTutorial }) {
     setMensaje(null)
     try {
       const datos = await exportarTodosLosDatos(user.id)
-      const blob = new Blob([JSON.stringify(datos, null, 2)], { type: 'application/json' })
+      const contenido = JSON.stringify(datos, null, 2)
+      const nombreArchivo = `kairen-finanzas-respaldo-${hoyLocal()}.json`
+
+      if (Capacitor.isNativePlatform()) {
+        // En el APK, un enlace de descarga no hace nada (el WebView de
+        // Android no maneja descargas de blobs). Se guarda el archivo en la
+        // caché de la app y se abre el menú de Compartir del sistema, para
+        // mandarlo a Drive, WhatsApp, correo o "Guardar en Archivos".
+        const { Filesystem, Directory, Encoding } = await import('@capacitor/filesystem')
+        const { Share } = await import('@capacitor/share')
+        const { uri } = await Filesystem.writeFile({
+          path: nombreArchivo,
+          data: contenido,
+          directory: Directory.Cache,
+          encoding: Encoding.UTF8
+        })
+        try {
+          await Share.share({ title: 'Respaldo de Kairen Finanzas', url: uri, dialogTitle: 'Guardar respaldo' })
+          setMensaje('Respaldo listo. Guárdalo en un lugar seguro (Drive, correo o Archivos).')
+        } catch (errShare) {
+          // Cerrar el menú de Compartir sin elegir nada no es un error real
+          if (/cancel/i.test(String(errShare?.message || ''))) return
+          throw errShare
+        }
+        return
+      }
+
+      const blob = new Blob([contenido], { type: 'application/json' })
       const url = URL.createObjectURL(blob)
       const a = document.createElement('a')
       a.href = url
-      a.download = `kairen-finanzas-respaldo-${hoyLocal()}.json`
+      a.download = nombreArchivo
       document.body.appendChild(a)
       a.click()
       a.remove()
