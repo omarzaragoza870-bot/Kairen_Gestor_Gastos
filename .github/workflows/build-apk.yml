@@ -9,7 +9,22 @@ jobs:
   build:
     runs-on: ubuntu-24.04
 
+    # El .env no se sube a GitHub (está en .gitignore), así que el build del
+    # APK toma estas variables de los secrets del repositorio. Sin ellas,
+    # la app se compila sin la dirección de Supabase y se queda en negro.
+    env:
+      VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
+      VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
+
     steps:
+      - name: Verificar variables de Supabase
+        run: |
+          if [ -z "$VITE_SUPABASE_URL" ] || [ -z "$VITE_SUPABASE_ANON_KEY" ]; then
+            echo "::error::Faltan los secrets VITE_SUPABASE_URL y/o VITE_SUPABASE_ANON_KEY (Settings → Secrets and variables → Actions)."
+            exit 1
+          fi
+          echo "Variables de Supabase presentes."
+
       - name: Checkout código
         uses: actions/checkout@v5
 
