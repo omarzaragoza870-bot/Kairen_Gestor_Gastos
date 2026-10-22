@@ -30,7 +30,11 @@ export default function Login() {
         // usando la API de bajo nivel que NO usa el localStorage interno
         const params = new URLSearchParams({
           provider: 'google',
-          redirect_to: 'https://kairen-gestor-gastos.vercel.app/auth/callback',
+          // Esquema propio de la app: Android siempre lo abre en Kairen
+          // Finanzas, sin depender de que verifique assetlinks.json (eso
+          // fallaba en algunas instalaciones y el login se quedaba en el
+          // navegador). PKCE protege el código aunque otra app lo intercepte.
+          redirect_to: 'com.kairen.finanzas://login-callback',
           code_challenge: challenge,
           code_challenge_method: 'S256',
           response_type: 'code',
