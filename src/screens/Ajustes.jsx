@@ -17,6 +17,26 @@ import { pushSoportado, permisoPush, suscribirPush, desuscribirPush, estaSuscrit
 import SelectorMoneda from './SelectorMoneda.jsx'
 import SelectorTema from './SelectorTema.jsx'
 import SelectorIdioma from './SelectorIdioma.jsx'
+import { Coins, Globe, Palette, Tag, PieChart, Repeat, FileText, Bell, Eye, Users, Download, Upload, RotateCcw, ChevronRight, User, GraduationCap, LogOut, Trash2 } from 'lucide-react'
+import GoogleLogo from '../components/GoogleLogo.jsx'
+
+// Íconos de las filas de Ajustes (antes emojis), en cuadros grises estilo Configuración de iOS
+const ICONOS_AJUSTE = {
+  '💱': Coins, '🌐': Globe, '🎨': Palette, '🏷️': Tag, '📊': PieChart, '🔁': Repeat, '📄': FileText,
+  '🔔': Bell, '👁️': Eye, '🤝': Users, '⬇️': Download, '⬆️': Upload, '⏱️': RotateCcw
+}
+
+function IconoAjuste({ icono }) {
+  const Icono = ICONOS_AJUSTE[icono]
+  return (
+    <span aria-hidden="true" style={{
+      width: 30, height: 30, borderRadius: 8, flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center',
+      background: 'var(--fill)', color: 'var(--text-primary)', fontSize: 16
+    }}>
+      {Icono ? <Icono size={17} strokeWidth={2} /> : icono}
+    </span>
+  )
+}
 
 export default function Ajustes({ onVerTutorial }) {
   const { ocultarSaldos, toggleOcultarSaldos, moneda, tema, idioma, t } = usePreferencias()
@@ -271,7 +291,7 @@ export default function Ajustes({ onVerTutorial }) {
 
   return (
     <div style={{ padding: '16px 16px 100px' }}>
-      <h1 style={{ fontSize: 20, fontWeight: 700, margin: '0 0 20px' }}>{t('ajustes_titulo')}</h1>
+      <h1 className="large-title" style={{ margin: '0 0 20px' }}>{t('ajustes_titulo')}</h1>
 
       {/* Perfil */}
       <section style={{
@@ -283,7 +303,7 @@ export default function Ajustes({ onVerTutorial }) {
           <img src={avatar} alt="" style={{ width: 52, height: 52, borderRadius: '50%' }} />
         ) : (
           <div style={{
-            width: 52, height: 52, borderRadius: '50%', background: 'var(--gradient-brand)',
+            width: 52, height: 52, borderRadius: '50%', background: 'var(--accent)', color: 'var(--on-accent)',
             display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 20, fontWeight: 700
           }}>
             {nombre.charAt(0).toUpperCase()}
@@ -292,7 +312,7 @@ export default function Ajustes({ onVerTutorial }) {
         <div style={{ overflow: 'hidden' }}>
           <div style={{ fontWeight: 700, fontSize: 15 }}>{nombre}</div>
           {esInvitado ? (
-            <div style={{ fontSize: 11, color: 'var(--warning)', marginTop: 2 }}>👤 {t('ajustes_cuenta_invitado')}</div>
+            <div style={{ fontSize: 11, color: 'var(--warning)', marginTop: 2 }}><User size={12} aria-hidden="true" style={{ marginRight: 6, verticalAlign: '-2px' }} />{t('ajustes_cuenta_invitado')}</div>
           ) : (
             <>
               <div style={{ fontSize: 12, color: 'var(--text-secondary)', overflow: 'hidden', textOverflow: 'ellipsis' }}>{email}</div>
@@ -304,7 +324,7 @@ export default function Ajustes({ onVerTutorial }) {
 
       {/* Cuenta */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 6, margin: '4px 0 8px' }}>
-        <h2 style={{ fontSize: 14, fontWeight: 600, color: 'var(--text-secondary)', margin: 0 }}>{t('ajustes_seccion_cuenta')}</h2>
+        <h2 style={{ fontSize: 13, fontWeight: 500, color: 'var(--text-muted)', margin: 0, paddingLeft: 16, textTransform: 'uppercase', letterSpacing: '0.03em' }}>{t('ajustes_seccion_cuenta')}</h2>
         <InfoTooltip
           title="Cerrar sesión vs Eliminar cuenta"
           text="Cerrar sesión solo desvincula este dispositivo — tus datos siguen guardados y puedes volver a entrar cuando quieras. Eliminar cuenta borra permanentemente tu perfil y todos tus datos, sin poder recuperarlos."
@@ -321,7 +341,7 @@ export default function Ajustes({ onVerTutorial }) {
             fontSize: 14, fontWeight: 600, display: 'flex', alignItems: 'center', gap: 10
           }}
         >
-          <span>🎓</span> {t('ajustes_ver_tutorial')}
+          <GraduationCap size={18} aria-hidden="true" /> {t('ajustes_ver_tutorial')}
         </button>
       )}
 
@@ -331,12 +351,12 @@ export default function Ajustes({ onVerTutorial }) {
           disabled={vinculando}
           style={{
             width: '100%', textAlign: 'left', padding: '14px 16px', marginBottom: 10,
-            background: 'rgba(79, 107, 255, 0.1)', borderRadius: 'var(--radius-md)',
-            border: '1px solid var(--accent-blue)', color: 'var(--text-primary)',
+            background: 'var(--bg-surface)', borderRadius: 'var(--radius-md)',
+            border: '1px solid var(--border-subtle)', color: 'var(--text-primary)',
             fontSize: 14, fontWeight: 600, display: 'flex', alignItems: 'center', gap: 10
           }}
         >
-          <span>🔵</span>
+          <GoogleLogo size={20} />
           <div>
             <div>{vinculando ? t('ajustes_vinculando') : t('ajustes_vincular_google')}</div>
             {!vinculando && <div style={{ fontSize: 11, color: 'var(--text-muted)', fontWeight: 400 }}>{t('ajustes_vincular_google_desc')}</div>}
@@ -353,7 +373,7 @@ export default function Ajustes({ onVerTutorial }) {
           fontSize: 14, fontWeight: 600, display: 'flex', alignItems: 'center', gap: 10
         }}
       >
-        <span>🔓</span> {t('ajustes_cerrar_sesion')}
+        <LogOut size={18} aria-hidden="true" /> {t('ajustes_cerrar_sesion')}
       </button>
 
       <button
@@ -365,7 +385,7 @@ export default function Ajustes({ onVerTutorial }) {
           fontSize: 14, fontWeight: 600, display: 'flex', alignItems: 'center', gap: 10
         }}
       >
-        <span>🗑️</span> {t('ajustes_eliminar_cuenta')}
+        <Trash2 size={18} aria-hidden="true" /> {t('ajustes_eliminar_cuenta')}
       </button>
 
       {error && (
@@ -374,7 +394,7 @@ export default function Ajustes({ onVerTutorial }) {
 
       {/* Preferencias */}
       <div style={{ margin: '24px 0 8px' }}>
-        <h2 style={{ fontSize: 14, fontWeight: 600, color: 'var(--text-secondary)', margin: 0 }}>{t('ajustes_seccion_preferencias')}</h2>
+        <h2 style={{ fontSize: 13, fontWeight: 500, color: 'var(--text-muted)', margin: 0, paddingLeft: 16, textTransform: 'uppercase', letterSpacing: '0.03em' }}>{t('ajustes_seccion_preferencias')}</h2>
       </div>
 
       <section style={{
@@ -413,7 +433,7 @@ export default function Ajustes({ onVerTutorial }) {
 
         {pushSoportado() && (
           <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '14px 16px' }}>
-            <span style={{ fontSize: 18 }}>🔔</span>
+            <IconoAjuste icono="🔔" />
             <div style={{ flex: 1 }}>
               <div style={{ fontSize: 14, fontWeight: 600 }}>Notificaciones</div>
               <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>
@@ -426,8 +446,8 @@ export default function Ajustes({ onVerTutorial }) {
               aria-label="Activar notificaciones"
               style={{
                 width: 46, height: 26, borderRadius: 999, flexShrink: 0, position: 'relative',
-                background: pushActivo ? 'var(--gradient-brand)' : 'var(--bg-surface-2)',
-                border: '1px solid var(--border-subtle)', opacity: cargandoPush ? 0.6 : 1
+                background: pushActivo ? 'var(--switch-on)' : 'var(--fill)',
+                border: 0, opacity: cargandoPush ? 0.6 : 1
               }}
             >
               <span style={{
@@ -439,7 +459,7 @@ export default function Ajustes({ onVerTutorial }) {
         )}
 
         <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '14px 16px' }}>
-          <span style={{ fontSize: 18 }}>👁️</span>
+          <IconoAjuste icono="👁️" />
           <div style={{ flex: 1 }}>
             <div style={{ fontSize: 14, fontWeight: 600 }}>{t('ajustes_ocultar_saldos')}</div>
             <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>{t('ajustes_ocultar_saldos_desc')}</div>
@@ -449,7 +469,7 @@ export default function Ajustes({ onVerTutorial }) {
             aria-label="Ocultar saldos"
             style={{
               width: 46, height: 26, borderRadius: 999, flexShrink: 0, position: 'relative',
-              background: ocultarSaldos ? 'var(--gradient-brand)' : 'var(--bg-surface-2)',
+              background: ocultarSaldos ? 'var(--switch-on)' : 'var(--fill)',
               border: '1px solid var(--border-subtle)'
             }}
           >
@@ -467,7 +487,7 @@ export default function Ajustes({ onVerTutorial }) {
 
       {/* Colaborar */}
       <div style={{ margin: '24px 0 8px' }}>
-        <h2 style={{ fontSize: 14, fontWeight: 600, color: 'var(--text-secondary)', margin: 0 }}>👥 Colaborar</h2>
+        <h2 style={{ fontSize: 13, fontWeight: 500, color: 'var(--text-muted)', margin: 0, paddingLeft: 16, textTransform: 'uppercase', letterSpacing: '0.03em' }}>Colaborar</h2>
       </div>
 
       <section style={{
@@ -481,7 +501,7 @@ export default function Ajustes({ onVerTutorial }) {
 
       {/* Datos */}
       <div style={{ margin: '24px 0 8px' }}>
-        <h2 style={{ fontSize: 14, fontWeight: 600, color: 'var(--text-secondary)', margin: 0 }}>{t('ajustes_seccion_datos')}</h2>
+        <h2 style={{ fontSize: 13, fontWeight: 500, color: 'var(--text-muted)', margin: 0, paddingLeft: 16, textTransform: 'uppercase', letterSpacing: '0.03em' }}>{t('ajustes_seccion_datos')}</h2>
       </div>
 
       <section style={{
@@ -502,7 +522,7 @@ export default function Ajustes({ onVerTutorial }) {
 
       {/* Acerca de la App */}
       <div style={{ margin: '24px 0 8px' }}>
-        <h2 style={{ fontSize: 14, fontWeight: 600, color: 'var(--text-secondary)', margin: 0 }}>{t('ajustes_acerca')}</h2>
+        <h2 style={{ fontSize: 13, fontWeight: 500, color: 'var(--text-muted)', margin: 0, paddingLeft: 16, textTransform: 'uppercase', letterSpacing: '0.03em' }}>{t('ajustes_acerca')}</h2>
       </div>
 
       <section style={{
@@ -551,7 +571,7 @@ export default function Ajustes({ onVerTutorial }) {
                 disabled={eliminando}
                 style={{
                   flex: 1, padding: 12, borderRadius: 'var(--radius-md)',
-                  background: 'var(--danger)', color: '#fff', fontWeight: 700, fontSize: 13
+                  background: 'var(--danger-fill)', color: '#fff', fontWeight: 700, fontSize: 13
                 }}
               >
                 {eliminando ? t('comun_eliminando') : t('comun_si_eliminar')}
@@ -598,7 +618,7 @@ export default function Ajustes({ onVerTutorial }) {
                 disabled={reiniciando}
                 style={{
                   flex: 1, padding: 12, borderRadius: 'var(--radius-md)',
-                  background: 'var(--warning)', color: '#1a1500', fontWeight: 700, fontSize: 13
+                  background: 'var(--warning)', color: 'var(--on-warning)', fontWeight: 700, fontSize: 13
                 }}
               >
                 {reiniciando ? t('comun_reiniciando') : t('comun_si_reiniciar')}
@@ -617,10 +637,10 @@ function FilaAjuste({ icono, titulo, subtitulo, etiqueta, flecha }) {
       display: 'flex', alignItems: 'center', gap: 12, padding: '14px 16px',
       borderBottom: '1px solid var(--border-subtle)'
     }}>
-      <span style={{ fontSize: 18 }}>{icono}</span>
-      <div style={{ flex: 1 }}>
-        <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--text-primary)' }}>{titulo}</div>
-        <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>{subtitulo}</div>
+      <IconoAjuste icono={icono} />
+      <div style={{ flex: 1, minWidth: 0 }}>
+        <div style={{ fontSize: 15, fontWeight: 500, color: 'var(--text-primary)' }}>{titulo}</div>
+        <div style={{ fontSize: 13, color: 'var(--text-muted)' }}>{subtitulo}</div>
       </div>
       {etiqueta && (
         <span style={{
@@ -630,7 +650,7 @@ function FilaAjuste({ icono, titulo, subtitulo, etiqueta, flecha }) {
           {etiqueta}
         </span>
       )}
-      {flecha && <span style={{ color: 'var(--text-muted)', fontSize: 16 }}>›</span>}
+      {flecha && <ChevronRight size={18} color="var(--text-muted)" aria-hidden="true" style={{ flexShrink: 0 }} />}
     </div>
   )
 }

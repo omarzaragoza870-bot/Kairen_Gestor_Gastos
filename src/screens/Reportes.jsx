@@ -4,6 +4,7 @@ import { obtenerTransaccionesPorMes, obtenerCuentas } from '../lib/db.js'
 import { agruparPorCategoria } from '../lib/estadisticas.js'
 import { usePreferencias } from '../context/PreferenciasContext.jsx'
 import { mensajeAmigable } from '../lib/errores.js'
+import { Loader2, FileDown } from 'lucide-react'
 
 const MESES_ES = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre']
 
@@ -264,7 +265,7 @@ export default function Reportes({ onBack }) {
             <button key={a} onClick={() => setAnio(a)} style={{
               flex: 1, padding: 12, borderRadius: 'var(--radius-md)', fontWeight: 600, fontSize: 14,
               background: anio === a ? 'var(--gradient-brand)' : 'var(--bg-surface-2)',
-              color: anio === a ? '#fff' : 'var(--text-secondary)',
+              color: anio === a ? 'var(--on-accent)' : 'var(--text-secondary)',
               border: '1px solid ' + (anio === a ? 'transparent' : 'var(--border-subtle)')
             }}>{a}</button>
           ))}
@@ -276,7 +277,7 @@ export default function Reportes({ onBack }) {
             <button key={i} onClick={() => setMes(i)} style={{
               padding: '10px 4px', borderRadius: 'var(--radius-md)', fontWeight: 600, fontSize: 11,
               background: mes === i ? 'var(--gradient-brand)' : 'var(--bg-surface-2)',
-              color: mes === i ? '#fff' : 'var(--text-secondary)',
+              color: mes === i ? 'var(--on-accent)' : 'var(--text-secondary)',
               border: '1px solid ' + (mes === i ? 'transparent' : 'var(--border-subtle)')
             }}>{m.substring(0, 3)}</button>
           ))}
@@ -290,10 +291,10 @@ export default function Reportes({ onBack }) {
           style={{
             width: '100%', padding: 16, borderRadius: 'var(--radius-md)', fontWeight: 700, fontSize: 15,
             background: generando ? 'var(--bg-surface-2)' : 'var(--gradient-brand)',
-            color: generando ? 'var(--text-muted)' : '#fff'
+            color: generando ? 'var(--text-muted)' : 'var(--on-accent)'
           }}
         >
-          {generando ? '⏳ Generando PDF…' : `📄 Descargar reporte — ${MESES_ES[mes]} ${anio}`}
+          {generando ? <><Loader2 size={17} aria-hidden="true" style={{ verticalAlign: '-3px', marginRight: 6 }} />Generando PDF…</> : <><FileDown size={17} aria-hidden="true" style={{ verticalAlign: '-3px', marginRight: 6 }} />{`Descargar reporte — ${MESES_ES[mes]} ${anio}`}</>}
         </button>
       </div>
 

@@ -5,6 +5,8 @@ import { useScrollLock } from '../hooks/useScrollLock.js'
 import MetaDetalle from './MetaDetalle.jsx'
 import Monto from '../components/Monto.jsx'
 import CategoriaIcono, { ICONOS_DISPONIBLES } from '../components/CategoriaIcono.jsx'
+import SelectorIcono from '../components/SelectorIcono.jsx'
+import { Pencil, Trash2, CheckCircle2, RotateCcw, Target } from 'lucide-react'
 import { usePreferencias } from '../context/PreferenciasContext.jsx'
 import { conRespaldoOffline } from '../lib/offline.js'
 import { mensajeAmigable } from '../lib/errores.js'
@@ -120,19 +122,16 @@ const handleGuardar = async (form) => {
 
   return (
     <div style={{ padding: '16px 16px 100px', maxWidth: 680, margin: '0 auto' }}>
-      <h1 style={{ fontSize: 20, fontWeight: 700, margin: '0 0 16px' }}>{t('metas_titulo')}</h1>
+      <h1 className="large-title" style={{ margin: '0 0 16px' }}>{t('metas_titulo')}</h1>
 
-      <div style={{ display: 'flex', gap: 8, marginBottom: 20 }}>
+      <div className="tab-scroll" role="tablist">
         {[['activas', `${t('metas_activas')}${activas.length ? ` (${activas.length})` : ''}`], ['completadas', `${t('metas_completadas')}${completadas.length ? ` (${completadas.length})` : ''}`]].map(([id, label]) => (
           <button
             key={id}
+            role="tab"
+            aria-selected={tab === id}
             onClick={() => setTab(id)}
-            style={{
-              flex: 1, padding: '10px 8px', borderRadius: 999,
-              background: tab === id ? 'var(--gradient-brand)' : 'var(--bg-surface)',
-              color: tab === id ? '#fff' : 'var(--text-secondary)',
-              fontSize: 13, fontWeight: 600, border: '1px solid ' + (tab === id ? 'transparent' : 'var(--border-subtle)')
-            }}
+            className={tab === id ? 'tab-pill active' : 'tab-pill'}
           >
             {label}
           </button>
@@ -146,7 +145,7 @@ const handleGuardar = async (form) => {
           textAlign: 'center', padding: '40px 20px', color: 'var(--text-muted)',
           background: 'var(--bg-surface)', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-subtle)'
         }}>
-          <div style={{ fontSize: 32, marginBottom: 8 }}>🎯</div>
+          <div style={{ marginBottom: 8, display: 'flex', justifyContent: 'center', color: 'var(--text-muted)' }}><Target size={34} strokeWidth={1.6} aria-hidden="true" /></div>
           <p style={{ fontSize: 14, margin: 0 }}>
             {tab === 'activas' ? t('metas_vacio_activas') : t('metas_vacio_completadas')}
           </p>
@@ -154,13 +153,14 @@ const handleGuardar = async (form) => {
         </div>
       )}
 
+      <div className="card-grid">
       {mostrar.map(meta => {
         const pct = Math.min(100, (Number(meta.monto_actual) / Number(meta.monto_objetivo)) * 100)
         const prioridad = PRIORIDADES.find(p => p[0] === meta.prioridad) || PRIORIDADES[1]
         return (
           <div key={meta.id} style={{
             background: 'var(--bg-surface)', borderRadius: 'var(--radius-md)',
-            border: '1px solid var(--border-subtle)', padding: 16, marginBottom: 12
+            border: '1px solid var(--border-subtle)', padding: 16
           }}>
             <div onClick={() => setDetalle(meta)} style={{ cursor: 'pointer' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 10, gap: 10 }}>
@@ -192,25 +192,23 @@ const handleGuardar = async (form) => {
             </div>
 
             <div style={{ display: 'flex', gap: 8, borderTop: '1px solid var(--border-subtle)', paddingTop: 10 }}>
-              <button onClick={() => setEditando(meta)} style={{ flex: 1, background: 'transparent', color: 'var(--text-secondary)', fontSize: 12, padding: 6 }}>✏️ {t('comun_editar')}</button>
-              <button onClick={() => handleToggleCompletada(meta)} style={{ flex: 1, background: 'transparent', color: 'var(--success)', fontSize: 12, padding: 6 }}>
-                {meta.completada ? `↩️ ${t('metas_reactivar')}` : `✅ ${t('metas_marcar_completa')}`}
+              <button onClick={() => setEditando(meta)} className="card-action" style={{ color: 'var(--text-secondary)' }}><Pencil size={14} aria-hidden="true" /> {t('comun_editar')}</button>
+              <button onClick={() => handleToggleCompletada(meta)} className="card-action" style={{ color: 'var(--success)' }}>
+                {meta.completada
+                  ? <><RotateCcw size={14} aria-hidden="true" /> {t('metas_reactivar')}</>
+                  : <><CheckCircle2 size={14} aria-hidden="true" /> {t('metas_marcar_completa')}</>}
               </button>
-              <button onClick={() => setAEliminar(meta)} style={{ flex: 1, background: 'transparent', color: 'var(--danger)', fontSize: 12, padding: 6 }}>🗑️ {t('comun_eliminar')}</button>
+              <button onClick={() => setAEliminar(meta)} className="card-action" style={{ color: 'var(--danger)' }}><Trash2 size={14} aria-hidden="true" /> {t('comun_eliminar')}</button>
             </div>
           </div>
         )
       })}
+      </div>
 
       <button
         onClick={() => setEditando({})}
         aria-label={t('metas_crear_boton')}
-        style={{
-          position: 'fixed', right: 20, bottom: 92,
-          width: 56, height: 56, borderRadius: 16,
-          background: 'var(--gradient-brand)', color: '#fff',
-          fontSize: 26, fontWeight: 700, boxShadow: '0 8px 24px rgba(79,107,255,0.4)'
-        }}
+        className="floating-button"
       >
         +
       </button>
@@ -267,30 +265,11 @@ function FormularioMeta({ meta, onCancelar, onGuardar, guardando }) {
 
   return (
     <div onClick={onCancelar} className="modal-backdrop">
-      <div onClick={(e) => e.stopPropagation()} className="modal-card" style={{ maxWidth: 420, maxHeight: '85vh', overflowY: 'auto' }}>
+      <div onClick={(e) => e.stopPropagation()} className="modal-card" style={{ maxWidth: 420 }}>
         <h3>{esNueva ? t('metas_form_nueva') : t('metas_form_editar')}</h3>
 
         <label className="field-label">Ícono de la meta</label>
-        <div style={{
-          display: 'grid', gridTemplateColumns: 'repeat(6, 1fr)', gap: 8,
-          padding: 12, margin: '8px 0 16px', background: 'var(--bg-surface)',
-          borderRadius: 'var(--radius-md)', border: '1px solid var(--border-subtle)'
-        }}>
-          {ICONOS_DISPONIBLES.map(item => (
-            <button
-              key={item.nombre}
-              onClick={() => setIcono(item.nombre)}
-              title={item.label}
-              style={{
-                display: 'flex', alignItems: 'center', justifyContent: 'center',
-                padding: 10, borderRadius: 'var(--radius-sm)',
-                background: icono === item.nombre ? 'var(--gradient-brand)' : 'transparent'
-              }}
-            >
-              <CategoriaIcono icono={item.nombre} size={20} color={icono === item.nombre ? '#fff' : 'var(--text-secondary)'} />
-            </button>
-          ))}
-        </div>
+        <SelectorIcono valor={icono} onCambiar={setIcono} />
 
         <label className="field-label">{t('metas_nombre')}</label>
         <div className="input-shell">
@@ -321,9 +300,9 @@ function FormularioMeta({ meta, onCancelar, onGuardar, guardando }) {
               onClick={() => setPrioridad(id)}
               style={{
                 flex: 1, padding: 12, borderRadius: 'var(--radius-md)', fontWeight: 700, fontSize: 13,
-                background: prioridad === id ? color : 'var(--bg-surface)',
-                color: prioridad === id ? '#fff' : 'var(--text-secondary)',
-                border: '1px solid ' + (prioridad === id ? 'transparent' : 'var(--border-subtle)')
+                background: prioridad === id ? `color-mix(in srgb, ${color} 16%, transparent)` : 'var(--fill)',
+                color: prioridad === id ? color : 'var(--text-secondary)',
+                border: '1px solid ' + (prioridad === id ? color : 'transparent')
               }}
             >
               {label}
@@ -351,7 +330,7 @@ function FormularioMeta({ meta, onCancelar, onGuardar, guardando }) {
               montoActual: actualNum,
               fechaLimite
             })}
-            style={{ background: valido ? 'var(--gradient-brand)' : 'var(--bg-surface-2)', color: valido ? '#fff' : 'var(--text-muted)' }}
+            style={{ background: valido ? 'var(--gradient-brand)' : 'var(--bg-surface-2)', color: valido ? 'var(--on-accent)' : 'var(--text-muted)' }}
           >
             {guardando ? t('comun_guardando') : esNueva ? t('metas_crear_boton') : t('nt_boton_actualizar')}
           </button>

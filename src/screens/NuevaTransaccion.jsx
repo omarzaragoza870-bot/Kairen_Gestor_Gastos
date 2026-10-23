@@ -7,18 +7,21 @@ import {
   editarTransaccion,
   obtenerCuentas,
   obtenerCategorias,
+  crearCategoria,
   obtenerPresupuestos,
   obtenerTransaccionesPorMes
 } from '../lib/db.js'
 import InfoTooltip from '../components/InfoTooltip.jsx'
 import Monto from '../components/Monto.jsx'
 import AlertaPresupuesto from '../components/AlertaPresupuesto.jsx'
+import FormularioCategoria from '../components/FormularioCategoria.jsx'
 import { logError } from '../lib/logger.js'
 import { mensajeAmigable } from '../lib/errores.js'
 import { encolarOperacion, conRespaldoOffline, obtenerConectividad, marcarConectividad, pareceErrorDeRed, generarIdOperacion } from '../lib/offline.js'
 import { hoyLocal } from '../lib/fechas.js'
 import { usePreferencias } from '../context/PreferenciasContext.jsx'
 import CategoriaIcono from '../components/CategoriaIcono.jsx'
+import { Plus, ArrowDownRight, ArrowUpRight, CreditCard, Banknote } from 'lucide-react'
 
 // Filtra el texto del input de monto: solo dígitos y un único punto decimal.
 // Bloquea letras y símbolos aunque el usuario los pegue o use teclado físico
@@ -47,6 +50,8 @@ export default function NuevaTransaccion({ onBack, onGuardada, transaccionEditar
   const [guardando, setGuardando] = useState(false)
   const [error, setError] = useState(null)
   const [alertaPresupuesto, setAlertaPresupuesto] = useState(null) // { categoria, gastado, limite } | null
+  const [creandoCategoria, setCreandoCategoria] = useState(false)
+  const [procesandoCategoria, setProcesandoCategoria] = useState(false)
   const { t } = usePreferencias()
   // Identificador único de ESTE movimiento. Se crea una sola vez al abrir el
   // formulario y se reutiliza en cualquier reintento (incluida la cola sin
@@ -136,6 +141,28 @@ export default function NuevaTransaccion({ onBack, onGuardada, transaccionEditar
     onGuardada?.()
   }
 
+  // Crear una categoría sin salir del formulario: se guarda con el tipo
+  // actual (gasto/ingreso) y queda seleccionada. Requiere conexión.
+  const handleCrearCategoria = async (nombre, icono) => {
+    setProcesandoCategoria(true)
+    setError(null)
+    try {
+      if (!obtenerConectividad()) throw new Error('Necesitas conexión para crear una categoría.')
+      await crearCategoria({ userId, nombre, tipo, icono })
+      const todasCategorias = await conRespaldoOffline(`categorias:${userId}`, () => obtenerCategorias(userId))
+      setCategoriasGasto(todasCategorias.filter(c => c.tipo === 'gasto'))
+      setCategoriasIngreso(todasCategorias.filter(c => c.tipo === 'ingreso'))
+      setCategoria(nombre)
+      setCreandoCategoria(false)
+    } catch (err) {
+      logError('Error creando categoría', err)
+      setError(mensajeAmigable(err, 'No se pudo crear la categoría.'))
+      setCreandoCategoria(false)
+    } finally {
+      setProcesandoCategoria(false)
+    }
+  }
+
   const handleGuardar = async () => {
     if (!valido || guardando) return
     setGuardando(true)
@@ -221,11 +248,11 @@ export default function NuevaTransaccion({ onBack, onGuardada, transaccionEditar
             if (opcion === 'ingreso' && cuentaSeleccionada?.tipo === 'tarjeta_credito') setCuentaId(null)
           }} style={{
             flex: 1, padding: 14, borderRadius: 'var(--radius-md)',
-            background: tipo === opcion ? (opcion === 'gasto' ? 'var(--danger)' : 'var(--success)') : 'var(--bg-surface)',
-            color: tipo === opcion ? '#fff' : 'var(--text-secondary)', fontWeight: 600, fontSize: 14,
-            border: '1px solid ' + (tipo === opcion ? 'transparent' : 'var(--border-subtle)')
+            background: tipo === opcion ? `color-mix(in srgb, var(${opcion === 'gasto' ? '--danger' : '--success'}) 16%, transparent)` : 'var(--bg-surface)',
+            color: tipo === opcion ? `var(${opcion === 'gasto' ? '--danger' : '--success'})` : 'var(--text-secondary)', fontWeight: 600, fontSize: 15,
+            border: '1.5px solid ' + (tipo === opcion ? `var(${opcion === 'gasto' ? '--danger' : '--success'})` : 'transparent')
           }}>
-            {opcion === 'gasto' ? `⊖ ${t('nt_gasto')}` : `⊕ ${t('nt_ingreso')}`}
+            <span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}>{opcion === 'gasto' ? <ArrowDownRight size={17} aria-hidden="true" /> : <ArrowUpRight size={17} aria-hidden="true" />}{opcion === 'gasto' ? t('nt_gasto') : t('nt_ingreso')}</span>
           </button>
         ))}
       </div>
@@ -239,9 +266,9 @@ export default function NuevaTransaccion({ onBack, onGuardada, transaccionEditar
         {cuentasDisponibles.map(c => (
           <button key={c.id} onClick={() => setCuentaId(c.id)} style={{
             flex: '1 1 45%', padding: 12, borderRadius: 'var(--radius-md)', background: 'var(--bg-surface)',
-            border: '1.5px solid ' + (cuentaId === c.id ? 'var(--accent-blue)' : 'var(--border-subtle)'), textAlign: 'left'
+            border: '1.5px solid ' + (cuentaId === c.id ? 'var(--accent)' : 'transparent'), textAlign: 'left'
           }}>
-            <div style={{ fontSize: 13, fontWeight: 600 }}>{c.tipo === 'tarjeta_credito' || c.tipo === 'tarjeta' ? '💳' : '💵'} {c.nombre}</div>
+            <div style={{ fontSize: 14, fontWeight: 600, display: 'flex', alignItems: 'center', gap: 6 }}>{c.tipo === 'tarjeta_credito' || c.tipo === 'tarjeta' ? <CreditCard size={15} aria-hidden="true" /> : <Banknote size={15} aria-hidden="true" />} {c.nombre}</div>
             {c.tipo === 'tarjeta_credito' ? (
               <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>{t('cu_disponible')}: <Monto valor={Number(c.limite_credito || 0) - Number(c.saldo || 0)} /></div>
             ) : (
@@ -257,7 +284,14 @@ export default function NuevaTransaccion({ onBack, onGuardada, transaccionEditar
         <input inputMode="decimal" value={monto} onChange={e => setMonto(limpiarMonto(e.target.value))} placeholder="0.00" />
       </div>
 
-      <label className="field-label">{t('nt_categoria')}</label>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
+        <label className="field-label">{t('nt_categoria')}</label>
+        <button onClick={() => setCreandoCategoria(true)} disabled={!userId} className="link-button" style={{
+          display: 'inline-flex', alignItems: 'center', gap: 4, minHeight: 36, padding: '0 4px', fontWeight: 600
+        }}>
+          <Plus size={16} strokeWidth={2.5} /> {t('cat_nueva')}
+        </button>
+      </div>
       <div style={{ display: 'flex', gap: 8, overflowX: 'auto', margin: '8px 0 20px', paddingBottom: 4 }}>
         {categorias.map(cat => {
           const activa = categoria === cat.nombre
@@ -265,11 +299,11 @@ export default function NuevaTransaccion({ onBack, onGuardada, transaccionEditar
             <button key={cat.nombre} onClick={() => setCategoria(cat.nombre)} style={{
               flexShrink: 0, padding: '8px 14px', borderRadius: 999,
               background: activa ? 'var(--gradient-brand)' : 'var(--bg-surface)',
-              color: activa ? '#fff' : 'var(--text-secondary)', fontSize: 13, fontWeight: 600,
+              color: activa ? 'var(--on-accent)' : 'var(--text-secondary)', fontSize: 13, fontWeight: 600,
               border: '1px solid ' + (activa ? 'transparent' : 'var(--border-subtle)'),
               display: 'flex', alignItems: 'center', gap: 6
             }}>
-              <CategoriaIcono icono={cat.icono || 'Tag'} size={14} color={activa ? '#fff' : 'var(--text-muted)'} />
+              <CategoriaIcono icono={cat.icono || 'Tag'} size={14} color={activa ? 'var(--on-accent)' : 'var(--text-muted)'} />
               {cat.nombre}
             </button>
           )
@@ -290,7 +324,7 @@ export default function NuevaTransaccion({ onBack, onGuardada, transaccionEditar
 
       <button disabled={!valido || guardando} onClick={handleGuardar} className="primary-button" style={{
         background: valido ? 'var(--gradient-brand)' : 'var(--bg-surface-2)',
-        color: valido ? '#fff' : 'var(--text-muted)'
+        color: valido ? 'var(--on-accent)' : 'var(--text-muted)'
       }}>{etiquetaBoton}</button>
 
       {alertaPresupuesto && (
@@ -299,6 +333,14 @@ export default function NuevaTransaccion({ onBack, onGuardada, transaccionEditar
           gastado={alertaPresupuesto.gastado}
           limite={alertaPresupuesto.limite}
           onCerrar={cerrarAlertaYContinuar}
+        />
+      )}
+
+      {creandoCategoria && (
+        <FormularioCategoria
+          procesando={procesandoCategoria}
+          onCancelar={() => !procesandoCategoria && setCreandoCategoria(false)}
+          onGuardar={handleCrearCategoria}
         />
       )}
     </div>

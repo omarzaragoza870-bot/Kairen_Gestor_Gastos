@@ -28,7 +28,7 @@ export default function AlertaPresupuesto({ categoria, gastado, limite, onCerrar
         </p>
         <button
           onClick={onCerrar}
-          style={{ width: '100%', padding: 14, borderRadius: 'var(--radius-md)', background: 'var(--gradient-brand)', color: '#fff', fontWeight: 700 }}
+          style={{ width: '100%', padding: 14, borderRadius: 'var(--radius-md)', background: 'var(--gradient-brand)', color: 'var(--on-accent)', fontWeight: 700 }}
         >
           {t('pr_alerta_entendido')}
         </button>

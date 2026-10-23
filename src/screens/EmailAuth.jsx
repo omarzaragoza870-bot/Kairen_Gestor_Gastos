@@ -84,7 +84,7 @@ export default function EmailAuth({ onCancelar }) {
           style={{
             flex: 1, padding: 12, borderRadius: 'var(--radius-md)', fontWeight: 600, fontSize: 13,
             background: modo === 'entrar' ? 'var(--gradient-brand)' : 'var(--bg-surface)',
-            color: modo === 'entrar' ? '#fff' : 'var(--text-secondary)',
+            color: modo === 'entrar' ? 'var(--on-accent)' : 'var(--text-secondary)',
             border: '1px solid ' + (modo === 'entrar' ? 'transparent' : 'var(--border-subtle)')
           }}
         >
@@ -95,7 +95,7 @@ export default function EmailAuth({ onCancelar }) {
           style={{
             flex: 1, padding: 12, borderRadius: 'var(--radius-md)', fontWeight: 600, fontSize: 13,
             background: modo === 'crear' ? 'var(--gradient-brand)' : 'var(--bg-surface)',
-            color: modo === 'crear' ? '#fff' : 'var(--text-secondary)',
+            color: modo === 'crear' ? 'var(--on-accent)' : 'var(--text-secondary)',
             border: '1px solid ' + (modo === 'crear' ? 'transparent' : 'var(--border-subtle)')
           }}
         >
@@ -132,7 +132,7 @@ export default function EmailAuth({ onCancelar }) {
         style={{
           padding: 16, borderRadius: 'var(--radius-md)', fontWeight: 700, fontSize: 15, marginTop: 'auto',
           background: valido ? 'var(--gradient-brand)' : 'var(--bg-surface-2)',
-          color: valido ? '#fff' : 'var(--text-muted)'
+          color: valido ? 'var(--on-accent)' : 'var(--text-muted)'
         }}
       >
         {procesando ? '…' : modo === 'entrar' ? 'Iniciar sesión' : 'Crear cuenta'}

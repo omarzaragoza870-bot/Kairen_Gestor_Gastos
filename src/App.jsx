@@ -291,7 +291,7 @@ function AppInner() {
   const guardada = () => { setRefreshKey(k => k + 1); actualizarConteoPendientes(); setVista(transaccionEditar ? 'lista' : 'principal'); setTransaccionEditar(null) }
 
   return (
-    <div id="app-scroll" style={{ height: '100dvh', overflowY: 'auto', WebkitOverflowScrolling: 'touch', paddingTop: 'var(--safe-top)' }}>
+    <div id="app-scroll" style={{ height: '100dvh', overflowY: 'auto', overflowX: 'hidden',WebkitOverflowScrolling: 'touch', paddingTop: 'var(--safe-top)' }}>
       {!enLinea && <BannerSinConexion pendientes={pendientes} />}
 
       <Suspense fallback={<CargandoPantalla />}>

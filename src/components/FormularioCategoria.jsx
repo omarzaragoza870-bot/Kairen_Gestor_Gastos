@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { usePreferencias } from '../context/PreferenciasContext.jsx'
-import CategoriaIcono, { ICONOS_DISPONIBLES } from './CategoriaIcono.jsx'
+import SelectorIcono from './SelectorIcono.jsx'
 
 /**
  * Modal para crear una categoría nueva. Se usa tanto desde Ajustes >
@@ -15,30 +15,11 @@ export default function FormularioCategoria({ onCancelar, onGuardar, procesando 
 
   return (
     <div onClick={onCancelar} className="modal-backdrop">
-      <div onClick={(e) => e.stopPropagation()} className="modal-card" style={{ maxWidth: 380, maxHeight: '85vh', overflowY: 'auto' }}>
+      <div onClick={(e) => e.stopPropagation()} className="modal-card" style={{ maxWidth: 380 }}>
         <h3>{t('cat_nueva')}</h3>
 
         <label className="field-label">Ícono</label>
-        <div style={{
-          display: 'grid', gridTemplateColumns: 'repeat(6, 1fr)', gap: 8,
-          padding: 12, margin: '8px 0 16px', background: 'var(--bg-surface)',
-          borderRadius: 'var(--radius-md)', border: '1px solid var(--border-subtle)'
-        }}>
-          {ICONOS_DISPONIBLES.map(item => (
-            <button
-              key={item.nombre}
-              onClick={() => setIcono(item.nombre)}
-              title={item.label}
-              style={{
-                display: 'flex', alignItems: 'center', justifyContent: 'center',
-                padding: 10, borderRadius: 'var(--radius-sm)',
-                background: icono === item.nombre ? 'var(--gradient-brand)' : 'transparent'
-              }}
-            >
-              <CategoriaIcono icono={item.nombre} size={20} color={icono === item.nombre ? '#fff' : 'var(--text-secondary)'} />
-            </button>
-          ))}
-        </div>
+        <SelectorIcono valor={icono} onCambiar={setIcono} />
 
         <label className="field-label">{t('cat_nombre')}</label>
         <div className="input-shell">
@@ -50,7 +31,7 @@ export default function FormularioCategoria({ onCancelar, onGuardar, procesando 
           <button
             disabled={!valido || procesando}
             onClick={() => onGuardar(nombre.trim(), icono)}
-            style={{ background: valido ? 'var(--gradient-brand)' : 'var(--bg-surface-2)', color: valido ? '#fff' : 'var(--text-muted)' }}
+            style={{ background: valido ? 'var(--gradient-brand)' : 'var(--bg-surface-2)', color: valido ? 'var(--on-accent)' : 'var(--text-muted)' }}
           >
             {procesando ? t('comun_guardando') : t('comun_guardar')}
           </button>

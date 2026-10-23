@@ -54,7 +54,7 @@ export default function OnboardingTour({ onFinalizar }) {
           )}
           <button
             onClick={() => esUltimo ? cerrar() : setPaso(p => p + 1)}
-            style={{ flex: 2, padding: 12, borderRadius: 'var(--radius-md)', background: 'var(--gradient-brand)', color: '#fff', fontWeight: 700, fontSize: 13 }}
+            style={{ flex: 2, padding: 12, borderRadius: 'var(--radius-md)', background: 'var(--gradient-brand)', color: 'var(--on-accent)', fontWeight: 700, fontSize: 13 }}
           >
             {esUltimo ? t('tour_empezar') : t('tour_siguiente')}
           </button>

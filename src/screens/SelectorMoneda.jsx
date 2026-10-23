@@ -1,4 +1,5 @@
 import { usePreferencias, MONEDAS } from '../context/PreferenciasContext.jsx'
+import { Check } from 'lucide-react'
 
 export default function SelectorMoneda({ onBack }) {
   const { moneda, setMoneda, t } = usePreferencias()
@@ -30,7 +31,7 @@ export default function SelectorMoneda({ onBack }) {
             <div style={{ fontSize: 14, fontWeight: 600 }}>{m.codigo}</div>
             <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>{m.label}</div>
           </div>
-          {moneda === m.codigo && <span style={{ color: 'var(--accent-blue)', fontSize: 18 }}>✓</span>}
+          {moneda === m.codigo && <Check size={20} strokeWidth={2.5} color="var(--accent)" aria-hidden="true" />}
         </button>
       ))}
     </div>

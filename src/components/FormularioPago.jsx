@@ -2,8 +2,8 @@ import { useState } from 'react'
 import { usePreferencias } from '../context/PreferenciasContext.jsx'
 import Monto from './Monto.jsx'
 import { hoyLocal } from '../lib/fechas.js'
+import IconoCuenta from './IconoCuenta.jsx'
 
-const ICONO_TIPO = { efectivo: '💵', tarjeta: '💳', tarjeta_credito: '💳', banco: '🏦', otro: '📦' }
 
 // Mismo filtro usado en el resto de la app: solo dígitos y un único punto
 // decimal, sin importar si el texto llega escrito o pegado.
@@ -46,7 +46,7 @@ export default function FormularioPago({ tarjeta, cuentas, onCancelar, onGuardar
               flex: '1 1 45%', padding: 12, borderRadius: 'var(--radius-md)', background: 'var(--bg-surface)',
               border: '1.5px solid ' + (cuentaOrigenId === c.id ? 'var(--accent-blue)' : 'var(--border-subtle)'), textAlign: 'left'
             }}>
-              <div style={{ fontSize: 13, fontWeight: 600 }}>{ICONO_TIPO[c.tipo] || '📦'} {c.nombre}</div>
+              <div style={{ fontSize: 14, fontWeight: 600, display: 'flex', alignItems: 'center', gap: 6 }}><IconoCuenta tipo={c.tipo} size={15} /> {c.nombre}</div>
               <div style={{ fontSize: 12, color: 'var(--success)' }}><Monto valor={c.saldo} /></div>
             </button>
           ))}
@@ -68,7 +68,7 @@ export default function FormularioPago({ tarjeta, cuentas, onCancelar, onGuardar
           <button
             disabled={!valido || procesando}
             onClick={() => onGuardar({ cuentaOrigenId, monto: montoNum, fecha })}
-            style={{ background: valido ? 'var(--gradient-brand)' : 'var(--bg-surface-2)', color: valido ? '#fff' : 'var(--text-muted)' }}
+            style={{ background: valido ? 'var(--gradient-brand)' : 'var(--bg-surface-2)', color: valido ? 'var(--on-accent)' : 'var(--text-muted)' }}
           >
             {procesando ? t('comun_guardando') : t('cu_pagar_tarjeta')}
           </button>

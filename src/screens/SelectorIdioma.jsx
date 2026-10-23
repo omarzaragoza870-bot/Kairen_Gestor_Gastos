@@ -1,5 +1,6 @@
 import { usePreferencias } from '../context/PreferenciasContext.jsx'
 import { IDIOMAS } from '../i18n/translations.js'
+import { Check } from 'lucide-react'
 
 export default function SelectorIdioma({ onBack }) {
   const { idioma, setIdioma, t } = usePreferencias()
@@ -24,7 +25,7 @@ export default function SelectorIdioma({ onBack }) {
         >
           <span style={{ fontSize: 20 }}>{i.bandera}</span>
           <div style={{ flex: 1, fontSize: 14, fontWeight: 600 }}>{i.label}</div>
-          {idioma === i.codigo && <span style={{ color: 'var(--accent-blue)', fontSize: 18 }}>✓</span>}
+          {idioma === i.codigo && <Check size={20} strokeWidth={2.5} color="var(--accent)" aria-hidden="true" />}
         </button>
       ))}
     </div>

@@ -6,13 +6,14 @@ import { usePreferencias } from '../context/PreferenciasContext.jsx'
 import { mensajeAmigable } from '../lib/errores.js'
 import Monto from '../components/Monto.jsx'
 import { hoyLocal } from '../lib/fechas.js'
+import { Pencil, Trash2, CalendarDays, CalendarRange, CalendarClock, Calendar, CalendarHeart } from 'lucide-react'
 
 const FRECUENCIAS = [
-  { id: 'diario',    label: 'Diario',     emoji: '📅' },
-  { id: 'semanal',   label: 'Semanal',    emoji: '📆' },
-  { id: 'quincenal', label: 'Quincenal',  emoji: '🗓️' },
-  { id: 'mensual',   label: 'Mensual',    emoji: '📊' },
-  { id: 'anual',     label: 'Anual',      emoji: '🎯' },
+  { id: 'diario',    label: 'Diario',     Icono: CalendarDays },
+  { id: 'semanal',   label: 'Semanal',    Icono: CalendarRange },
+  { id: 'quincenal', label: 'Quincenal',  Icono: CalendarClock },
+  { id: 'mensual',   label: 'Mensual',    Icono: Calendar },
+  { id: 'anual',     label: 'Anual',      Icono: CalendarHeart },
 ]
 
 // Fecha local (no UTC): con toISOString, después de las 6 pm en México
@@ -120,7 +121,7 @@ export default function Recurrentes({ onBack }) {
           padding: 14, marginBottom: 10, opacity: r.activa ? 1 : 0.5
         }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-            <span style={{ fontSize: 22 }}>{freq(r.frecuencia).emoji}</span>
+            <span style={{ width: 36, height: 36, borderRadius: 10, background: 'var(--fill)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>{(() => { const F = freq(r.frecuencia).Icono; return <F size={18} aria-hidden="true" /> })()}</span>
             <div style={{ flex: 1, minWidth: 0 }}>
               <div style={{ fontWeight: 700, fontSize: 14 }}>{r.categoria_nombre}</div>
               <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>
@@ -133,11 +134,11 @@ export default function Recurrentes({ onBack }) {
             </div>
           </div>
           <div style={{ display: 'flex', gap: 8, borderTop: '1px solid var(--border-subtle)', paddingTop: 8, marginTop: 10 }}>
-            <button onClick={() => setEditando(r)} style={{ flex: 1, background: 'transparent', color: 'var(--text-secondary)', fontSize: 12, padding: 6 }}>✏️ Editar</button>
+            <button onClick={() => setEditando(r)} style={{ flex: 1, background: 'transparent', color: 'var(--text-secondary)', fontSize: 12, padding: 6 }}><Pencil size={14} aria-hidden="true" style={{ verticalAlign: '-2px', marginRight: 6 }} />Editar</button>
             <button onClick={() => handleGuardar({ ...r, activa: !r.activa })} style={{ flex: 1, background: 'transparent', color: r.activa ? 'var(--warning)' : 'var(--success)', fontSize: 12, padding: 6 }}>
               {r.activa ? '⏸️ Pausar' : '▶️ Activar'}
             </button>
-            <button onClick={() => setAEliminar(r)} style={{ flex: 1, background: 'transparent', color: 'var(--danger)', fontSize: 12, padding: 6 }}>🗑️ Eliminar</button>
+            <button onClick={() => setAEliminar(r)} style={{ flex: 1, background: 'transparent', color: 'var(--danger)', fontSize: 12, padding: 6 }}><Trash2 size={14} aria-hidden="true" style={{ verticalAlign: '-2px', marginRight: 6 }} />Eliminar</button>
           </div>
         </div>
       ))}
@@ -207,7 +208,7 @@ function FormularioRecurrente({ recurrente, cuentas, categorias, onCancelar, onG
               style={{
                 flex: 1, padding: 10, borderRadius: 'var(--radius-md)', fontWeight: 600, fontSize: 13,
                 background: tipo === op ? 'var(--gradient-brand)' : 'var(--bg-surface)',
-                color: tipo === op ? '#fff' : 'var(--text-secondary)',
+                color: tipo === op ? 'var(--on-accent)' : 'var(--text-secondary)',
                 border: '1px solid ' + (tipo === op ? 'transparent' : 'var(--border-subtle)')
               }}>
               {op === 'gasto' ? '⊖ Gasto' : '⊕ Ingreso'}
@@ -246,10 +247,10 @@ function FormularioRecurrente({ recurrente, cuentas, categorias, onCancelar, onG
               style={{
                 flexShrink: 0, padding: '8px 12px', borderRadius: 999, fontSize: 12, fontWeight: 600,
                 background: frecuencia === f.id ? 'var(--gradient-brand)' : 'var(--bg-surface)',
-                color: frecuencia === f.id ? '#fff' : 'var(--text-secondary)',
+                color: frecuencia === f.id ? 'var(--on-accent)' : 'var(--text-secondary)',
                 border: '1px solid ' + (frecuencia === f.id ? 'transparent' : 'var(--border-subtle)')
               }}>
-              {f.emoji} {f.label}
+              <f.Icono size={14} aria-hidden="true" style={{ verticalAlign: '-2px', marginRight: 4 }} />{f.label}
             </button>
           ))}
         </div>
@@ -264,7 +265,7 @@ function FormularioRecurrente({ recurrente, cuentas, categorias, onCancelar, onG
           <button
             disabled={!valido || procesando}
             onClick={() => onGuardar({ id: recurrente.id, cuentaId, tipo, categoriaNombre, monto: montoNum, descripcion, frecuencia, proximaFecha })}
-            style={{ background: valido ? 'var(--gradient-brand)' : 'var(--bg-surface-2)', color: valido ? '#fff' : 'var(--text-muted)' }}
+            style={{ background: valido ? 'var(--gradient-brand)' : 'var(--bg-surface-2)', color: valido ? 'var(--on-accent)' : 'var(--text-muted)' }}
           >
             {procesando ? 'Guardando…' : esNuevo ? 'Crear' : 'Guardar'}
           </button>

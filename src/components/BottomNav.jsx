@@ -1,4 +1,5 @@
 import { Home, BarChart3, Wallet, Target, Settings } from 'lucide-react'
+import { usePreferencias } from '../context/PreferenciasContext.jsx'
 
 const tabs = [
   { id: 'inicio', clave: 'nav_inicio', Icon: Home },
@@ -8,72 +9,50 @@ const tabs = [
   { id: 'ajustes', clave: 'nav_ajustes', Icon: Settings }
 ]
 
+/**
+ * Barra inferior flotante estilo iOS: material translúcido con desenfoque,
+ * ícono + etiqueta en cada pestaña y una cápsula suave detrás de la activa.
+ * El desenfoque usa backdrop-filter, disponible en WebView de Android e iOS.
+ */
 export default function BottomNav({ active, onChange }) {
+  const { t } = usePreferencias()
   return (
     <>
       <style>{`
-        @keyframes bubble-up {
-          0%   { transform: translateY(0) scale(0.9); opacity: 0.6; }
-          60%  { transform: translateY(-12px) scale(1.12); }
-          100% { transform: translateY(-10px) scale(1.05); opacity: 1; }
+        .tabbar {
+          position: fixed; left: 12px; right: 12px; margin: 0 auto; max-width: 440px;
+          bottom: calc(12px + var(--safe-bottom));
+          display: flex; justify-content: space-between; gap: 2px; padding: 6px;
+          border-radius: 999px; z-index: 20;
+          background: var(--nav-bg); border: 1px solid var(--nav-border);
+          -webkit-backdrop-filter: blur(24px) saturate(180%);
+          backdrop-filter: blur(24px) saturate(180%);
+          box-shadow: 0 10px 30px rgba(0, 0, 0, 0.18);
         }
-        .nav-btn-active {
-          animation: bubble-up 0.35s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+        .tabbar-item {
+          flex: 1; min-width: 0; min-height: 52px; padding: 6px 2px 5px;
+          display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px;
+          border-radius: 999px; background: transparent; color: var(--nav-icon-inactive);
+          font-size: 10px; font-weight: 500; letter-spacing: 0;
+          transition: background-color 0.25s var(--ease-ios), color 0.2s ease;
         }
+        .tabbar-item.active { background: var(--nav-active-bg); color: var(--nav-icon-active); font-weight: 600; }
+        .tabbar-item:active:not(:disabled) { transform: scale(0.94); opacity: 1; }
+        .tabbar-item span { max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
       `}</style>
 
-      <nav
-        style={{
-          position: 'fixed',
-          left: 16,
-          right: 16,
-          bottom: 'calc(16px + var(--safe-bottom))',
-          background: 'var(--nav-bg)',
-          borderRadius: 999,
-          display: 'flex',
-          alignItems: 'flex-end',
-          justifyContent: 'space-around',
-          /* Más delgada que antes: 8px en vez de 10px de padding vertical */
-          padding: '8px 8px 10px',
-          boxShadow: '0 12px 32px rgba(0,0,0,.35)',
-          zIndex: 20,
-          overflow: 'visible'
-        }}
-      >
-        {tabs.map(({ id, Icon }) => {
+      <nav className="tabbar" aria-label="Navegación principal">
+        {tabs.map(({ id, clave, Icon }) => {
           const activo = active === id
           return (
             <button
               key={id}
               onClick={() => onChange(id)}
-              aria-label={id}
-              className={activo ? 'nav-btn-active' : ''}
-              style={{
-                position: 'relative',
-                background: activo ? 'var(--nav-active-bg)' : 'transparent',
-                width: activo ? 52 : 44,
-                height: 44,
-                borderRadius: 16,
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                flexShrink: 0,
-                /* La elevación la hace la animación — no translateY fijo
-                   para que el arco se vea natural */
-                transform: activo ? 'translateY(-10px) scale(1.05)' : 'translateY(0) scale(1)',
-                transition: activo
-                  ? 'none'  /* la animación CSS toma el control */
-                  : 'all 0.25s cubic-bezier(0.4, 0, 0.2, 1)',
-                boxShadow: activo
-                  ? '0 6px 20px rgba(79,107,255,0.35)'
-                  : 'none'
-              }}
+              aria-current={activo ? 'page' : undefined}
+              className={activo ? 'tabbar-item active' : 'tabbar-item'}
             >
-              <Icon
-                size={activo ? 24 : 22}
-                strokeWidth={activo ? 2.5 : 2}
-                color={activo ? 'var(--nav-icon-active)' : 'var(--nav-icon-inactive)'}
-              />
+              <Icon size={22} strokeWidth={activo ? 2.3 : 1.9} aria-hidden="true" />
+              <span>{t(clave)}</span>
             </button>
           )
         })}

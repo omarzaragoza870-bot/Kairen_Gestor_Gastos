@@ -13,7 +13,7 @@ import { logError, logWarn } from '../lib/logger.js'
 import { conRespaldoOffline } from '../lib/offline.js'
 import { mensajeAmigable } from '../lib/errores.js'
 import { useScrollLock } from '../hooks/useScrollLock.js'
-import { ArrowUpRight, ArrowDownRight, Landmark } from 'lucide-react'
+import { ArrowUpRight, ArrowDownRight, Landmark, CalendarDays, Banknote, CreditCard, Inbox, Pencil, Trash2 } from 'lucide-react'
 import CategoriaIcono from '../components/CategoriaIcono.jsx'
 
 const fmt = n => Number(n).toLocaleString('es-MX', { style: 'currency', currency: 'MXN' })
@@ -107,7 +107,7 @@ export default function Inicio({ onNuevo, onEditar, onVerTodas, refreshKey }) {
         cargarDatos(usuario.id)
         conRespaldoOffline(`categorias-inicio:${usuario.id}`, () => obtenerCategorias(usuario.id)).then(cats => {
           const mapa = {}
-          cats.forEach(c => { mapa[`${c.tipo}:${c.nombre}`] = c.icono || '🏷️' })
+          cats.forEach(c => { mapa[`${c.tipo}:${c.nombre}`] = c.icono || 'Tag' })
           setIconosPorCategoria(mapa)
         }).catch(err => logWarn('No se pudieron cargar los íconos de categoría', err))
         cargarCuentas(usuario.id)
@@ -209,23 +209,23 @@ export default function Inicio({ onNuevo, onEditar, onVerTodas, refreshKey }) {
             <button onClick={() => moverMes(1)} aria-label="Período siguiente" className="icon-button">›</button>
           </>
         )}
-        <button onClick={() => setMostrarSelector(true)} aria-label="Seleccionar período" className="icon-button">📅</button>
+        <button onClick={() => setMostrarSelector(true)} aria-label="Seleccionar período" className="icon-button" style={{ width: 42, display: 'flex', alignItems: 'center', justifyContent: 'center' }}><CalendarDays size={20} /></button>
       </header>
 
       <section className="summary-card">
         <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-          <span style={{ fontSize: 13, color: 'rgba(255,255,255,0.6)' }}>{t('inicio_dinero_disponible')}</span>
+          <span style={{ fontSize: 14, color: 'var(--card-dark-muted)' }}>{t('inicio_dinero_disponible')}</span>
           <InfoTooltip title={t('inicio_dinero_disponible')} text={t('inicio_dinero_disponible_info')} />
         </div>
         <div className="available-amount">{cargando ? '…' : <Monto valor={disponible} />}</div>
         {(saldoEfectivo !== 0 || saldoTarjeta !== 0) && (
-          <div style={{ display: 'flex', gap: 12, marginTop: 12, paddingTop: 12, borderTop: '1px solid rgba(255,255,255,0.15)' }}>
+          <div style={{ display: 'flex', gap: 12, marginTop: 12, paddingTop: 12, borderTop: '1px solid rgba(128,128,128,0.25)' }}>
             <div style={{ flex: 1 }}>
-              <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.5)', marginBottom: 2 }}>💵 {t('cu_tipo_efectivo')}</div>
+              <div style={{ fontSize: 12, color: 'var(--card-dark-muted)', marginBottom: 2, display: 'flex', alignItems: 'center', gap: 5 }}><Banknote size={13} aria-hidden="true" /> {t('cu_tipo_efectivo')}</div>
               <div style={{ fontSize: 16, fontWeight: 600 }}>{cargando ? '…' : <Monto valor={saldoEfectivo} />}</div>
             </div>
             <div style={{ flex: 1 }}>
-              <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.5)', marginBottom: 2 }}>💳 {t('cu_tipo_tarjeta')}</div>
+              <div style={{ fontSize: 12, color: 'var(--card-dark-muted)', marginBottom: 2, display: 'flex', alignItems: 'center', gap: 5 }}><CreditCard size={13} aria-hidden="true" /> {t('cu_tipo_tarjeta')}</div>
               <div style={{ fontSize: 16, fontWeight: 600 }}>{cargando ? '…' : <Monto valor={saldoTarjeta} />}</div>
             </div>
           </div>
@@ -234,12 +234,12 @@ export default function Inicio({ onNuevo, onEditar, onVerTodas, refreshKey }) {
 
       <div className="summary-grid">
         <div>
-          <div className="chip-icon chip-icon-income"><ArrowUpRight size={16} color="#fff" strokeWidth={2.5} /></div>
+          <div className="chip-icon chip-icon-income"><ArrowUpRight size={16} strokeWidth={2.5} aria-hidden="true" /></div>
           <span className="income-label">{t('inicio_ingresos')}</span>
           <div>{cargando ? '…' : <Monto valor={ingresos} prefijo="+" />}</div>
         </div>
         <div>
-          <div className="chip-icon chip-icon-expense"><ArrowDownRight size={16} color="#fff" strokeWidth={2.5} /></div>
+          <div className="chip-icon chip-icon-expense"><ArrowDownRight size={16} strokeWidth={2.5} aria-hidden="true" /></div>
           <span className="expense-label">{t('inicio_gastos')}</span>
           <div>{cargando ? '…' : <Monto valor={gastos} prefijo="-" />}</div>
         </div>
@@ -256,8 +256,8 @@ export default function Inicio({ onNuevo, onEditar, onVerTodas, refreshKey }) {
                 borderRadius: 'var(--radius-md)', padding: '14px 16px', marginBottom: 8
               }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
-                  <div style={{ fontSize: 13, fontWeight: 600 }}>💳 {tc.nombre}</div>
-                  <button onClick={() => setAPagar(tc)} style={{ background: 'var(--gradient-brand)', color: '#fff', fontSize: 11, fontWeight: 600, padding: '5px 12px', borderRadius: 999 }}>
+                  <div style={{ fontSize: 13, fontWeight: 600 }}><CreditCard size={15} aria-hidden="true" style={{ verticalAlign: '-2px', marginRight: 6 }} />{tc.nombre}</div>
+                  <button onClick={() => setAPagar(tc)} style={{ background: 'var(--gradient-brand)', color: 'var(--on-accent)', fontSize: 11, fontWeight: 600, padding: '5px 12px', borderRadius: 999 }}>
                     {t('cu_pagar_tarjeta')}
                   </button>
                 </div>
@@ -306,7 +306,7 @@ export default function Inicio({ onNuevo, onEditar, onVerTodas, refreshKey }) {
 
       {error && <p className="error-message">{error}</p>}
       {!cargando && !error && transacciones.length === 0 && (
-        <div className="empty-state"><div style={{ fontSize: 32, marginBottom: 8 }}>📭</div><p>{t('inicio_vacio_titulo')}</p><small>{t('inicio_vacio_subtitulo')}</small></div>
+        <div className="empty-state"><div style={{ marginBottom: 8, display: 'flex', justifyContent: 'center', color: 'var(--text-muted)' }}><Inbox size={34} strokeWidth={1.6} aria-hidden="true" /></div><p>{t('inicio_vacio_titulo')}</p><small>{t('inicio_vacio_subtitulo')}</small></div>
       )}
 
       {visibles.map(tx => (
@@ -345,14 +345,14 @@ export default function Inicio({ onNuevo, onEditar, onVerTodas, refreshKey }) {
 
             <div className="modal-actions">
               <button onClick={() => setVerDetalle(null)}>{t('comun_cancelar')}</button>
-              <button onClick={() => { onEditar(verDetalle); setVerDetalle(null) }}>✏️ {t('comun_editar')}</button>
+              <button onClick={() => { onEditar(verDetalle); setVerDetalle(null) }}><Pencil size={15} aria-hidden="true" style={{ verticalAlign: '-2px', marginRight: 6 }} />{t('comun_editar')}</button>
             </div>
             <button
               className="danger-link"
               style={{ marginTop: 14, width: '100%', textAlign: 'center' }}
               onClick={() => { setAEliminar(verDetalle); setVerDetalle(null) }}
             >
-              🗑️ {t('comun_eliminar')}
+              <Trash2 size={15} aria-hidden="true" style={{ verticalAlign: '-2px', marginRight: 6 }} />{t('comun_eliminar')}
             </button>
           </div>
         </div>

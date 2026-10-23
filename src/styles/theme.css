@@ -1,107 +1,106 @@
+/* Inter variable — en Android/Windows sustituye a SF Pro; en iPhone se usa la fuente del sistema */
 @font-face {
-  font-family: 'Poppins';
-  src: url('/fonts/Poppins-Regular.ttf') format('truetype');
-  font-weight: 400;
-}
-@font-face {
-  font-family: 'Poppins';
-  src: url('/fonts/Poppins-Medium.ttf') format('truetype');
-  font-weight: 500;
-}
-@font-face {
-  font-family: 'Poppins';
-  src: url('/fonts/Poppins-SemiBold.ttf') format('truetype');
-  font-weight: 600;
-}
-@font-face {
-  font-family: 'Poppins';
-  src: url('/fonts/Poppins-Bold.ttf') format('truetype');
-  font-weight: 700;
-}
-@font-face {
-  font-family: 'Poppins';
-  src: url('/fonts/Poppins-ExtraBold.ttf') format('truetype');
-  font-weight: 800;
+  font-family: 'Inter';
+  src: url('/fonts/Inter-Variable.woff2') format('woff2');
+  font-weight: 100 900;
+  font-display: swap;
 }
 
 :root {
-  /* Paleta KAIREN v2 — minimalista, tarjetas de acento negro,
-     chips pastel para ingresos/gastos, barra inferior flotante oscura */
-  --bg-base: #0F0B1E;
-  --bg-surface: #1A1530;
-  --bg-surface-2: #241D42;
-  --accent-blue: #4F6BFF;
-  --accent-purple: #8B5CF6;
-  --gradient-brand: linear-gradient(135deg, #4F6BFF 0%, #8B5CF6 100%);
-  --text-primary: #F4F2FF;
-  --text-secondary: #A9A3C7;
-  --text-muted: #6E6790;
-  --success: #34D399;
-  --danger: #FB7185;
-  --warning: #FBBF24;
+  /* Paleta KAIREN v3 — Monocromo estilo Apple.
+     Neutros puros, el acento es el propio blanco/negro y el color
+     solo aparece en el dinero (ingreso/gasto) y los avisos. */
+  --bg-base: #000000;
+  --bg-surface: #1C1C1E;
+  --bg-surface-2: #2C2C2E;
+  --bg-elevated: #1C1C1E;
+  --fill: rgba(118, 118, 128, 0.24);
+  --fill-thumb: #636366;
+  --accent: #F5F5F7;
+  --on-accent: #0A0A0A;
+  /* Compatibilidad: los componentes que usaban el azul/morado/degradado
+     ahora reciben el acento sólido */
+  --accent-blue: var(--accent);
+  --accent-purple: var(--accent);
+  --gradient-brand: var(--accent);
+  --text-primary: #F5F5F7;
+  --text-secondary: #AEAEB2;
+  --text-muted: #98989D;
+  --success: #30D158;
+  --danger: #FF6961;
+  --danger-fill: #D93025;
+  --warning: #FFD60A;
+  --on-warning: #1A1500;
+  --switch-on: #30D158;
+  --focus: #0A84FF;
   --border-subtle: rgba(255, 255, 255, 0.08);
+  --scrim: rgba(0, 0, 0, 0.6);
+  --shadow-fab: 0 6px 20px rgba(0, 0, 0, 0.5);
 
-  /* Tarjeta de acento negro sólido (Dinero Disponible) */
-  --card-dark-bg: #111111;
-  --card-dark-text: #FFFFFF;
+  /* Tarjeta de saldo — "Dinero Disponible" */
+  --card-dark-bg: #1C1C1E;
+  --card-dark-text: #F5F5F7;
+  --card-dark-muted: #98989D;
+  --card-dark-border: rgba(255, 255, 255, 0.1);
 
-  /* Chips pastel de Ingresos / Gastos */
-  --chip-income-bg: #E3F7EE;
-  --chip-income-icon-bg: #34D399;
-  --chip-income-text: #0F3D2C;
-  --chip-expense-bg: #FCEBEC;
-  --chip-expense-icon-bg: #F87171;
-  --chip-expense-text: #4A1417;
+  /* Barra inferior flotante — material translúcido */
+  --nav-bg: rgba(28, 28, 30, 0.78);
+  --nav-border: rgba(255, 255, 255, 0.08);
+  --nav-icon-inactive: #98989D;
+  --nav-icon-active: #F5F5F7;
+  --nav-active-bg: rgba(118, 118, 128, 0.3);
 
-  /* Barra inferior flotante — siempre oscura, sin importar el tema */
-  --nav-bg: #15141F;
-  --nav-icon-inactive: #8B87A3;
-  --nav-icon-active: #FFFFFF;
-  --nav-active-bg: #4F6BFF;
+  --font-display: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Inter', Roboto, 'Segoe UI', system-ui, sans-serif;
+  --font-body: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Inter', Roboto, 'Segoe UI', system-ui, sans-serif;
 
-  --font-display: 'Poppins', sans-serif;
-  --font-body: 'Poppins', sans-serif;
-
-  --radius-lg: 20px;
+  --radius-lg: 18px;
   --radius-md: 14px;
   --radius-sm: 10px;
-  --radius-xl: 26px;
+  --radius-xl: 24px;
+
+  --ease-ios: cubic-bezier(0.32, 0.72, 0, 1);
 
   --safe-top: env(safe-area-inset-top, 0px);
   --safe-bottom: env(safe-area-inset-bottom, 0px);
+  color-scheme: dark;
 }
 
 /* Tema claro — se activa cuando <html data-theme="claro"> */
 [data-theme="claro"] {
-  --bg-base: #F4F5F9;
+  --bg-base: #F2F2F7;
   --bg-surface: #FFFFFF;
-  --bg-surface-2: #ECEBF5;
-  --accent-blue: #4F6BFF;
-  --accent-purple: #8B5CF6;
-  --gradient-brand: linear-gradient(135deg, #4F6BFF 0%, #8B5CF6 100%);
-  --text-primary: #17152B;
-  --text-secondary: #4B4563;
-  --text-muted: #6B6585;
-  --success: #12A576;
-  --danger: #E24C63;
-  --warning: #B8860B;
-  --border-subtle: rgba(23, 21, 43, 0.08);
+  --bg-surface-2: #E5E5EA;
+  --bg-elevated: #FFFFFF;
+  --fill: rgba(118, 118, 128, 0.12);
+  --fill-thumb: #FFFFFF;
+  --accent: #0A0A0A;
+  --on-accent: #FFFFFF;
+  --text-primary: #0A0A0A;
+  --text-secondary: #3A3A3C;
+  --text-muted: #636366;
+  --success: #1A7F37;
+  --danger: #C9302C;
+  --danger-fill: #C9302C;
+  --warning: #B25000;
+  --on-warning: #FFFFFF;
+  --switch-on: #34C759;
+  --focus: #007AFF;
+  --border-subtle: rgba(0, 0, 0, 0.06);
+  --scrim: rgba(0, 0, 0, 0.4);
+  --shadow-fab: 0 6px 18px rgba(0, 0, 0, 0.22);
 
-  --card-dark-bg: #111111;
+  /* En claro la tarjeta de saldo es negra: el elemento con más peso de la pantalla */
+  --card-dark-bg: #0A0A0A;
   --card-dark-text: #FFFFFF;
+  --card-dark-muted: #A1A1A6;
+  --card-dark-border: transparent;
 
-  --chip-income-bg: #E3F7EE;
-  --chip-income-icon-bg: #34D399;
-  --chip-income-text: #0F3D2C;
-  --chip-expense-bg: #FCEBEC;
-  --chip-expense-icon-bg: #F87171;
-  --chip-expense-text: #4A1417;
-
-  /* La barra inferior se mantiene oscura incluso en tema claro */
-  --nav-bg: #15141F;
-  --nav-icon-inactive: #8B87A3;
-  --nav-icon-active: #FFFFFF;
-  --nav-active-bg: #4F6BFF;
+  --nav-bg: rgba(255, 255, 255, 0.82);
+  --nav-border: rgba(0, 0, 0, 0.06);
+  --nav-icon-inactive: #636366;
+  --nav-icon-active: #0A0A0A;
+  --nav-active-bg: rgba(118, 118, 128, 0.14);
+  color-scheme: light;
 }
 
 * { box-sizing: border-box; }
@@ -112,24 +111,32 @@ html, body, #root {
   background: var(--bg-base);
   color: var(--text-primary);
   font-family: var(--font-body);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
   -webkit-tap-highlight-color: transparent;
   overflow: hidden;
 }
+
+h1, h2, h3 { font-family: var(--font-display); letter-spacing: -0.01em; }
+h1 { letter-spacing: -0.02em; }
 
 button {
   color: var(--text-primary);
   font-family: inherit;
   border: none;
   cursor: pointer;
-  transition: transform 0.12s ease, opacity 0.12s ease;
+  touch-action: manipulation;
+  transition: transform 0.15s var(--ease-ios), opacity 0.15s ease, background-color 0.2s ease;
 }
 
+/* Pulsación: atenuado tipo iOS + leve escala, se siente natural también en Android */
 button:active:not(:disabled) {
-  transform: scale(0.96);
+  transform: scale(0.97);
+  opacity: 0.7;
 }
 
 button:focus-visible {
-  outline: 2px solid var(--accent-blue);
+  outline: 2px solid var(--focus);
   outline-offset: 2px;
 }
 
@@ -150,41 +157,50 @@ input {
   line-height: 1.5;
   min-height: 44px;
 }
+input::placeholder { color: var(--text-muted); }
 
 input[type='date'] { color-scheme: dark; }
-button:disabled { cursor: not-allowed; opacity: .72; }
+[data-theme="claro"] input[type='date'] { color-scheme: light; }
+button:disabled { cursor: not-allowed; opacity: .5; }
 
 .app-loader { min-height: 100dvh; display: flex; align-items: center; justify-content: center; color: var(--text-secondary); }
-.field-label { display: block; font-size: 13px; font-weight: 600; color: var(--text-secondary); }
-.input-shell { display: flex; align-items: center; gap: 6px; margin: 8px 0 20px; padding: 14px 16px; background: var(--bg-surface); border: 1px solid var(--border-subtle); border-radius: var(--radius-md); }
-.empty-inline { width: 100%; padding: 14px; border-radius: var(--radius-md); background: var(--bg-surface); border: 1px solid var(--border-subtle); color: var(--text-muted); font-size: 13px; text-align: center; }
-.primary-button { width: 100%; padding: 16px; border-radius: var(--radius-md); font-weight: 700; font-size: 15px; }
-.error-message { color: var(--danger); font-size: 13px; margin: 12px 0; line-height: 1.55; background: rgba(251, 113, 133, 0.1); border-left: 3px solid var(--danger); padding: 12px 14px; border-radius: var(--radius-sm); }
-[data-theme="claro"] .error-message { background: rgba(226, 76, 99, 0.08); }
+.field-label { display: block; font-size: 13px; font-weight: 500; color: var(--text-secondary); }
+.input-shell { display: flex; align-items: center; gap: 6px; margin: 8px 0 20px; padding: 6px 16px; min-height: 52px; background: var(--bg-surface); border: 1px solid transparent; border-radius: var(--radius-md); transition: border-color 0.2s ease; }
+.input-shell:focus-within { border-color: var(--text-muted); }
+.empty-inline { width: 100%; padding: 14px; border-radius: var(--radius-md); background: var(--bg-surface); color: var(--text-muted); font-size: 13px; text-align: center; }
+.primary-button { width: 100%; padding: 16px; min-height: 52px; border-radius: var(--radius-md); font-weight: 600; font-size: 16px; }
+.error-message { color: var(--danger); font-size: 13px; margin: 12px 0; line-height: 1.55; background: color-mix(in srgb, var(--danger) 12%, transparent); padding: 12px 14px; border-radius: var(--radius-sm); }
 .month-header { display: grid; grid-template-columns: 42px 1fr 42px; align-items: center; gap: 8px; margin-bottom: 16px; }
-.icon-button, .back-button { background: var(--bg-surface); color: var(--text-primary); border: 1px solid var(--border-subtle); border-radius: 12px; min-height: 42px; font-size: 24px; }
-.month-title { background: transparent; color: var(--text-primary); font-size: 18px; font-weight: 700; text-transform: capitalize; }
+.icon-button, .back-button { background: var(--fill); color: var(--text-primary); border: 0; border-radius: 999px; min-height: 40px; min-width: 40px; font-size: 22px; }
+.month-title { background: transparent; color: var(--text-primary); font-size: 28px; font-weight: 700; letter-spacing: -0.02em; text-transform: capitalize; }
 
-/* Tarjeta negra de acento — "Dinero Disponible" */
+/* Tarjeta de saldo — "Dinero Disponible" */
 .summary-card {
   background: var(--card-dark-bg);
   color: var(--card-dark-text);
   border-radius: var(--radius-xl);
   padding: 22px;
-  border: none;
+  border: 1px solid var(--card-dark-border);
+  /* Todo lo que va dentro (tooltip, botones) usa tonos para fondo oscuro, también en tema claro */
+  --text-primary: var(--card-dark-text);
+  --text-secondary: var(--card-dark-muted);
+  --text-muted: var(--card-dark-muted);
+  --fill: rgba(255, 255, 255, 0.14);
 }
 .available-amount {
-  font-size: 32px;
-  font-weight: 800;
+  font-size: 36px;
+  font-weight: 700;
+  letter-spacing: -0.03em;
   margin: 6px 0 0;
   color: var(--card-dark-text);
+  font-variant-numeric: tabular-nums;
 }
 
-/* Chips pastel de Ingresos / Gastos, debajo de la tarjeta negra */
+/* Ingresos / Gastos: tarjetas neutras, el color solo en el ícono */
 .summary-grid {
   display: flex;
   gap: 12px;
-  margin-top: 14px;
+  margin-top: 12px;
   border-top: none;
   padding-top: 0;
 }
@@ -192,51 +208,113 @@ button:disabled { cursor: not-allowed; opacity: .72; }
   flex: 1;
   border-radius: var(--radius-lg);
   padding: 16px;
-  font-size: 16px;
-  font-weight: 700;
+  font-size: 17px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  font-variant-numeric: tabular-nums;
+  background: var(--bg-surface);
+  color: var(--text-primary);
 }
-.summary-grid > div:first-child { background: var(--chip-income-bg); color: var(--chip-income-text); }
-.summary-grid > div:last-child { background: var(--chip-expense-bg); color: var(--chip-expense-text); }
-.summary-grid span { display: block; font-size: 12px; font-weight: 600; margin-bottom: 6px; opacity: .75; }
-.chip-icon { width: 32px; height: 32px; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin-bottom: 10px; }
-.chip-icon-income { background: var(--chip-income-icon-bg); }
-.chip-icon-expense { background: var(--chip-expense-icon-bg); }
+.summary-grid span { display: block; font-size: 13px; font-weight: 500; margin-bottom: 4px; color: var(--text-muted); letter-spacing: 0; }
+.chip-icon { width: 30px; height: 30px; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin-bottom: 10px; }
+.chip-icon-income { background: color-mix(in srgb, var(--success) 16%, transparent); color: var(--success); }
+.chip-icon-expense { background: color-mix(in srgb, var(--danger) 16%, transparent); color: var(--danger); }
 .income-label, .amount.income { color: var(--success); }
 .expense-label, .amount.expense { color: var(--danger); }
 
-.section-heading { display: flex; justify-content: space-between; align-items: center; margin: 22px 0 10px; }
-.section-heading h2 { font-size: 15px; font-weight: 600; margin: 0; }
-.link-button { background: transparent; color: var(--accent-blue); font-size: 13px; }
-.empty-state { text-align: center; padding: 40px 20px; color: var(--text-muted); background: var(--bg-surface); border-radius: var(--radius-md); border: 1px solid var(--border-subtle); }
-.empty-state p { margin: 0; font-size: 14px; }
+.section-heading { display: flex; justify-content: space-between; align-items: center; margin: 24px 0 10px; }
+.section-heading h2 { font-size: 20px; font-weight: 700; margin: 0; }
+.link-button { background: transparent; color: var(--text-primary); font-size: 15px; font-weight: 500; }
+.empty-state { text-align: center; padding: 40px 20px; color: var(--text-muted); background: var(--bg-surface); border-radius: var(--radius-lg); }
+.empty-state p { margin: 0; font-size: 15px; color: var(--text-secondary); }
 .empty-state small { display: block; margin-top: 4px; font-size: 13px; }
-.transaction-row { width: 100%; background: var(--bg-surface); color: var(--text-primary); border-radius: var(--radius-md); padding: 14px 16px; margin-bottom: 10px; display: flex; justify-content: space-between; align-items: center; border: 1px solid var(--border-subtle); }
-.transaction-row:hover, .transaction-card:hover { border-color: rgba(79, 107, 255, .45); }
-.transaction-category { font-weight: 600; font-size: 14px; }
-.transaction-description { font-size: 12px; color: var(--text-secondary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 230px; }
-.transaction-date { font-size: 11px; color: var(--text-muted); }
-.amount { flex-shrink: 0; font-weight: 700; margin-left: 12px; }
-.floating-button { position: fixed; right: 20px; bottom: calc(96px + var(--safe-bottom)); width: 56px; height: 56px; border-radius: 16px; background: var(--gradient-brand); color: #fff; font-size: 26px; font-weight: 700; box-shadow: 0 8px 24px rgba(79,107,255,.4); }
+.transaction-row { width: 100%; background: var(--bg-surface); color: var(--text-primary); border-radius: var(--radius-md); padding: 14px 16px; margin-bottom: 8px; display: flex; justify-content: space-between; align-items: center; border: 0; }
+.transaction-category { font-weight: 600; font-size: 15px; }
+.transaction-description { font-size: 13px; color: var(--text-secondary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 230px; }
+.transaction-date { font-size: 12px; color: var(--text-muted); }
+.amount { flex-shrink: 0; font-weight: 600; margin-left: 12px; font-variant-numeric: tabular-nums; }
+/* right: se alinea con el borde del contenido (680px) en pantallas anchas */
+.floating-button { position: fixed; right: max(20px, calc((100vw - 680px) / 2 + 16px)); bottom: calc(100px + var(--safe-bottom)); z-index: 15; width: 56px; height: 56px; border-radius: 50%; background: var(--accent); color: var(--on-accent); font-size: 28px; font-weight: 400; line-height: 1; box-shadow: var(--shadow-fab); }
 .screen-header { display: flex; align-items: center; gap: 12px; margin-bottom: 18px; }
-.screen-header h1 { font-size: 18px; margin: 0; }
-.back-button { width: 42px; }
-.filter-row { display: flex; gap: 8px; margin-bottom: 16px; }
-.filter { flex: 1; padding: 10px 12px; min-height: 44px; border-radius: 999px; background: var(--bg-surface); color: var(--text-secondary); border: 1px solid var(--border-subtle); font-weight: 600; }
-.filter.active { background: var(--gradient-brand); color: #fff; border-color: transparent; }
-.transaction-card { background: var(--bg-surface); border: 1px solid var(--border-subtle); border-radius: var(--radius-md); margin-bottom: 12px; overflow: hidden; }
+.screen-header h1 { font-size: 22px; font-weight: 700; margin: 0; }
+.back-button { width: 40px; }
+
+/* Control segmentado estilo iOS (filtros y pestañas).
+   Si las opciones no caben, la pista se desliza en lugar de desbordar la página. */
+.filter-row, .tab-scroll { display: flex; gap: 2px; padding: 2px; margin: 0 0 20px; background: var(--fill); border-radius: 11px; overflow-x: auto; scrollbar-width: none; scroll-snap-type: x proximity; }
+.filter-row::-webkit-scrollbar, .tab-scroll::-webkit-scrollbar { display: none; }
+.filter, .tab-pill { flex: 1 0 auto; scroll-snap-align: start; white-space: nowrap; min-height: 40px; padding: 8px 14px; border-radius: 9px; background: transparent; color: var(--text-primary); border: 0; font-size: 14px; font-weight: 500; }
+.filter.active, .tab-pill.active { background: var(--fill-thumb); font-weight: 600; box-shadow: 0 3px 8px rgba(0, 0, 0, 0.12), 0 3px 1px rgba(0, 0, 0, 0.04); }
+.filter:active:not(:disabled), .tab-pill:active:not(:disabled) { transform: none; }
+
+.transaction-card { background: var(--bg-surface); border: 0; border-radius: var(--radius-md); margin-bottom: 10px; overflow: hidden; }
 .transaction-main { width: 100%; padding: 14px 16px; background: transparent; color: var(--text-primary); display: flex; align-items: center; justify-content: space-between; }
 .transaction-main strong, .transaction-main span, .transaction-main small { display: block; }
-.transaction-main strong { font-size: 14px; }
-.transaction-main span { color: var(--text-secondary); font-size: 12px; margin-top: 2px; }
-.transaction-main small { color: var(--text-muted); font-size: 11px; margin-top: 3px; }
+.transaction-main strong { font-size: 15px; font-weight: 600; }
+.transaction-main span { color: var(--text-secondary); font-size: 13px; margin-top: 2px; }
+.transaction-main small { color: var(--text-muted); font-size: 12px; margin-top: 3px; }
 .transaction-actions { display: flex; border-top: 1px solid var(--border-subtle); }
-.transaction-actions button { flex: 1; padding: 10px; background: transparent; color: var(--text-secondary); font-size: 12px; }
+.transaction-actions button { flex: 1; padding: 12px; background: transparent; color: var(--text-primary); font-size: 14px; }
 .transaction-actions button + button { border-left: 1px solid var(--border-subtle); }
 .transaction-actions .danger-link { color: var(--danger); }
-.modal-backdrop { position: fixed; inset: 0; z-index: 100; display: flex; align-items: center; justify-content: center; padding: 24px; background: rgba(0,0,0,.68); }
-.modal-card { width: 100%; max-width: 360px; padding: 24px; border-radius: var(--radius-lg); background: var(--bg-surface-2); border: 1px solid var(--border-subtle); }
-.modal-card h3 { margin: 0 0 8px; font-size: 17px; }
-.modal-card p { margin: 0 0 20px; color: var(--text-secondary); font-size: 13px; line-height: 1.55; }
+
+/* Diálogos: alertas centradas; los que tienen campos se vuelven hoja inferior en teléfono */
+.modal-backdrop { position: fixed; inset: 0; z-index: 100; display: flex; align-items: center; justify-content: center; padding: 24px; background: var(--scrim); animation: kf-fade 0.2s ease; }
+.modal-card { width: 100%; max-width: 360px; padding: 24px; border-radius: 22px; background: var(--bg-elevated); border: 0; max-height: 88dvh; overflow-y: auto; overscroll-behavior: contain; animation: kf-pop 0.28s var(--ease-ios); }
+.modal-card h3 { margin: 0 0 8px; font-size: 19px; font-weight: 700; }
+.modal-card p { margin: 0 0 20px; color: var(--text-secondary); font-size: 14px; line-height: 1.5; }
+.modal-card .input-shell { background: var(--fill); }
 .modal-actions { display: flex; gap: 10px; }
-.modal-actions button { flex: 1; padding: 12px; border-radius: var(--radius-md); background: var(--bg-surface); color: var(--text-primary); font-weight: 600; }
-.modal-actions .danger-button { background: var(--danger); color: #fff; }
+.modal-actions button { flex: 1; padding: 14px; min-height: 48px; border-radius: var(--radius-md); background: var(--fill); color: var(--text-primary); font-weight: 600; font-size: 15px; }
+.modal-actions .danger-button { background: var(--danger-fill); color: #FFFFFF; }
+
+@media (max-width: 599px) {
+  .modal-backdrop:has(input, textarea, select) { align-items: flex-end; padding: 0; }
+  .modal-backdrop:has(input, textarea, select) > .modal-card {
+    max-width: none !important;
+    max-height: 92dvh !important;
+    border-radius: 22px 22px 0 0;
+    padding: 12px 20px calc(24px + var(--safe-bottom));
+    animation: kf-sheet 0.36s var(--ease-ios);
+  }
+  /* Asa de la hoja */
+  .modal-backdrop:has(input, textarea, select) > .modal-card::before {
+    content: ''; display: block; width: 36px; height: 5px; border-radius: 3px;
+    background: var(--fill); margin: 0 auto 16px;
+  }
+}
+@keyframes kf-fade { from { opacity: 0; } to { opacity: 1; } }
+@keyframes kf-pop { from { opacity: 0; transform: scale(0.94); } to { opacity: 1; transform: scale(1); } }
+@keyframes kf-sheet { from { transform: translateY(100%); } to { transform: translateY(0); } }
+
+/* Selector de íconos — columnas según el ancho, nunca se sale del modal */
+.icon-picker { display: grid; grid-template-columns: repeat(auto-fill, minmax(44px, 1fr)); gap: 6px; margin: 8px 0 16px; }
+.icon-picker-item { aspect-ratio: 1; min-width: 0; min-height: 44px; padding: 0; display: flex; align-items: center; justify-content: center; border-radius: 12px; background: var(--fill); border: 0; }
+.icon-picker-item.active { background: var(--accent); }
+
+/* Botones de acción al pie de una tarjeta (Editar / Eliminar…) */
+.card-action { flex: 1; display: inline-flex; align-items: center; justify-content: center; gap: 6px; min-height: 40px; padding: 6px; background: transparent; font-size: 13px; font-weight: 500; border-radius: var(--radius-sm); }
+
+/* Tarjetas en una columna en teléfono, dos en Fold abierto / tablet */
+.card-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 300px), 1fr)); gap: 12px; align-items: start; }
+
+/* Esqueletos de carga */
+.skeleton { background: linear-gradient(90deg, var(--bg-surface) 25%, var(--bg-surface-2) 50%, var(--bg-surface) 75%); background-size: 200% 100%; animation: skeleton-shimmer 1.4s ease-in-out infinite; border-radius: var(--radius-lg); }
+@keyframes skeleton-shimmer { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
+
+/* Chip del período seleccionado */
+.period-chip { display: inline-flex; align-items: center; gap: 6px; min-height: 36px; padding: 6px 12px; border-radius: 999px; background: var(--fill); border: 0; color: var(--text-primary); font-size: 14px; font-weight: 500; text-transform: capitalize; }
+
+/* Título grande estilo iOS para las pantallas principales */
+.large-title { font-size: 32px; font-weight: 700; letter-spacing: -0.025em; line-height: 1.15; }
+
+/* Pantallas angostas: iPhone mini (375px), Z Fold cerrado (344px) */
+@media (max-width: 380px) {
+  .modal-backdrop { padding: 12px; }
+  .modal-card { padding: 18px; }
+  .available-amount { font-size: 30px; }
+  .large-title { font-size: 28px; }
+  .summary-grid { gap: 8px; }
+  .summary-grid > div { padding: 12px; font-size: 15px; }
+  .floating-button { right: 16px; }
+}

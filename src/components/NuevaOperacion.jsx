@@ -1,5 +1,6 @@
 import { useScrollLock } from '../hooks/useScrollLock.js'
 import { usePreferencias } from '../context/PreferenciasContext.jsx'
+import { Receipt, ArrowLeftRight } from 'lucide-react'
 
 export default function NuevaOperacion({ onCerrar, onTransaccion, onTransferencia }) {
   const { t } = usePreferencias()
@@ -28,7 +29,7 @@ export default function NuevaOperacion({ onCerrar, onTransaccion, onTransferenci
           <span style={{
             width: 40, height: 40, borderRadius: 'var(--radius-md)', background: 'var(--bg-surface-2)',
             display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 18, flexShrink: 0
-          }}>🧾</span>
+          }}><Receipt size={20} aria-hidden="true" /></span>
           <div>
             <div style={{ fontSize: 14, fontWeight: 700 }}>{t('op_nueva_transaccion')}</div>
             <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>{t('op_nueva_transaccion_desc')}</div>
@@ -46,7 +47,7 @@ export default function NuevaOperacion({ onCerrar, onTransaccion, onTransferenci
           <span style={{
             width: 40, height: 40, borderRadius: 'var(--radius-md)', background: 'var(--bg-surface-2)',
             display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 18, flexShrink: 0
-          }}>🔁</span>
+          }}><ArrowLeftRight size={20} aria-hidden="true" /></span>
           <div>
             <div style={{ fontSize: 14, fontWeight: 700 }}>{t('op_nueva_transferencia')}</div>
             <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>{t('op_nueva_transferencia_desc')}</div>

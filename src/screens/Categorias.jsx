@@ -80,7 +80,7 @@ export default function Categorias({ userId, onBack }) {
             style={{
               flex: 1, padding: '10px 8px', borderRadius: 999,
               background: tab === id ? 'var(--gradient-brand)' : 'var(--bg-surface)',
-              color: tab === id ? '#fff' : 'var(--text-secondary)',
+              color: tab === id ? 'var(--on-accent)' : 'var(--text-secondary)',
               fontSize: 13, fontWeight: 600, border: '1px solid ' + (tab === id ? 'transparent' : 'var(--border-subtle)')
             }}
           >

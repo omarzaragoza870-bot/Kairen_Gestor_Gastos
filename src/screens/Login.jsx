@@ -6,6 +6,8 @@ import { esNativo } from '../lib/capacitor.js'
 import ContinuarSinCuenta from './ContinuarSinCuenta.jsx'
 import EmailAuth from './EmailAuth.jsx'
 import { iniciarPKCE, limpiarVerifier } from '../lib/pkce.js'
+import { Mail } from 'lucide-react'
+import GoogleLogo from '../components/GoogleLogo.jsx'
 
 export default function Login() {
   const { t } = usePreferencias()
@@ -73,8 +75,7 @@ export default function Login() {
       alignItems: 'center', justifyContent: 'center', padding: 24, textAlign: 'center'
     }}>
       <h1 style={{
-        fontSize: 32, fontWeight: 800, margin: '0 0 8px',
-        backgroundImage: 'var(--gradient-brand)', WebkitBackgroundClip: 'text', color: 'transparent'
+        fontSize: 34, fontWeight: 700, margin: '0 0 8px', letterSpacing: '-0.03em', color: 'var(--text-primary)'
       }}>
         Kairen Finanzas
       </h1>
@@ -93,7 +94,7 @@ export default function Login() {
           opacity: cargandoGoogle ? 0.6 : 1
         }}
       >
-        <span>🔵</span> {cargandoGoogle ? '…' : t('login_boton_google')}
+        <GoogleLogo size={20} /> {cargandoGoogle ? '…' : t('login_boton_google')}
       </button>
 
       <button
@@ -105,7 +106,7 @@ export default function Login() {
           border: '1px solid var(--border-subtle)', fontSize: 15, fontWeight: 600
         }}
       >
-        <span>✉️</span> Correo y contraseña
+        <Mail size={20} aria-hidden="true" /> Correo y contraseña
       </button>
 
       <div style={{ display: 'flex', alignItems: 'center', gap: 10, margin: '20px 0', width: '100%', maxWidth: 280 }}>

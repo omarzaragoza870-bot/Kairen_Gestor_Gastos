@@ -57,6 +57,8 @@ export function PreferenciasProvider({ children }) {
         resuelto = prefiereClaro ? 'claro' : 'oscuro'
       }
       document.documentElement.setAttribute('data-theme', resuelto)
+      // Barra de estado del navegador/PWA (Android) con el mismo fondo que la app
+      document.querySelector('meta[name="theme-color"]')?.setAttribute('content', resuelto === 'claro' ? '#F2F2F7' : '#000000')
     }
 
     aplicar()

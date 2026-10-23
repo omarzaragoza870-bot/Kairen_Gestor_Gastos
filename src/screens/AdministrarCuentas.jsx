@@ -5,9 +5,10 @@ import { usePreferencias } from '../context/PreferenciasContext.jsx'
 import Monto from '../components/Monto.jsx'
 import FormularioPago from '../components/FormularioPago.jsx'
 import { mensajeAmigable } from '../lib/errores.js'
+import { Pencil, Trash2, ArrowLeftRight } from 'lucide-react'
+import IconoCuenta from '../components/IconoCuenta.jsx'
 
 const TIPOS = ['efectivo', 'tarjeta', 'tarjeta_credito', 'banco', 'otro']
-const ICONO_TIPO = { efectivo: '💵', tarjeta: '💳', tarjeta_credito: '💳', banco: '🏦', otro: '📦' }
 
 // Mismo filtro usado en NuevaTransaccion/NuevaTransferencia: solo dígitos y
 // un único punto decimal, sin importar si el texto llega escrito o pegado.
@@ -130,7 +131,7 @@ export default function AdministrarCuentas({ userId, onBack, onCambio }) {
           background: 'var(--bg-surface)', borderRadius: 'var(--radius-md)',
           border: '1px solid var(--border-subtle)', marginBottom: 8
         }}>
-          <span style={{ fontSize: 20 }}>{ICONO_TIPO[c.tipo] || '📦'}</span>
+          <span style={{ width: 36, height: 36, borderRadius: 10, background: 'var(--fill)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}><IconoCuenta tipo={c.tipo} size={18} /></span>
           <div style={{ flex: 1, minWidth: 0 }}>
             <div style={{ fontSize: 14, fontWeight: 600 }}>{c.nombre}</div>
             {c.tipo === 'tarjeta_credito' ? (
@@ -143,12 +144,12 @@ export default function AdministrarCuentas({ userId, onBack, onCambio }) {
             )}
           </div>
           {c.tipo === 'tarjeta_credito' && (
-            <button onClick={() => setAPagar(c)} style={{ background: 'var(--gradient-brand)', color: '#fff', fontSize: 12, fontWeight: 600, padding: '6px 12px', borderRadius: 999 }}>
+            <button onClick={() => setAPagar(c)} style={{ background: 'var(--gradient-brand)', color: 'var(--on-accent)', fontSize: 12, fontWeight: 600, padding: '6px 12px', borderRadius: 999 }}>
               {t('cu_pagar_tarjeta')}
             </button>
           )}
-          <button onClick={() => setEditando(c)} style={{ background: 'transparent', color: 'var(--text-secondary)', fontSize: 16 }}>✏️</button>
-          <button onClick={() => setAEliminar(c)} style={{ background: 'transparent', color: 'var(--danger)', fontSize: 16 }}>🗑️</button>
+          <button onClick={() => setEditando(c)} aria-label={t('comun_editar')} style={{ background: 'transparent', color: 'var(--text-secondary)', minWidth: 40, minHeight: 40 }}><Pencil size={18} aria-hidden="true" /></button>
+          <button onClick={() => setAEliminar(c)} aria-label={t('comun_eliminar')} style={{ background: 'transparent', color: 'var(--danger)', minWidth: 40, minHeight: 40 }}><Trash2 size={18} aria-hidden="true" /></button>
         </div>
       ))}
 
@@ -177,7 +178,7 @@ export default function AdministrarCuentas({ userId, onBack, onCambio }) {
           background: 'var(--bg-surface)', borderRadius: 'var(--radius-md)',
           border: '1px solid var(--border-subtle)', marginBottom: 6
         }}>
-          <span style={{ fontSize: 16 }}>🔁</span>
+          <ArrowLeftRight size={16} color="var(--text-muted)" aria-hidden="true" style={{ flexShrink: 0 }} />
           <div style={{ flex: 1, minWidth: 0 }}>
             <div style={{ fontSize: 13, fontWeight: 600 }}>
               {tf.cuenta_origen_nombre} → {tf.cuenta_destino_nombre}
@@ -185,7 +186,7 @@ export default function AdministrarCuentas({ userId, onBack, onCambio }) {
             <div style={{ fontSize: 11, color: 'var(--text-muted)' }}>{tf.fecha}</div>
           </div>
           <div style={{ fontWeight: 700, fontSize: 13 }}><Monto valor={tf.monto} /></div>
-          <button onClick={() => handleEliminarTransferencia(tf.id)} style={{ background: 'transparent', color: 'var(--danger)', fontSize: 14 }}>🗑️</button>
+          <button onClick={() => handleEliminarTransferencia(tf.id)} aria-label={t('comun_eliminar')} style={{ background: 'transparent', color: 'var(--danger)', minWidth: 40, minHeight: 40 }}><Trash2 size={16} aria-hidden="true" /></button>
         </div>
       ))}
 
@@ -267,7 +268,7 @@ function FormularioCuenta({ cuenta, onCancelar, onGuardar, procesando }) {
               }}
               title={t(`cu_tipo_${id}`)}
             >
-              {ICONO_TIPO[id]}
+              <IconoCuenta tipo={id} size={20} />
             </button>
           ))}
         </div>
@@ -315,7 +316,7 @@ function FormularioCuenta({ cuenta, onCancelar, onGuardar, procesando }) {
               fechaCorte: esCredito ? corteNum : null,
               fechaPago: esCredito ? pagoNum : null
             })}
-            style={{ background: valido ? 'var(--gradient-brand)' : 'var(--bg-surface-2)', color: valido ? '#fff' : 'var(--text-muted)' }}
+            style={{ background: valido ? 'var(--gradient-brand)' : 'var(--bg-surface-2)', color: valido ? 'var(--on-accent)' : 'var(--text-muted)' }}
           >
             {procesando ? t('comun_guardando') : t('comun_guardar')}
           </button>

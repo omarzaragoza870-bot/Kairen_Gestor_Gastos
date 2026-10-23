@@ -20,7 +20,7 @@ export default function InfoTooltip({ title, text }) {
           width: 20,
           height: 20,
           borderRadius: '50%',
-          background: 'rgba(255,255,255,0.08)',
+          background: 'var(--fill)',
           color: 'var(--text-secondary)',
           fontSize: 12,
           fontWeight: 700,
@@ -57,7 +57,7 @@ export default function InfoTooltip({ title, text }) {
               onClick={() => setOpen(false)}
               style={{
                 marginTop: 20, width: '100%', padding: '12px', borderRadius: 'var(--radius-md)',
-                background: 'var(--gradient-brand)', color: '#fff', fontWeight: 600, fontSize: 14
+                background: 'var(--gradient-brand)', color: 'var(--on-accent)', fontWeight: 600, fontSize: 14
               }}
             >
               Entendido

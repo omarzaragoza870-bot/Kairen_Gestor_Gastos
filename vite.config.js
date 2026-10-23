@@ -18,8 +18,8 @@ export default defineConfig({
         name: 'Kairen Finanzas',
         short_name: 'Kairen',
         description: 'Tu dinero, bajo control.',
-        theme_color: '#0F0B1E',
-        background_color: '#0F0B1E',
+        theme_color: '#000000',
+        background_color: '#000000',
         display: 'standalone',
         orientation: 'portrait',
         icons: [

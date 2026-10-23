@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { supabase } from '../lib/supabaseClient.js'
 import { mensajeAmigable } from '../lib/errores.js'
 import { usePreferencias } from '../context/PreferenciasContext.jsx'
+import { Lock, Check, Crown, User } from 'lucide-react'
 
 export default function Colaborar({ onBack }) {
   const { t } = usePreferencias()
@@ -99,12 +100,12 @@ export default function Colaborar({ onBack }) {
     <div style={{ padding: '16px 16px 100px', maxWidth: 680, margin: '0 auto' }}>
       <div className="screen-header">
         <button onClick={onBack} className="back-button">←</button>
-        <h1>👥 Colaborar</h1>
+        <h1>Colaborar</h1>
       </div>
 
       {!esPremium && (
         <div style={{ background: 'var(--bg-surface)', border: '1px solid var(--border-subtle)', borderRadius: 'var(--radius-md)', padding: 20, marginBottom: 20, textAlign: 'center' }}>
-          <div style={{ fontSize: 32, marginBottom: 8 }}>🔒</div>
+          <div style={{ marginBottom: 8, display: 'flex', justifyContent: 'center', color: 'var(--text-muted)' }}><Lock size={30} strokeWidth={1.6} aria-hidden="true" /></div>
           <div style={{ fontWeight: 700, marginBottom: 6 }}>Función Premium</div>
           <div style={{ fontSize: 13, color: 'var(--text-secondary)' }}>El modo colaborativo requiere una suscripción Premium.</div>
         </div>
@@ -117,7 +118,7 @@ export default function Colaborar({ onBack }) {
           </p>
 
           {error && <p className="error-message">{error}</p>}
-          {mensaje && <p style={{ color: 'var(--success)', fontSize: 13, marginBottom: 12 }}>✓ {mensaje}</p>}
+          {mensaje && <p style={{ color: 'var(--success)', fontSize: 13, marginBottom: 12 }}><Check size={14} aria-hidden="true" style={{ verticalAlign: '-3px', marginRight: 6 }} />{mensaje}</p>}
 
           {/* Grupos existentes */}
           {grupos.length > 0 && (
@@ -130,7 +131,7 @@ export default function Colaborar({ onBack }) {
                 }}>
                   <div style={{ fontWeight: 700, marginBottom: 6 }}>{g.nombre}</div>
                   <div style={{ fontSize: 12, color: 'var(--text-muted)', marginBottom: 10 }}>
-                    Tu rol: {g.mi_rol === 'admin' ? '👑 Admin' : '👤 Miembro'}
+                    Tu rol: {g.mi_rol === 'admin' ? <><Crown size={12} aria-hidden="true" style={{ verticalAlign: '-3px', marginRight: 4, marginLeft: 2 }} />Admin</> : <><User size={12} aria-hidden="true" style={{ verticalAlign: '-3px', marginRight: 4, marginLeft: 2 }} />Miembro</>}
                   </div>
                   {g.mi_rol === 'admin' && (
                     <div style={{ background: 'var(--bg-surface-2)', borderRadius: 'var(--radius-sm)', padding: '10px 14px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
@@ -140,7 +141,7 @@ export default function Colaborar({ onBack }) {
                       </div>
                       <button
                         onClick={() => copiarCodigo(g.codigo_invitacion)}
-                        style={{ background: 'var(--gradient-brand)', color: '#fff', fontSize: 12, fontWeight: 600, padding: '8px 14px', borderRadius: 999 }}
+                        style={{ background: 'var(--gradient-brand)', color: 'var(--on-accent)', fontSize: 12, fontWeight: 600, padding: '8px 14px', borderRadius: 999 }}
                       >
                         Copiar
                       </button>
@@ -156,7 +157,7 @@ export default function Colaborar({ onBack }) {
             <div style={{ display: 'flex', gap: 10, marginBottom: 16 }}>
               <button
                 onClick={() => setCreando(true)}
-                style={{ flex: 1, padding: 14, borderRadius: 'var(--radius-md)', background: 'var(--gradient-brand)', color: '#fff', fontWeight: 700 }}
+                style={{ flex: 1, padding: 14, borderRadius: 'var(--radius-md)', background: 'var(--gradient-brand)', color: 'var(--on-accent)', fontWeight: 700 }}
               >
                 + Crear grupo
               </button>
@@ -181,7 +182,7 @@ export default function Colaborar({ onBack }) {
                 <button
                   onClick={handleCrearGrupo}
                   disabled={!nombreGrupo.trim() || procesando}
-                  style={{ background: nombreGrupo.trim() ? 'var(--gradient-brand)' : 'var(--bg-surface-2)', color: nombreGrupo.trim() ? '#fff' : 'var(--text-muted)' }}
+                  style={{ background: nombreGrupo.trim() ? 'var(--gradient-brand)' : 'var(--bg-surface-2)', color: nombreGrupo.trim() ? 'var(--on-accent)' : 'var(--text-muted)' }}
                 >
                   {procesando ? 'Creando…' : 'Crear'}
                 </button>
@@ -208,7 +209,7 @@ export default function Colaborar({ onBack }) {
                 <button
                   onClick={handleUnirse}
                   disabled={codigoInput.length < 6 || procesando}
-                  style={{ background: codigoInput.length >= 6 ? 'var(--gradient-brand)' : 'var(--bg-surface-2)', color: codigoInput.length >= 6 ? '#fff' : 'var(--text-muted)' }}
+                  style={{ background: codigoInput.length >= 6 ? 'var(--gradient-brand)' : 'var(--bg-surface-2)', color: codigoInput.length >= 6 ? 'var(--on-accent)' : 'var(--text-muted)' }}
                 >
                   {procesando ? 'Uniéndome…' : 'Unirme'}
                 </button>

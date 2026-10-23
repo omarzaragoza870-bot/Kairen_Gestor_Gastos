@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { usePreferencias } from '../context/PreferenciasContext.jsx'
 import { suscribirPush } from '../lib/push.js'
+import { Bell } from 'lucide-react'
 
 const CLAVE_CERRADO = 'kairen_popup_push_cerrado'
 
@@ -32,7 +33,7 @@ export default function PopupNotificaciones({ userId, onCerrar }) {
   return (
     <div onClick={cerrar} className="modal-backdrop">
       <div onClick={(e) => e.stopPropagation()} className="modal-card" style={{ maxWidth: 340, textAlign: 'center' }}>
-        <div style={{ fontSize: 40, marginBottom: 12 }}>🔔</div>
+        <div style={{ width: 64, height: 64, borderRadius: '50%', background: 'var(--fill)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 14px' }}><Bell size={30} aria-hidden="true" /></div>
         <h3 style={{ margin: '0 0 8px' }}>{t('push_popup_titulo')}</h3>
         <p style={{ margin: '0 0 20px', fontSize: 13, color: 'var(--text-secondary)', lineHeight: 1.5 }}>
           {t('push_popup_texto')}
@@ -40,7 +41,7 @@ export default function PopupNotificaciones({ userId, onCerrar }) {
         <button
           onClick={activar}
           disabled={activando}
-          style={{ width: '100%', padding: 14, borderRadius: 'var(--radius-md)', background: 'var(--gradient-brand)', color: '#fff', fontWeight: 700, marginBottom: 8 }}
+          style={{ width: '100%', padding: 14, borderRadius: 'var(--radius-md)', background: 'var(--gradient-brand)', color: 'var(--on-accent)', fontWeight: 700, marginBottom: 8 }}
         >
           {activando ? t('comun_guardando') : t('push_popup_activar')}
         </button>

@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { useScrollLock } from '../hooks/useScrollLock.js'
 import { usePreferencias } from '../context/PreferenciasContext.jsx'
 import { MESES_POR_IDIOMA } from '../i18n/translations.js'
+import { CalendarDays } from 'lucide-react'
 
 function fechaLocal(date) {
   const a = date.getFullYear()
@@ -59,7 +60,7 @@ const Chip = ({ activo, children, onClick }) => (
     style={{
       flexShrink: 0, padding: '10px 16px', borderRadius: 999,
       background: activo ? 'var(--gradient-brand)' : 'var(--bg-surface-2)',
-      color: activo ? '#fff' : 'var(--text-secondary)',
+      color: activo ? 'var(--on-accent)' : 'var(--text-secondary)',
       fontSize: 13, fontWeight: 600, border: '1px solid ' + (activo ? 'transparent' : 'var(--border-subtle)')
     }}
   >
@@ -102,7 +103,7 @@ export default function SelectorPeriodo({ periodoActual, onAplicar, onCerrar }) 
   return (
     <div
       onClick={onCerrar}
-      style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.6)', display: 'flex', alignItems: 'flex-end', zIndex: 150 }}
+      style={{ position: 'fixed', inset: 0, background: 'var(--scrim)', display: 'flex', alignItems: 'flex-end', zIndex: 150 }}
     >
       <div
         onClick={(e) => e.stopPropagation()}
@@ -120,18 +121,18 @@ export default function SelectorPeriodo({ periodoActual, onAplicar, onCerrar }) 
             style={{
               flex: 1, padding: 12, borderRadius: 'var(--radius-md)',
               background: modo === 'mes' ? 'var(--gradient-brand)' : 'var(--bg-surface)',
-              color: modo === 'mes' ? '#fff' : 'var(--text-secondary)', fontWeight: 600, fontSize: 13,
+              color: modo === 'mes' ? 'var(--on-accent)' : 'var(--text-secondary)', fontWeight: 600, fontSize: 13,
               border: '1px solid ' + (modo === 'mes' ? 'transparent' : 'var(--border-subtle)')
             }}
           >
-            📅 {t('sp_anio_mes')}
+            <CalendarDays size={15} aria-hidden="true" style={{ verticalAlign: '-3px', marginRight: 6 }} />{t('sp_anio_mes')}
           </button>
           <button
             onClick={() => setModo('rango')}
             style={{
               flex: 1, padding: 12, borderRadius: 'var(--radius-md)',
               background: modo === 'rango' ? 'var(--gradient-brand)' : 'var(--bg-surface)',
-              color: modo === 'rango' ? '#fff' : 'var(--text-secondary)', fontWeight: 600, fontSize: 13,
+              color: modo === 'rango' ? 'var(--on-accent)' : 'var(--text-secondary)', fontWeight: 600, fontSize: 13,
               border: '1px solid ' + (modo === 'rango' ? 'transparent' : 'var(--border-subtle)')
             }}
           >
@@ -199,7 +200,7 @@ export default function SelectorPeriodo({ periodoActual, onAplicar, onCerrar }) 
             style={{
               flex: 1, padding: 14, borderRadius: 'var(--radius-md)', fontWeight: 700, fontSize: 14,
               background: puedeAplicar ? 'var(--gradient-brand)' : 'var(--bg-surface-2)',
-              color: puedeAplicar ? '#fff' : 'var(--text-muted)'
+              color: puedeAplicar ? 'var(--on-accent)' : 'var(--text-muted)'
             }}
           >
             {t('sp_aplicar_filtro')}

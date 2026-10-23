@@ -11,9 +11,11 @@ import { mensajeAmigable } from '../lib/errores.js'
 import { MESES_POR_IDIOMA } from '../i18n/translations.js'
 import Monto from '../components/Monto.jsx'
 import { usePreferencias } from '../context/PreferenciasContext.jsx'
+import { CalendarDays, ChevronDown, Sparkles, Lightbulb, TrendingUp, Lock } from 'lucide-react'
 
 const fmtFechaCorta = iso => new Date(`${iso}T12:00:00`).toLocaleDateString('es-MX', { day: '2-digit', month: 'short' })
-const COLORES_CATEGORIA = ['#8B5CF6', '#4F6BFF', '#34D399', '#FBBF24', '#FB7185', '#22D3EE', '#F472B6', '#A78BFA']
+// Colores de sistema de Apple: distinguibles entre sí en tema claro y oscuro
+const COLORES_CATEGORIA = ['#0A84FF', '#30D158', '#FF9F0A', '#FF375F', '#64D2FF', '#BF5AF2', '#FFD60A', '#5E5CE6']
 
 export default function Analisis() {
   const [tab, setTab] = useState('resumen')
@@ -90,28 +92,34 @@ export default function Analisis() {
     ? `${MESES[periodo.mes]} ${periodo.anio}`
     : `${fmtFechaCorta(periodo.desde)} – ${fmtFechaCorta(periodo.hasta)}`
 
-  if (cargando) return <div style={{ padding: 40, textAlign: 'center', color: 'var(--text-secondary)' }}>{t('an_cargando')}</div>
+  if (cargando) return (
+    <div style={{ padding: '16px 16px 100px', maxWidth: 680, margin: '0 auto' }} aria-busy="true" aria-label={t('an_cargando')}>
+      <div className="skeleton" style={{ height: 28, width: 140, borderRadius: 8, marginBottom: 12 }} />
+      <div className="skeleton" style={{ height: 36, width: 160, borderRadius: 999, marginBottom: 16 }} />
+      <div className="skeleton" style={{ height: 44, borderRadius: 999, marginBottom: 20 }} />
+      <div className="skeleton" style={{ height: 120, marginBottom: 14 }} />
+      <div className="skeleton" style={{ height: 200 }} />
+    </div>
+  )
   if (error) return <div style={{ padding: 40 }}><p className="error-message">{error}</p></div>
 
   return (
     <div style={{ padding: '16px 16px 100px', maxWidth: 680, margin: '0 auto' }}>
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 4 }}>
-        <h1 style={{ fontSize: 20, fontWeight: 700, margin: 0 }}>{t('an_titulo')}</h1>
-        <button onClick={() => setMostrarSelector(true)} aria-label="Seleccionar período" className="icon-button" style={{ fontSize: 18, minHeight: 36, padding: '4px 10px' }}>📅</button>
-      </div>
-      <p style={{ fontSize: 13, color: 'var(--text-muted)', margin: '0 0 16px' }}>{etiquetaPeriodo}</p>
+      <h1 className="large-title" style={{ margin: '0 0 10px' }}>{t('an_titulo')}</h1>
+      <button onClick={() => setMostrarSelector(true)} aria-label={`Seleccionar período: ${etiquetaPeriodo}`} className="period-chip" style={{ marginBottom: 16 }}>
+        <CalendarDays size={16} aria-hidden="true" />
+        {etiquetaPeriodo}
+        <ChevronDown size={16} aria-hidden="true" />
+      </button>
 
-      <div style={{ display: 'flex', gap: 8, marginBottom: 20 }}>
-        {[['resumen', t('an_tab_resumen')], ['distribucion', t('an_tab_distribucion')], ['tendencias', t('an_tab_tendencias')], ['kairen', '✨ Kairen']].map(([id, label]) => (
+      <div className="tab-scroll" role="tablist">
+        {[['resumen', t('an_tab_resumen')], ['distribucion', t('an_tab_distribucion')], ['tendencias', t('an_tab_tendencias')], ['kairen', <><Sparkles size={14} aria-hidden="true" style={{ verticalAlign: '-2px', marginRight: 6 }} />Kairen</>]].map(([id, label]) => (
           <button
             key={id}
-            onClick={() => setTab(id)}
-            style={{
-              flex: 1, padding: '10px 8px', borderRadius: 999,
-              background: tab === id ? 'var(--gradient-brand)' : 'var(--bg-surface)',
-              color: tab === id ? '#fff' : 'var(--text-secondary)',
-              fontSize: 13, fontWeight: 600, border: '1px solid ' + (tab === id ? 'transparent' : 'var(--border-subtle)')
-            }}
+            role="tab"
+            aria-selected={tab === id}
+            onClick={e => { setTab(id); e.currentTarget.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'nearest' }) }}
+            className={tab === id ? 'tab-pill active' : 'tab-pill'}
           >
             {label}
           </button>
@@ -177,14 +185,14 @@ function ResumenTab({ ingresos, gastos, balance, tasaAhorro, porMes }) {
         <MiniStat label={`↑ ${t('an_total_ingresos')}`} valor={<Monto valor={ingresos} />} color="var(--success)" />
         <MiniStat label={`↓ ${t('an_total_gastos')}`} valor={<Monto valor={gastos} />} color="var(--danger)" />
         <MiniStat label={`↗ ${t('an_balance')}`} valor={<Monto valor={balance} />} color={balance >= 0 ? 'var(--success)' : 'var(--danger)'} />
-        <MiniStat label={`🐷 ${t('an_tasa_ahorro')}`} valor={`${tasaAhorro.toFixed(1)}%`} color="var(--success)" />
+        <MiniStat label={t('an_tasa_ahorro')} valor={`${tasaAhorro.toFixed(1)}%`} color="var(--success)" />
       </div>
 
       <Tarjeta>
         <h3 style={{ margin: '0 0 16px', fontSize: 14, fontWeight: 600 }}>{t('an_ingresos_vs_gastos')}</h3>
         <div style={{ display: 'flex', alignItems: 'flex-end', gap: 24, height: 140, justifyContent: 'center' }}>
-          <Barra etiqueta={t('inicio_ingresos')} valor={ingresos} color="#34D399" />
-          <Barra etiqueta={t('nt_gasto')} valor={gastos} color="#FB7185" />
+          <Barra etiqueta={t('inicio_ingresos')} valor={ingresos} color="var(--success)" />
+          <Barra etiqueta={t('nt_gasto')} valor={gastos} color="var(--danger)" />
         </div>
       </Tarjeta>
 
@@ -195,11 +203,11 @@ function ResumenTab({ ingresos, gastos, balance, tasaAhorro, porMes }) {
             <XAxis dataKey="etiqueta" tick={{ fontSize: 10, fill: 'var(--text-muted)' }} axisLine={false} tickLine={false} />
             <Tooltip
               formatter={(v) => [`$${Math.abs(Number(v)).toLocaleString('es-MX', { minimumFractionDigits: 0 })}`, 'Balance']}
-              contentStyle={{ background: 'var(--bg-surface-2)', border: '1px solid var(--border-subtle)', borderRadius: 8, fontSize: 12, color: 'var(--text-primary)' }}
+              contentStyle={{ background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)', borderRadius: 12, fontSize: 12, color: 'var(--text-primary)', boxShadow: '0 8px 24px rgba(0,0,0,.18)' }}
             />
             <Bar dataKey="bal" radius={[6, 6, 0, 0]} isAnimationActive={true} animationDuration={900} animationEasing="ease-out">
               {balanceData.map((entry, i) => (
-                <Cell key={i} fill={entry.positivo ? '#6B8AFF' : '#FB7185'} />
+                <Cell key={i} fill={entry.positivo ? 'var(--accent)' : 'var(--danger)'} />
               ))}
             </Bar>
           </BarChart>
@@ -255,7 +263,7 @@ function TendenciasTab({ comparacion, habitos, insights, esRango }) {
       )}
       {habitos && (
         <Tarjeta>
-          <h3 style={{ margin: '0 0 14px', fontSize: 14, fontWeight: 600 }}>💡 {t('an_habitos')}</h3>
+          <h3 style={{ margin: '0 0 14px', fontSize: 14, fontWeight: 600 }}><Lightbulb size={16} aria-hidden="true" style={{ verticalAlign: '-2px', marginRight: 6 }} />{t('an_habitos')}</h3>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
             <MiniInfo label={t('an_mayor_gasto')} valor={<Monto valor={habitos.mayorGasto} />} />
             <MiniInfo label={t('an_categoria_frecuente')} valor={`${habitos.categoriaFrecuente} (${habitos.vecesFrecuente}x)`} />
@@ -265,7 +273,7 @@ function TendenciasTab({ comparacion, habitos, insights, esRango }) {
         </Tarjeta>
       )}
       <Tarjeta>
-        <h3 style={{ margin: '0 0 14px', fontSize: 14, fontWeight: 600 }}>📈 {t('an_tendencias_detectadas')}</h3>
+        <h3 style={{ margin: '0 0 14px', fontSize: 14, fontWeight: 600 }}><TrendingUp size={16} aria-hidden="true" style={{ verticalAlign: '-2px', marginRight: 6 }} />{t('an_tendencias_detectadas')}</h3>
         {insights.length === 0 ? <EmptyMini texto={t('an_sin_tendencias')} /> : (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
             {insights.map((ins, i) => (
@@ -525,19 +533,19 @@ function KairenIATab({ pregunta, setPregunta, respuesta, setRespuesta, preguntan
   return (
     <div style={{ paddingBottom: 20 }}>
       <div style={{
-        background: 'var(--gradient-brand)', borderRadius: 'var(--radius-lg)',
+        background: 'var(--bg-surface)', borderRadius: 'var(--radius-lg)',
         padding: 20, marginBottom: 16, textAlign: 'center'
       }}>
         <img src="/kairen-avatar.png" alt="Kairen" style={{ width: 56, height: 56, borderRadius: '50%', marginBottom: 8 }} />
-        <div style={{ color: '#fff', fontWeight: 700, fontSize: 16 }}>Pregunta a Kairen</div>
-        <div style={{ color: 'rgba(255,255,255,0.8)', fontSize: 12, marginTop: 4 }}>
+        <div style={{ color: 'var(--text-primary)', fontWeight: 700, fontSize: 17 }}>Pregunta a Kairen</div>
+        <div style={{ color: 'var(--text-secondary)', fontSize: 13, marginTop: 4 }}>
           Tu asistente financiero personal analiza tus datos reales
         </div>
       </div>
 
       {tieneAcceso === false && (
         <div style={{ background: 'var(--bg-surface)', border: '1px solid var(--border-subtle)', borderRadius: 'var(--radius-md)', padding: 20, textAlign: 'center' }}>
-          <div style={{ fontSize: 32, marginBottom: 8 }}>🔒</div>
+          <div style={{ marginBottom: 8, display: 'flex', justifyContent: 'center', color: 'var(--text-muted)' }}><Lock size={30} strokeWidth={1.6} aria-hidden="true" /></div>
           <div style={{ fontWeight: 700, marginBottom: 6 }}>Función Premium</div>
           <div style={{ fontSize: 13, color: 'var(--text-secondary)' }}>Kairen IA está disponible para usuarios Premium.</div>
         </div>
@@ -591,7 +599,7 @@ function KairenIATab({ pregunta, setPregunta, respuesta, setRespuesta, preguntan
             placeholder="Escribe tu pregunta financiera..." disabled={preguntando} />
         </div>
         <button onClick={() => handlePreguntar()} disabled={!pregunta.trim() || preguntando}
-          style={{ padding: '0 16px', borderRadius: 'var(--radius-md)', background: pregunta.trim() ? 'var(--gradient-brand)' : 'var(--bg-surface-2)', color: pregunta.trim() ? '#fff' : 'var(--text-muted)', fontWeight: 700, fontSize: 18, flexShrink: 0 }}>
+          style={{ padding: '0 16px', borderRadius: 'var(--radius-md)', background: pregunta.trim() ? 'var(--gradient-brand)' : 'var(--bg-surface-2)', color: pregunta.trim() ? 'var(--on-accent)' : 'var(--text-muted)', fontWeight: 700, fontSize: 18, flexShrink: 0 }}>
           ↑
         </button>
       </div>

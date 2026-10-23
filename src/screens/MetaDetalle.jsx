@@ -6,6 +6,7 @@ import Monto from '../components/Monto.jsx'
 import { usePreferencias } from '../context/PreferenciasContext.jsx'
 import { mensajeAmigable } from '../lib/errores.js'
 import CategoriaIcono from '../components/CategoriaIcono.jsx'
+import { Users, CheckCircle2, CalendarDays, Flag, Link2Off, Receipt } from 'lucide-react'
 
 const fmtFecha = (f) => f ? new Date(`${f}T12:00:00`).toLocaleDateString('es-MX', { day: '2-digit', month: 'short', year: 'numeric' }) : '—'
 const PRIORIDAD_COLOR = { baja: 'var(--text-secondary)', media: 'var(--warning)', alta: 'var(--danger)' }
@@ -131,7 +132,7 @@ export default function MetaDetalle({ meta, userId, onBack, onCambio }) {
         padding: '16px 20px 28px', textAlign: 'center'
       }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
-          <button onClick={onBack} aria-label={t('tour_atras')} className="icon-button" style={{ background: 'rgba(255,255,255,0.08)', border: 'none' }}>←</button>
+          <button onClick={onBack} aria-label={t('tour_atras')} className="icon-button" style={{ width: 40 }}>←</button>
           <span style={{ width: 42 }} />
         </div>
         <div style={{ marginBottom: 8, display: 'flex', justifyContent: 'center' }}>
@@ -142,16 +143,16 @@ export default function MetaDetalle({ meta, userId, onBack, onCambio }) {
 
         {/* Indicador de meta compartida */}
         {metaCompartidaEn && (
-          <div style={{ marginTop: 10, display: 'inline-flex', alignItems: 'center', gap: 6, background: 'rgba(79,107,255,0.15)', borderRadius: 999, padding: '4px 12px', fontSize: 12, color: 'var(--accent-blue)' }}>
-            👥 Compartida con {metaCompartidaEn.grupos?.nombre}
+          <div style={{ marginTop: 10, display: 'inline-flex', alignItems: 'center', gap: 6, background: 'var(--fill)', borderRadius: 999, padding: '4px 12px', fontSize: 12, color: 'var(--text-primary)' }}>
+            <Users size={13} aria-hidden="true" /> Compartida con {metaCompartidaEn.grupos?.nombre}
           </div>
         )}
       </div>
 
       <div style={{ padding: '0 16px' }}>
         {mensajeExito && (
-          <div style={{ background: 'rgba(52,211,153,0.1)', border: '1px solid var(--success)', borderRadius: 'var(--radius-sm)', padding: '10px 14px', margin: '14px 0', fontSize: 13, color: 'var(--success)' }}>
-            ✓ {mensajeExito}
+          <div style={{ background: 'color-mix(in srgb, var(--success) 12%, transparent)', border: '1px solid var(--success)', borderRadius: 'var(--radius-sm)', padding: '10px 14px', margin: '14px 0', fontSize: 13, color: 'var(--success)' }}>
+            <CheckCircle2 size={15} aria-hidden="true" style={{ verticalAlign: '-3px', marginRight: 6 }} />{mensajeExito}
           </div>
         )}
 
@@ -188,14 +189,14 @@ export default function MetaDetalle({ meta, userId, onBack, onCambio }) {
         }}>
           <h3 style={{ margin: '0 0 14px', fontSize: 15, fontWeight: 700 }}>{t('md_informacion')}</h3>
           <div style={{ display: 'flex', gap: 10, marginBottom: 12 }}>
-            <span style={{ fontSize: 18 }}>📅</span>
+            <CalendarDays size={20} color="var(--text-muted)" aria-hidden="true" style={{ flexShrink: 0 }} />
             <div>
               <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>{t('md_fecha_objetivo')}</div>
               <div style={{ fontSize: 14, fontWeight: 600 }}>{fmtFecha(meta.fecha_limite)}</div>
             </div>
           </div>
           <div style={{ display: 'flex', gap: 10 }}>
-            <span style={{ fontSize: 18 }}>🚩</span>
+            <Flag size={20} color="var(--text-muted)" aria-hidden="true" style={{ flexShrink: 0 }} />
             <div>
               <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>{t('md_prioridad')}</div>
               <div style={{ fontSize: 14, fontWeight: 700, color: prioridadColor }}>{prioridadLabel}</div>
@@ -206,7 +207,7 @@ export default function MetaDetalle({ meta, userId, onBack, onCambio }) {
         <div style={{ display: 'flex', gap: 10, marginTop: 16 }}>
           <button
             onClick={() => setModalTipo('contribucion')}
-            style={{ flex: 1, padding: 16, borderRadius: 'var(--radius-md)', background: 'var(--bg-surface-2)', color: '#fff', fontWeight: 700, fontSize: 14 }}
+            style={{ flex: 1, padding: 16, borderRadius: 'var(--radius-md)', background: 'var(--accent)', color: 'var(--on-accent)', fontWeight: 600, fontSize: 15 }}
           >
             ＋ {t('md_contribuir')}
           </button>
@@ -215,7 +216,7 @@ export default function MetaDetalle({ meta, userId, onBack, onCambio }) {
             disabled={montoActual <= 0}
             style={{
               flex: 1, padding: 16, borderRadius: 'var(--radius-md)', fontWeight: 700, fontSize: 14,
-              background: montoActual > 0 ? 'var(--danger)' : 'var(--bg-surface-2)', color: montoActual > 0 ? '#fff' : 'var(--text-muted)'
+              background: montoActual > 0 ? 'color-mix(in srgb, var(--danger) 14%, transparent)' : 'var(--fill)', color: montoActual > 0 ? 'var(--danger)' : 'var(--text-muted)'
             }}
           >
             − {t('md_retirar')}
@@ -231,14 +232,14 @@ export default function MetaDetalle({ meta, userId, onBack, onCambio }) {
                 disabled={compartiendo}
                 style={{ width: '100%', padding: 12, borderRadius: 'var(--radius-md)', background: 'transparent', color: 'var(--danger)', fontSize: 13, fontWeight: 600, border: '1px solid var(--danger)' }}
               >
-                {compartiendo ? 'Quitando…' : '🔒 Dejar de compartir esta meta'}
+                {compartiendo ? 'Quitando…' : <><Link2Off size={15} aria-hidden="true" style={{ verticalAlign: '-3px', marginRight: 6 }} />Dejar de compartir esta meta</>}
               </button>
             ) : (
               <button
                 onClick={handleAbrirCompartir}
                 style={{ width: '100%', padding: 12, borderRadius: 'var(--radius-md)', background: 'transparent', color: 'var(--accent-blue)', fontSize: 13, fontWeight: 600, border: '1px dashed var(--accent-blue)' }}
               >
-                👥 Compartir esta meta con mi grupo
+                <Users size={15} aria-hidden="true" style={{ verticalAlign: '-3px', marginRight: 6 }} />Compartir esta meta con mi grupo
               </button>
             )}
           </div>
@@ -254,7 +255,7 @@ export default function MetaDetalle({ meta, userId, onBack, onCambio }) {
             <p style={{ fontSize: 13, color: 'var(--text-muted)', margin: 0 }}>{t('comun_cargando')}</p>
           ) : contribuciones.length === 0 ? (
             <>
-              <div style={{ fontSize: 32, marginBottom: 8 }}>🧾</div>
+              <div style={{ marginBottom: 8, display: 'flex', justifyContent: 'center', color: 'var(--text-muted)' }}><Receipt size={34} strokeWidth={1.6} aria-hidden="true" /></div>
               <p style={{ fontSize: 14, margin: 0 }}>{t('md_sin_contribuciones')}</p>
               <p style={{ fontSize: 13, color: 'var(--text-muted)', margin: '4px 0 0' }}>{t('md_primera_contribucion')}</p>
             </>
@@ -293,7 +294,7 @@ export default function MetaDetalle({ meta, userId, onBack, onCambio }) {
       {mostrarCompartir && (
         <div onClick={() => setMostrarCompartir(false)} className="modal-backdrop">
           <div onClick={(e) => e.stopPropagation()} className="modal-card" style={{ maxWidth: 340 }}>
-            <h3>👥 Compartir meta</h3>
+            <h3>Compartir meta</h3>
             <p style={{ fontSize: 13, color: 'var(--text-secondary)', margin: '0 0 16px' }}>
               Elige el grupo con el que quieres compartir esta meta. Los miembros podrán verla y contribuir a ella.
             </p>
@@ -310,7 +311,7 @@ export default function MetaDetalle({ meta, userId, onBack, onCambio }) {
                     style={{
                       padding: 14, borderRadius: 'var(--radius-md)', textAlign: 'left', fontWeight: 600,
                       background: grupoSeleccionado === g.id ? 'var(--gradient-brand)' : 'var(--bg-surface)',
-                      color: grupoSeleccionado === g.id ? '#fff' : 'var(--text-primary)',
+                      color: grupoSeleccionado === g.id ? 'var(--on-accent)' : 'var(--text-primary)',
                       border: '1px solid ' + (grupoSeleccionado === g.id ? 'transparent' : 'var(--border-subtle)')
                     }}
                   >
@@ -324,7 +325,7 @@ export default function MetaDetalle({ meta, userId, onBack, onCambio }) {
               <button
                 disabled={!grupoSeleccionado || compartiendo || grupos.length === 0}
                 onClick={handleCompartir}
-                style={{ background: grupoSeleccionado ? 'var(--gradient-brand)' : 'var(--bg-surface-2)', color: grupoSeleccionado ? '#fff' : 'var(--text-muted)' }}
+                style={{ background: grupoSeleccionado ? 'var(--gradient-brand)' : 'var(--bg-surface-2)', color: grupoSeleccionado ? 'var(--on-accent)' : 'var(--text-muted)' }}
               >
                 {compartiendo ? 'Compartiendo…' : 'Compartir'}
               </button>
@@ -365,7 +366,7 @@ function ModalMonto({ tipo, maxRetiro, onCancelar, onConfirmar, procesando }) {
             onClick={() => onConfirmar(montoNum, nota.trim())}
             style={{
               background: valido ? (tipo === 'contribucion' ? 'var(--gradient-brand)' : 'var(--danger)') : 'var(--bg-surface-2)',
-              color: valido ? '#fff' : 'var(--text-muted)'
+              color: valido ? 'var(--on-accent)' : 'var(--text-muted)'
             }}
           >
             {procesando ? t('comun_guardando') : tipo === 'contribucion' ? t('md_contribuir') : t('md_retirar')}

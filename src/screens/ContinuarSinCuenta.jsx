@@ -2,11 +2,12 @@ import { useState } from 'react'
 import { supabase } from '../lib/supabaseClient.js'
 import { usePreferencias, MONEDAS } from '../context/PreferenciasContext.jsx'
 import { logError } from '../lib/logger.js'
+import { Monitor, Sun, Moon, AlertTriangle } from 'lucide-react'
 
 const TEMAS = [
-  ['sistema', '⚙️'],
-  ['claro', '☀️'],
-  ['oscuro', '🌙']
+  ['sistema', <Monitor key="s" size={20} aria-hidden="true" />],
+  ['claro', <Sun key="c" size={20} aria-hidden="true" />],
+  ['oscuro', <Moon key="o" size={20} aria-hidden="true" />]
 ]
 
 export default function ContinuarSinCuenta({ onCancelar }) {
@@ -53,7 +54,7 @@ export default function ContinuarSinCuenta({ onCancelar }) {
         borderRadius: 'var(--radius-md)', padding: 14, marginBottom: 24
       }}>
         <p style={{ fontSize: 13, color: 'var(--text-secondary)', margin: 0, lineHeight: 1.5 }}>
-          ⚠️ {t('invitado_advertencia')}
+          <AlertTriangle size={15} aria-hidden="true" style={{ verticalAlign: '-3px', marginRight: 6, color: 'var(--warning)' }} />{t('invitado_advertencia')}
         </p>
       </div>
 
@@ -71,7 +72,7 @@ export default function ContinuarSinCuenta({ onCancelar }) {
             style={{
               flexShrink: 0, padding: '10px 14px', borderRadius: 999, fontSize: 13, fontWeight: 600,
               background: monedaElegida === m.codigo ? 'var(--gradient-brand)' : 'var(--bg-surface)',
-              color: monedaElegida === m.codigo ? '#fff' : 'var(--text-secondary)',
+              color: monedaElegida === m.codigo ? 'var(--on-accent)' : 'var(--text-secondary)',
               border: '1px solid ' + (monedaElegida === m.codigo ? 'transparent' : 'var(--border-subtle)')
             }}
           >
@@ -105,7 +106,7 @@ export default function ContinuarSinCuenta({ onCancelar }) {
         style={{
           padding: 16, borderRadius: 'var(--radius-md)', fontWeight: 700, fontSize: 15, marginTop: 'auto',
           background: valido ? 'var(--gradient-brand)' : 'var(--bg-surface-2)',
-          color: valido ? '#fff' : 'var(--text-muted)'
+          color: valido ? 'var(--on-accent)' : 'var(--text-muted)'
         }}
       >
         {procesando ? '…' : t('invitado_continuar')}

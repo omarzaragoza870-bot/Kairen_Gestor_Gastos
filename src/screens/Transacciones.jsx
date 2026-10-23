@@ -6,6 +6,7 @@ import Monto from '../components/Monto.jsx'
 import CategoriaIcono from '../components/CategoriaIcono.jsx'
 import { usePreferencias } from '../context/PreferenciasContext.jsx'
 import { mensajeAmigable } from '../lib/errores.js'
+import { Search, Pencil, Trash2 } from 'lucide-react'
 
 const fmt = n => Number(n).toLocaleString('es-MX', { style: 'currency', currency: 'MXN' })
 const fmtFecha = f => new Date(`${f}T12:00:00`).toLocaleDateString('es-MX', { day: '2-digit', month: 'long', year: 'numeric' })
@@ -49,7 +50,7 @@ export default function Transacciones({ onBack, onEditar, refreshKey, onCambio }
       setLista(tx)
       setCuentas(ctas)
       const mapa = {}
-      cats.forEach(c => { mapa[`${c.tipo}:${c.nombre}`] = c.icono || '🏷️' })
+      cats.forEach(c => { mapa[`${c.tipo}:${c.nombre}`] = c.icono || 'Tag' })
       setIconosPorCategoria(mapa)
     } catch (err) {
       setError(mensajeAmigable(err, 'No se pudieron cargar las transacciones.'))
@@ -94,7 +95,7 @@ export default function Transacciones({ onBack, onEditar, refreshKey, onCambio }
       <div className="screen-header"><button onClick={onBack} className="back-button">←</button><h1>{t('tx_titulo')}</h1></div>
 
       <div className="input-shell" style={{ marginBottom: 12 }}>
-        <span style={{ color: 'var(--text-muted)' }}>🔍</span>
+        <Search size={18} color="var(--text-muted)" aria-hidden="true" style={{ flexShrink: 0 }} />
         <input value={busqueda} onChange={(e) => setBusqueda(e.target.value)} placeholder={t('tx_buscar_placeholder')} />
       </div>
 
@@ -111,7 +112,7 @@ export default function Transacciones({ onBack, onEditar, refreshKey, onCambio }
             style={{
               flexShrink: 0, padding: '8px 14px', borderRadius: 999, fontSize: 12, fontWeight: 600,
               background: cuentaFiltro === 'todas' ? 'var(--gradient-brand)' : 'var(--bg-surface)',
-              color: cuentaFiltro === 'todas' ? '#fff' : 'var(--text-secondary)',
+              color: cuentaFiltro === 'todas' ? 'var(--on-accent)' : 'var(--text-secondary)',
               border: '1px solid ' + (cuentaFiltro === 'todas' ? 'transparent' : 'var(--border-subtle)')
             }}
           >
@@ -124,7 +125,7 @@ export default function Transacciones({ onBack, onEditar, refreshKey, onCambio }
               style={{
                 flexShrink: 0, padding: '8px 14px', borderRadius: 999, fontSize: 12, fontWeight: 600,
                 background: cuentaFiltro === c.id ? 'var(--gradient-brand)' : 'var(--bg-surface)',
-                color: cuentaFiltro === c.id ? '#fff' : 'var(--text-secondary)',
+                color: cuentaFiltro === c.id ? 'var(--on-accent)' : 'var(--text-secondary)',
                 border: '1px solid ' + (cuentaFiltro === c.id ? 'transparent' : 'var(--border-subtle)')
               }}
             >
@@ -190,14 +191,14 @@ export default function Transacciones({ onBack, onEditar, refreshKey, onCambio }
 
             <div className="modal-actions">
               <button onClick={() => setVerDetalle(null)}>{t('comun_cancelar')}</button>
-              <button onClick={() => { onEditar(verDetalle); setVerDetalle(null) }}>✏️ {t('comun_editar')}</button>
+              <button onClick={() => { onEditar(verDetalle); setVerDetalle(null) }}><Pencil size={15} aria-hidden="true" style={{ verticalAlign: '-2px', marginRight: 6 }} />{t('comun_editar')}</button>
             </div>
             <button
               className="danger-link"
               style={{ marginTop: 14, width: '100%', textAlign: 'center' }}
               onClick={() => { setAEliminar(verDetalle); setVerDetalle(null) }}
             >
-              🗑️ {t('comun_eliminar')}
+              <Trash2 size={15} aria-hidden="true" style={{ verticalAlign: '-2px', marginRight: 6 }} />{t('comun_eliminar')}
             </button>
           </div>
         </div>

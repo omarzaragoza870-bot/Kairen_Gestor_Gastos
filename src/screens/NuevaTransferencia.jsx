@@ -7,6 +7,7 @@ import { mensajeAmigable } from '../lib/errores.js'
 import { logError } from '../lib/logger.js'
 import { encolarOperacion, conRespaldoOffline, obtenerConectividad, marcarConectividad, pareceErrorDeRed, generarIdOperacion } from '../lib/offline.js'
 import { hoyLocal } from '../lib/fechas.js'
+import IconoCuenta from '../components/IconoCuenta.jsx'
 
 // Mismo filtro usado en NuevaTransaccion: solo dígitos y un único punto decimal.
 const limpiarMonto = (valor) => {
@@ -16,7 +17,6 @@ const limpiarMonto = (valor) => {
   return limpio
 }
 
-const ICONO_TIPO = { efectivo: '💵', tarjeta: '💳', banco: '🏦', otro: '📦' }
 
 export default function NuevaTransferencia({ onBack, onGuardada }) {
   const { t } = usePreferencias()
@@ -129,7 +129,7 @@ export default function NuevaTransferencia({ onBack, onGuardada }) {
         border: '1.5px solid ' + (seleccionada ? 'var(--accent-blue)' : 'var(--border-subtle)')
       }}
     >
-      <div style={{ fontSize: 13, fontWeight: 600 }}>{ICONO_TIPO[c.tipo] || '💵'} {c.nombre}</div>
+      <div style={{ fontSize: 14, fontWeight: 600, display: 'flex', alignItems: 'center', gap: 6 }}><IconoCuenta tipo={c.tipo || 'efectivo'} size={15} /> {c.nombre}</div>
       <div style={{ fontSize: 12, color: 'var(--success)' }}><Monto valor={c.saldo} /></div>
     </button>
   )
@@ -183,7 +183,7 @@ export default function NuevaTransferencia({ onBack, onGuardada }) {
         style={{
           width: '100%', padding: 16, borderRadius: 'var(--radius-md)', fontWeight: 700, fontSize: 15,
           background: valido ? 'var(--gradient-brand)' : 'var(--bg-surface-2)',
-          color: valido ? '#fff' : 'var(--text-muted)'
+          color: valido ? 'var(--on-accent)' : 'var(--text-muted)'
         }}
       >
         {guardando ? t('tf_guardando') : t('tf_boton_guardar')}

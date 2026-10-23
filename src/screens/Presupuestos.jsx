@@ -7,6 +7,7 @@ import { usePreferencias } from '../context/PreferenciasContext.jsx'
 import Monto from '../components/Monto.jsx'
 import CategoriaIcono from '../components/CategoriaIcono.jsx'
 import { mensajeAmigable } from '../lib/errores.js'
+import { Pencil, Trash2, AlertTriangle } from 'lucide-react'
 
 export default function Presupuestos({ onBack }) {
   const { t } = usePreferencias()
@@ -120,11 +121,11 @@ export default function Presupuestos({ onBack }) {
             <div style={{ height: 8, borderRadius: 4, background: 'var(--bg-surface-2)', overflow: 'hidden', marginBottom: 6 }}>
               <div style={{ height: '100%', width: `${pct}%`, background: color, borderRadius: 4 }} />
             </div>
-            {excedido && <p style={{ fontSize: 12, color: 'var(--danger)', margin: '4px 0 8px', fontWeight: 600 }}>⚠️ {t('pr_excedido')}</p>}
-            {cerca && <p style={{ fontSize: 12, color: 'var(--warning)', margin: '4px 0 8px', fontWeight: 600 }}>⚠️ {t('pr_cerca')}</p>}
+            {excedido && <p style={{ fontSize: 12, color: 'var(--danger)', margin: '4px 0 8px', fontWeight: 600 }}><AlertTriangle size={13} aria-hidden="true" style={{ verticalAlign: '-3px', marginRight: 6 }} />{t('pr_excedido')}</p>}
+            {cerca && <p style={{ fontSize: 12, color: 'var(--warning)', margin: '4px 0 8px', fontWeight: 600 }}><AlertTriangle size={13} aria-hidden="true" style={{ verticalAlign: '-3px', marginRight: 6 }} />{t('pr_cerca')}</p>}
             <div style={{ display: 'flex', gap: 8, borderTop: '1px solid var(--border-subtle)', paddingTop: 8, marginTop: 4 }}>
-              <button onClick={() => setEditando(p)} style={{ flex: 1, background: 'transparent', color: 'var(--text-secondary)', fontSize: 12, padding: 6 }}>✏️ {t('comun_editar')}</button>
-              <button onClick={() => setAEliminar(p)} style={{ flex: 1, background: 'transparent', color: 'var(--danger)', fontSize: 12, padding: 6 }}>🗑️ {t('comun_eliminar')}</button>
+              <button onClick={() => setEditando(p)} style={{ flex: 1, background: 'transparent', color: 'var(--text-secondary)', fontSize: 12, padding: 6 }}><Pencil size={14} aria-hidden="true" style={{ verticalAlign: '-2px', marginRight: 6 }} />{t('comun_editar')}</button>
+              <button onClick={() => setAEliminar(p)} style={{ flex: 1, background: 'transparent', color: 'var(--danger)', fontSize: 12, padding: 6 }}><Trash2 size={14} aria-hidden="true" style={{ verticalAlign: '-2px', marginRight: 6 }} />{t('comun_eliminar')}</button>
             </div>
           </div>
         )
@@ -197,12 +198,12 @@ function FormularioPresupuesto({ presupuesto, categoriasDisponibles, onCancelar,
                 style={{
                   flexShrink: 0, padding: '10px 14px', borderRadius: 999, fontSize: 13, fontWeight: 600,
                   background: categoriaNombre === c.nombre ? 'var(--gradient-brand)' : 'var(--bg-surface)',
-                  color: categoriaNombre === c.nombre ? '#fff' : 'var(--text-secondary)',
+                  color: categoriaNombre === c.nombre ? 'var(--on-accent)' : 'var(--text-secondary)',
                   border: '1px solid ' + (categoriaNombre === c.nombre ? 'transparent' : 'var(--border-subtle)'),
                   display: 'flex', alignItems: 'center', gap: 6
                 }}
               >
-                <CategoriaIcono icono={c.icono || 'Tag'} size={14} color={categoriaNombre === c.nombre ? '#fff' : 'var(--text-muted)'} />
+                <CategoriaIcono icono={c.icono || 'Tag'} size={14} color={categoriaNombre === c.nombre ? 'var(--on-accent)' : 'var(--text-muted)'} />
                 {c.nombre}
               </button>
             ))}
@@ -224,7 +225,7 @@ function FormularioPresupuesto({ presupuesto, categoriasDisponibles, onCancelar,
           <button
             disabled={!valido || procesando}
             onClick={() => onGuardar(categoriaNombre, montoNum)}
-            style={{ background: valido ? 'var(--gradient-brand)' : 'var(--bg-surface-2)', color: valido ? '#fff' : 'var(--text-muted)' }}
+            style={{ background: valido ? 'var(--gradient-brand)' : 'var(--bg-surface-2)', color: valido ? 'var(--on-accent)' : 'var(--text-muted)' }}
           >
             {procesando ? t('comun_guardando') : t('comun_guardar')}
           </button>

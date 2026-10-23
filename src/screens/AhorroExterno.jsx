@@ -7,6 +7,7 @@ import Monto from '../components/Monto.jsx'
 import { conRespaldoOffline } from '../lib/offline.js'
 import { mensajeAmigable } from '../lib/errores.js'
 import { usePreferencias } from '../context/PreferenciasContext.jsx'
+import { Pencil, Trash2, Landmark } from 'lucide-react'
 
 const fmt = (n) => Number(n).toLocaleString('es-MX', { style: 'currency', currency: 'MXN' })
 const hoy = () => {
@@ -88,7 +89,7 @@ export default function AhorroExterno() {
   return (
     <div style={{ padding: '16px 16px 100px', maxWidth: 680, margin: '0 auto' }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 4 }}>
-        <h1 style={{ fontSize: 20, fontWeight: 700, margin: 0 }}>{t('ae_titulo')}</h1>
+        <h1 className="large-title" style={{ margin: 0 }}>{t('ae_titulo')}</h1>
         <InfoTooltip
           title={t('ae_titulo')}
           text={t('ae_info')}
@@ -104,8 +105,7 @@ export default function AhorroExterno() {
       }}>
         <span style={{ fontSize: 13, color: 'var(--text-secondary)' }}>{t('ae_total')}</span>
         <div style={{
-          fontSize: 28, fontWeight: 800, marginTop: 4,
-          backgroundImage: 'var(--gradient-brand)', WebkitBackgroundClip: 'text', color: 'transparent'
+          fontSize: 32, fontWeight: 700, marginTop: 4, letterSpacing: '-0.03em', fontVariantNumeric: 'tabular-nums', color: 'var(--text-primary)'
         }}>
           {cargando ? '…' : <Monto valor={total} />}
         </div>
@@ -118,16 +118,17 @@ export default function AhorroExterno() {
           textAlign: 'center', padding: '32px 20px', color: 'var(--text-muted)',
           background: 'var(--bg-surface)', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-subtle)', marginBottom: 16
         }}>
-          <div style={{ fontSize: 32, marginBottom: 8 }}>🏦</div>
+          <div style={{ marginBottom: 8, display: 'flex', justifyContent: 'center', color: 'var(--text-muted)' }}><Landmark size={34} strokeWidth={1.6} aria-hidden="true" /></div>
           <p style={{ fontSize: 14, margin: 0 }}>{t('ae_vacio_titulo')}</p>
           <p style={{ fontSize: 13, margin: '4px 0 0' }}>{t('ae_vacio_subtitulo')}</p>
         </div>
       )}
 
+      <div className="card-grid">
       {lista.map(r => (
         <div key={r.id} style={{
           background: 'var(--bg-surface)', borderRadius: 'var(--radius-md)',
-          border: '1px solid var(--border-subtle)', padding: '14px 16px', marginBottom: 10
+          border: '1px solid var(--border-subtle)', padding: '14px 16px'
         }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
             <div>
@@ -138,21 +139,17 @@ export default function AhorroExterno() {
             <div style={{ fontWeight: 700, fontSize: 15 }}><Monto valor={r.monto} /></div>
           </div>
           <div style={{ display: 'flex', gap: 8, marginTop: 10, borderTop: '1px solid var(--border-subtle)', paddingTop: 8 }}>
-            <button onClick={() => setEditando(r)} style={{ flex: 1, background: 'transparent', color: 'var(--text-secondary)', fontSize: 12, padding: 6 }}>✏️ {t('comun_editar')}</button>
-            <button onClick={() => setAEliminar(r)} style={{ flex: 1, background: 'transparent', color: 'var(--danger)', fontSize: 12, padding: 6 }}>🗑️ {t('comun_eliminar')}</button>
+            <button onClick={() => setEditando(r)} className="card-action" style={{ color: 'var(--text-secondary)' }}><Pencil size={14} aria-hidden="true" /> {t('comun_editar')}</button>
+            <button onClick={() => setAEliminar(r)} className="card-action" style={{ color: 'var(--danger)' }}><Trash2 size={14} aria-hidden="true" /> {t('comun_eliminar')}</button>
           </div>
         </div>
       ))}
+      </div>
 
       <button
         onClick={() => setEditando({})}
         aria-label="Agregar registro de ahorro"
-        style={{
-          position: 'fixed', right: 20, bottom: 92,
-          width: 56, height: 56, borderRadius: 16,
-          background: 'var(--gradient-brand)', color: '#fff',
-          fontSize: 26, fontWeight: 700, boxShadow: '0 8px 24px rgba(79,107,255,0.4)'
-        }}
+        className="floating-button"
       >
         +
       </button>
@@ -225,7 +222,7 @@ function FormularioAhorro({ registro, onCancelar, onGuardar, guardando }) {
           <button
             disabled={!valido || guardando}
             onClick={() => onGuardar({ id: registro.id, nombreBanco: nombreBanco.trim(), monto: montoNumerico, fechaRegistro, nota: nota.trim() })}
-            style={{ background: valido ? 'var(--gradient-brand)' : 'var(--bg-surface-2)', color: valido ? '#fff' : 'var(--text-muted)' }}
+            style={{ background: valido ? 'var(--gradient-brand)' : 'var(--bg-surface-2)', color: valido ? 'var(--on-accent)' : 'var(--text-muted)' }}
           >
             {guardando ? t('comun_guardando') : t('comun_guardar')}
           </button>

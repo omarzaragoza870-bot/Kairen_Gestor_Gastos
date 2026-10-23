@@ -15,7 +15,7 @@ import {
   GraduationCap, Plane, Wifi, Phone, Coffee, Baby,
   PawPrint, Wrench, Building2, DollarSign, PiggyBank,
   CreditCard, Receipt, Landmark, Music, Gamepad2, BookOpen,
-  Stethoscope, Fuel, Bus, Train, Bike, ShoppingBag
+  Stethoscope, Fuel, Bus, Train, Bike, ShoppingBag, Target
 } from 'lucide-react'
 
 const ICONOS = {
@@ -25,7 +25,7 @@ const ICONOS = {
   GraduationCap, Plane, Wifi, Phone, Coffee, Baby,
   PawPrint, Wrench, Building2, DollarSign, PiggyBank,
   CreditCard, Receipt, Landmark, Music, Gamepad2, BookOpen,
-  Stethoscope, Fuel, Bus, Train, Bike, ShoppingBag
+  Stethoscope, Fuel, Bus, Train, Bike, ShoppingBag, Target
 }
 
 // Mapeo de emojis legacy → nombre de ícono Lucide
@@ -81,6 +81,7 @@ export const ICONOS_DISPONIBLES = [
   { nombre: 'RotateCcw', label: 'Reembolso' },
   { nombre: 'Gift', label: 'Regalo' },
   { nombre: 'PiggyBank', label: 'Ahorro' },
+  { nombre: 'Target', label: 'Meta' },
   { nombre: 'CreditCard', label: 'Tarjeta' },
   { nombre: 'Landmark', label: 'Banco' },
   { nombre: 'Building2', label: 'Empresa' },
