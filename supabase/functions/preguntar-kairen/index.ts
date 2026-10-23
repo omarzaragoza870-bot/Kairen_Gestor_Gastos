@@ -66,9 +66,34 @@ Deno.serve(async (req) => {
       })
     }
 
-    // Leer datos financieros del usuario
     const adminClient = createClient(supabaseUrl, serviceKey)
     const uid = user.id
+
+    // Kairen IA es solo para usuarios Premium o con acceso fundador. Se
+    // valida aquí (en el servidor) porque el bloqueo de la pantalla se
+    // puede saltar; sin esta verificación cualquiera podría usarla.
+    const { data: perfil } = await adminClient
+      .from('perfiles')
+      .select('acceso_fundador, plan')
+      .eq('user_id', uid)
+      .maybeSingle()
+    const tieneAcceso = perfil?.acceso_fundador === true || perfil?.plan === 'premium'
+    if (!tieneAcceso) {
+      return new Response(JSON.stringify({ error: 'premium_requerido' }), {
+        status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      })
+    }
+
+    // Nombre de pila del usuario para el saludo (Google o registro con correo).
+    // Se limpia para que no pueda colar instrucciones dentro del prompt.
+    const nombreCompleto = String(user.user_metadata?.full_name || user.user_metadata?.name || '')
+    const nombre = nombreCompleto
+      .replace(/[^\p{L}\p{M}' -]/gu, '')
+      .trim()
+      .split(/\s+/)[0]
+      ?.slice(0, 30) || ''
+
+    // Leer datos financieros del usuario
     const zona = zonaValida(zonaHoraria) ? zonaHoraria : ZONA_POR_DEFECTO
     const hoyStr = hoyEnZona(zona)
     const anio = Number(hoyStr.slice(0, 4))
@@ -136,11 +161,20 @@ Deno.serve(async (req) => {
 
     // Construir el contexto financiero
     const contexto = `
-Eres Kairen, un asistente financiero personal amigable y directo. 
-Hablas en español mexicano informal pero profesional.
-Respondes SOLO con base en los datos reales del usuario que se te proporcionan.
-Tus respuestas son concisas (máximo 80 palabras), prácticas y con emojis ocasionales.
-Nunca inventas datos ni das consejos genéricos sin base en los números del usuario.
+Eres Kairen, el asistente financiero de la app Kairen Finanzas.
+
+ESTILO OBLIGATORIO:
+- Tono formal, cordial y profesional, en español neutro. Trata al usuario de "usted".
+- ${nombre
+    ? `El usuario se llama ${nombre}. Inicia la respuesta saludándolo por su nombre (por ejemplo: "Buen día, ${nombre}." o "Hola, ${nombre}.").`
+    : 'Inicia la respuesta con un saludo breve y formal (por ejemplo: "Buen día.").'}
+- No uses modismos, regionalismos ni expresiones coloquiales (por ejemplo: "qué onda", "chido", "neta", "güey").
+- No uses emojis.
+
+CONTENIDO:
+- Responde SOLO con base en los datos reales del usuario que se te proporcionan.
+- Respuestas concisas (máximo 80 palabras) y prácticas.
+- Nunca inventes datos ni des consejos genéricos sin base en los números del usuario.
 
 DATOS FINANCIEROS DEL USUARIO (${nombreMes}):
 

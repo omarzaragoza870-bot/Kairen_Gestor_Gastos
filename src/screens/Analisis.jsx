@@ -365,6 +365,36 @@ const SUGERENCIAS = [
 ]
 
 function KairenIATab({ pregunta, setPregunta, respuesta, setRespuesta, preguntando, setPreguntando, errorIA, setErrorIA }) {
+  // null = verificando; true/false = si el usuario puede usar Kairen IA.
+  // Solo Premium o acceso fundador. El servidor también lo valida.
+  const [tieneAcceso, setTieneAcceso] = useState(null)
+
+  useEffect(() => {
+    let cancelado = false
+    ;(async () => {
+      try {
+        const { data: { session } } = await supabase.auth.getSession()
+        const uid = session?.user?.id
+        if (!uid) {
+          if (!cancelado) setTieneAcceso(false)
+          return
+        }
+        const { data: perfil, error } = await supabase
+          .from('perfiles')
+          .select('acceso_fundador, plan')
+          .eq('user_id', uid)
+          .maybeSingle()
+        if (error) throw error
+        if (!cancelado) setTieneAcceso(Boolean(perfil?.acceso_fundador || perfil?.plan === 'premium'))
+      } catch {
+        // Sin conexión o error al consultar: se muestra la pantalla normal
+        // y el servidor decide al momento de preguntar.
+        if (!cancelado) setTieneAcceso(true)
+      }
+    })()
+    return () => { cancelado = true }
+  }, [])
+
   const handlePreguntar = async (texto) => {
     const q = texto || pregunta
     if (!q.trim() || preguntando) return
@@ -386,6 +416,10 @@ function KairenIATab({ pregunta, setPregunta, respuesta, setRespuesta, preguntan
         body: JSON.stringify({ pregunta: q, zonaHoraria: Intl.DateTimeFormat().resolvedOptions().timeZone })
       })
       const data = await res.json()
+      if (res.status === 403 && data.error === 'premium_requerido') {
+        setTieneAcceso(false)
+        return
+      }
       if (data.error) throw new Error(data.error)
       setRespuesta(data.respuesta)
     } catch (err) {
@@ -408,6 +442,20 @@ function KairenIATab({ pregunta, setPregunta, respuesta, setRespuesta, preguntan
         </div>
       </div>
 
+      {tieneAcceso === false && (
+        <div style={{ background: 'var(--bg-surface)', border: '1px solid var(--border-subtle)', borderRadius: 'var(--radius-md)', padding: 20, textAlign: 'center' }}>
+          <div style={{ fontSize: 32, marginBottom: 8 }}>🔒</div>
+          <div style={{ fontWeight: 700, marginBottom: 6 }}>Función Premium</div>
+          <div style={{ fontSize: 13, color: 'var(--text-secondary)' }}>Kairen IA está disponible para usuarios Premium.</div>
+        </div>
+      )}
+
+      {tieneAcceso === null && (
+        <p style={{ fontSize: 13, color: 'var(--text-muted)', textAlign: 'center' }}>Cargando…</p>
+      )}
+
+      {tieneAcceso && (
+      <>
       {!respuesta && !preguntando && (
         <>
           <div style={{ fontSize: 12, color: 'var(--text-muted)', marginBottom: 10, fontWeight: 600 }}>PREGUNTAS SUGERIDAS</div>
@@ -460,6 +508,8 @@ function KairenIATab({ pregunta, setPregunta, respuesta, setRespuesta, preguntan
           ↑
         </button>
       </div>
+      </>
+      )}
     </div>
   )
 }
