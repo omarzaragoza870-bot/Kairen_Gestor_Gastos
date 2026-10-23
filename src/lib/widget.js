@@ -7,12 +7,17 @@
  */
 import { esNativo } from './capacitor.js'
 
+// Capacitor solo permite registrar un plugin una vez; se reutiliza la instancia
+let kairenWidget = null
+
 export async function actualizarWidget({ disponible, ingresos, gastos }) {
   if (!esNativo()) return
   try {
-    const { registerPlugin } = await import('@capacitor/core')
-    const KairenWidget = registerPlugin('KairenWidget')
-    await KairenWidget.actualizar({
+    if (!kairenWidget) {
+      const { registerPlugin } = await import('@capacitor/core')
+      kairenWidget = registerPlugin('KairenWidget')
+    }
+    await kairenWidget.actualizar({
       disponible,
       ingresos,
       gastos,

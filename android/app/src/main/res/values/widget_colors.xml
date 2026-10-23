@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Widget de saldo — paleta Monocromo (tema claro). Mismos valores que src/styles/theme.css -->
+<resources>
+    <color name="widget_superficie">#FFFFFF</color>
+    <color name="widget_relleno">#EFEFF2</color>
+    <color name="widget_texto">#0A0A0A</color>
+    <color name="widget_texto_secundario">#636366</color>
+    <color name="widget_acento">#0A0A0A</color>
+    <color name="widget_sobre_acento">#FFFFFF</color>
+    <color name="widget_ingreso">#1A7F37</color>
+    <color name="widget_gasto">#C9302C</color>
+</resources>

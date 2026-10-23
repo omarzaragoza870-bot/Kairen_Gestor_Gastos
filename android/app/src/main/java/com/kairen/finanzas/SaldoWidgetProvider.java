@@ -25,8 +25,8 @@ public class SaldoWidgetProvider extends AppWidgetProvider {
         for (int appWidgetId : appWidgetIds) {
             RemoteViews views = new RemoteViews(context.getPackageName(), R.layout.widget_saldo);
             views.setTextViewText(R.id.widget_disponible, disponible);
-            views.setTextViewText(R.id.widget_ingresos, "↑ " + ingresos);
-            views.setTextViewText(R.id.widget_gastos, "↓ " + gastos);
+            views.setTextViewText(R.id.widget_ingresos, ingresos);
+            views.setTextViewText(R.id.widget_gastos, gastos);
 
             // Al tocar el widget (fuera de los botones), abre la app normal
             Intent intentAbrir = context.getPackageManager().getLaunchIntentForPackage(context.getPackageName());

@@ -6,7 +6,7 @@ import {
   sumar, agruparPorCategoria, agruparPorMes, calcularHabitos, calcularInsights, compararConMesAnterior
 } from '../lib/estadisticas.js'
 import SelectorPeriodo from '../components/SelectorPeriodo.jsx'
-import { conRespaldoOffline } from '../lib/offline.js'
+import { conRespaldoOffline, leerDeCache } from '../lib/offline.js'
 import { mensajeAmigable } from '../lib/errores.js'
 import { MESES_POR_IDIOMA } from '../i18n/translations.js'
 import Monto from '../components/Monto.jsx'
@@ -36,45 +36,66 @@ export default function Analisis() {
   const MESES = MESES_POR_IDIOMA[idioma] || MESES_POR_IDIOMA.es
 
   useEffect(() => {
-    (async () => {
-      setCargando(true)
+    let cancelado = false
+    ;(async () => {
       setError(null)
       try {
         const { data } = await supabase.auth.getSession()
         const usuario = data.session?.user
         if (!usuario) throw new Error('Sesión no disponible.')
         const uid = usuario.id
-        let actual, anterior, referenciaHistorico
+        // Cada consulta es [clave de caché, función de red]; son independientes
+        // entre sí, así que se piden en paralelo.
+        let consultaActual, consultaAnterior, referenciaHistorico, sufijo
         if (periodo.tipo === 'mes') {
           const fechaMes = new Date(periodo.anio, periodo.mes, 1)
-          const claveMes = `analisis:${uid}:${periodo.anio}-${periodo.mes}`
-          const claveAnterior = `analisis:${uid}:${periodo.anio}-${periodo.mes}-anterior`
-          actual = await conRespaldoOffline(claveMes, () => obtenerTransaccionesPorMes(uid, fechaMes))
-          anterior = await conRespaldoOffline(claveAnterior, () => obtenerTransaccionesPorMes(uid, new Date(periodo.anio, periodo.mes - 1, 1)))
+          sufijo = `${periodo.anio}-${periodo.mes}`
+          consultaActual = [`analisis:${uid}:${sufijo}`, () => obtenerTransaccionesPorMes(uid, fechaMes)]
+          consultaAnterior = [`analisis:${uid}:${sufijo}-anterior`, () => obtenerTransaccionesPorMes(uid, new Date(periodo.anio, periodo.mes - 1, 1))]
           referenciaHistorico = fechaMes
         } else {
           const hastaExclusivo = new Date(`${periodo.hasta}T00:00:00`)
           hastaExclusivo.setDate(hastaExclusivo.getDate() + 1)
           const hastaStr = hastaExclusivo.toISOString().slice(0, 10)
-          const claveRango = `analisis:${uid}:${periodo.desde}_${hastaStr}`
-          actual = await conRespaldoOffline(claveRango, () => obtenerTransaccionesEnRango(uid, periodo.desde, hastaStr))
-          anterior = []
+          sufijo = `${periodo.desde}_${hastaStr}`
+          consultaActual = [`analisis:${uid}:${sufijo}`, () => obtenerTransaccionesEnRango(uid, periodo.desde, hastaStr)]
+          consultaAnterior = [null, async () => []]
           referenciaHistorico = new Date(`${periodo.hasta}T12:00:00`)
         }
-        const [historico, cuentas] = await Promise.all([
-          conRespaldoOffline(`analisis-historico:${uid}`, () => obtenerTransaccionesUltimosMeses(uid, 6, referenciaHistorico)),
-          conRespaldoOffline(`cuentas:${uid}`, () => obtenerCuentas(uid))
-        ])
-        setMesActual(actual)
-        setMesAnterior(anterior)
-        setUltimosMeses(historico)
-        setCuentasPorId(Object.fromEntries(cuentas.map(c => [c.id, c])))
+        const consultas = [
+          consultaActual,
+          consultaAnterior,
+          [`analisis-historico:${uid}:${sufijo}`, () => obtenerTransaccionesUltimosMeses(uid, 6, referenciaHistorico)],
+          [`cuentas:${uid}`, () => obtenerCuentas(uid)]
+        ]
+        const aplicar = ([actual, anterior, historico, cuentas]) => {
+          setMesActual(actual)
+          setMesAnterior(anterior)
+          setUltimosMeses(historico)
+          setCuentasPorId(Object.fromEntries(cuentas.map(c => [c.id, c])))
+        }
+
+        // Si hay datos de una visita anterior se muestran al instante y se
+        // reemplazan al llegar los del servidor, sin pasar por el esqueleto.
+        const cacheados = await Promise.all(consultas.map(([clave]) => clave ? leerDeCache(clave) : []))
+        if (cancelado) return
+        if (cacheados.every(valor => valor !== null)) {
+          aplicar(cacheados)
+          setCargando(false)
+        } else {
+          setCargando(true)
+        }
+
+        const frescos = await Promise.all(consultas.map(([clave, fnRed]) => clave ? conRespaldoOffline(clave, fnRed) : fnRed()))
+        if (cancelado) return
+        aplicar(frescos)
       } catch (err) {
-        setError(mensajeAmigable(err, t('an_cargando')))
+        if (!cancelado) setError(mensajeAmigable(err, t('an_cargando')))
       } finally {
-        setCargando(false)
+        if (!cancelado) setCargando(false)
       }
     })()
+    return () => { cancelado = true }
   }, [periodo])
 
   const ingresos = sumar(mesActual, 'ingreso')
