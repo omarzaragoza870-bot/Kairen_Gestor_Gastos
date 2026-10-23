@@ -364,6 +364,93 @@ const SUGERENCIAS = [
   '¿Cómo estuvo mi mes financieramente?'
 ]
 
+// Mensajes que se van mostrando mientras Kairen prepara la respuesta, para
+// que la espera se sienta como avance y no como una app congelada.
+const PASOS_CARGA = [
+  'Revisando tus movimientos del mes…',
+  'Analizando tus categorías de gasto…',
+  'Revisando tus metas y presupuestos…',
+  'Preparando tu respuesta…'
+]
+
+function CargandoKairen() {
+  const [segundos, setSegundos] = useState(0)
+
+  useEffect(() => {
+    const intervalo = setInterval(() => setSegundos(s => s + 1), 1000)
+    return () => clearInterval(intervalo)
+  }, [])
+
+  const paso = Math.min(Math.floor(segundos / 2), PASOS_CARGA.length - 1)
+  // Avanza rápido al inicio y se frena cerca del 90%: nunca "termina" antes
+  // de que llegue la respuesta real.
+  const progreso = Math.round(90 * (1 - Math.exp(-(segundos + 1) / 4)))
+
+  return (
+    <div
+      role="status"
+      aria-live="polite"
+      style={{ textAlign: 'center', padding: '28px 20px', background: 'var(--bg-surface)', borderRadius: 'var(--radius-lg)', border: '1px solid var(--border-subtle)', marginBottom: 16 }}
+    >
+      <div style={{ position: 'relative', width: 64, height: 64, margin: '0 auto 14px' }}>
+        <div style={{ position: 'absolute', inset: 0, borderRadius: '50%', border: '3px solid var(--border-subtle)', borderTopColor: 'var(--accent-blue)', animation: 'kairen-giro 1s linear infinite' }} />
+        <img src="/kairen-avatar.png" alt="" style={{ position: 'absolute', inset: 8, width: 48, height: 48, borderRadius: '50%', animation: 'pulso-kairen 1.4s ease-in-out infinite' }} />
+      </div>
+
+      <div style={{ fontWeight: 700, fontSize: 15, marginBottom: 4 }}>Kairen está trabajando</div>
+      <div key={paso} style={{ color: 'var(--text-secondary)', fontSize: 13, minHeight: 18, animation: 'kairen-aparecer 0.4s ease-out' }}>
+        {PASOS_CARGA[paso]}
+      </div>
+
+      <div style={{ height: 6, borderRadius: 3, background: 'var(--bg-surface-2)', overflow: 'hidden', margin: '16px auto 10px', maxWidth: 260 }}>
+        <div style={{ height: '100%', width: `${progreso}%`, background: 'var(--gradient-brand)', borderRadius: 3, transition: 'width 1s linear' }} />
+      </div>
+
+      <div style={{ display: 'flex', justifyContent: 'center', gap: 6 }}>
+        {PASOS_CARGA.map((_, i) => (
+          <span key={i} style={{ width: 6, height: 6, borderRadius: '50%', background: i <= paso ? 'var(--accent-blue)' : 'var(--border-subtle)', transition: 'background 0.3s' }} />
+        ))}
+      </div>
+
+      {segundos >= 10 && (
+        <div style={{ color: 'var(--text-muted)', fontSize: 12, marginTop: 12 }}>
+          Está tardando un poco más de lo normal. Un momento, por favor.
+        </div>
+      )}
+
+      <style>{`
+        @keyframes kairen-giro { to { transform: rotate(360deg); } }
+        @keyframes pulso-kairen { 0%, 100% { opacity: 1; transform: scale(1); } 50% { opacity: 0.75; transform: scale(0.94); } }
+        @keyframes kairen-aparecer { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: translateY(0); } }
+      `}</style>
+    </div>
+  )
+}
+
+// Si la respuesta no llega en este tiempo se cancela y se avisa, en lugar
+// de dejar al usuario esperando indefinidamente.
+const TIEMPO_MAXIMO_IA_MS = 30000
+
+// Preguntas cortas: máximo 30 palabras (el servidor también lo valida)
+const MAX_PALABRAS_PREGUNTA = 30
+
+const contarPalabras = (texto) => (texto.trim() ? texto.trim().split(/\s+/).length : 0)
+
+/** Recorta el texto a las primeras `max` palabras, respetando los espacios que ya tenía. */
+function limitarPalabras(texto, max) {
+  const partes = texto.split(/(\s+)/)
+  let palabras = 0
+  let resultado = ''
+  for (const parte of partes) {
+    if (parte.trim()) {
+      if (palabras >= max) break
+      palabras++
+    }
+    resultado += parte
+  }
+  return resultado
+}
+
 function KairenIATab({ pregunta, setPregunta, respuesta, setRespuesta, preguntando, setPreguntando, errorIA, setErrorIA }) {
   // null = verificando; true/false = si el usuario puede usar Kairen IA.
   // Solo Premium o acceso fundador. El servidor también lo valida.
@@ -401,11 +488,14 @@ function KairenIATab({ pregunta, setPregunta, respuesta, setRespuesta, preguntan
     setPreguntando(true)
     setRespuesta(null)
     setErrorIA(null)
+    const controlador = new AbortController()
+    const temporizador = setTimeout(() => controlador.abort(), TIEMPO_MAXIMO_IA_MS)
     try {
       const { data: { session } } = await supabase.auth.getSession()
       if (!session) throw new Error('Sesión no disponible')
       const res = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/preguntar-kairen`, {
         method: 'POST',
+        signal: controlador.signal,
         headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${session.access_token}`,
@@ -423,8 +513,11 @@ function KairenIATab({ pregunta, setPregunta, respuesta, setRespuesta, preguntan
       if (data.error) throw new Error(data.error)
       setRespuesta(data.respuesta)
     } catch (err) {
-      setErrorIA('No se pudo obtener respuesta. Intenta de nuevo.')
+      setErrorIA(err?.name === 'AbortError'
+        ? 'Kairen tardó demasiado en responder. Intenta de nuevo en un momento.'
+        : 'No se pudo obtener respuesta. Intenta de nuevo.')
     } finally {
+      clearTimeout(temporizador)
       setPreguntando(false)
     }
   }
@@ -473,13 +566,7 @@ function KairenIATab({ pregunta, setPregunta, respuesta, setRespuesta, preguntan
         </>
       )}
 
-      {preguntando && (
-        <div style={{ textAlign: 'center', padding: 32, background: 'var(--bg-surface)', borderRadius: 'var(--radius-lg)', border: '1px solid var(--border-subtle)', marginBottom: 16 }}>
-          <img src="/kairen-avatar.png" alt="Kairen" style={{ width: 48, height: 48, borderRadius: '50%', marginBottom: 8, animation: 'pulso-kairen 1.4s ease-in-out infinite' }} />
-          <div style={{ color: 'var(--text-secondary)', fontSize: 14 }}>Kairen está analizando tus datos...</div>
-          <style>{`@keyframes pulso-kairen { 0%, 100% { opacity: 1; transform: scale(1); } 50% { opacity: 0.75; transform: scale(0.94); } }`}</style>
-        </div>
-      )}
+      {preguntando && <CargandoKairen />}
 
       {respuesta && !preguntando && (
         <div style={{ background: 'var(--bg-surface)', borderRadius: 'var(--radius-lg)', border: '1px solid var(--border-subtle)', padding: 20, marginBottom: 16 }}>
@@ -499,8 +586,8 @@ function KairenIATab({ pregunta, setPregunta, respuesta, setRespuesta, preguntan
 
       <div style={{ display: 'flex', gap: 8 }}>
         <div className="input-shell" style={{ flex: 1, margin: 0 }}>
-          <input value={pregunta} onChange={e => setPregunta(e.target.value)}
-            onKeyDown={e => e.key === 'Enter' && handlePreguntar()} maxLength={100}
+          <input value={pregunta} onChange={e => setPregunta(limitarPalabras(e.target.value, MAX_PALABRAS_PREGUNTA))}
+            onKeyDown={e => e.key === 'Enter' && handlePreguntar()} maxLength={250}
             placeholder="Escribe tu pregunta financiera..." disabled={preguntando} />
         </div>
         <button onClick={() => handlePreguntar()} disabled={!pregunta.trim() || preguntando}
@@ -508,6 +595,11 @@ function KairenIATab({ pregunta, setPregunta, respuesta, setRespuesta, preguntan
           ↑
         </button>
       </div>
+      {pregunta.trim() && (
+        <div style={{ fontSize: 11, color: contarPalabras(pregunta) >= MAX_PALABRAS_PREGUNTA ? 'var(--warning, #E0A100)' : 'var(--text-muted)', textAlign: 'right', marginTop: 6 }}>
+          {contarPalabras(pregunta)}/{MAX_PALABRAS_PREGUNTA} palabras
+        </div>
+      )}
       </>
       )}
     </div>

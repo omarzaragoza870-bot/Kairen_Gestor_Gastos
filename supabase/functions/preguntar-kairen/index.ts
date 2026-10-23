@@ -11,6 +11,22 @@ import { corsHeadersPara } from '../_shared/cors.ts'
 // día del mes después de las 6 pm (hora de México) ya se consideraba el
 // mes siguiente y los totales salían en cero.
 const ZONA_POR_DEFECTO = 'America/Mexico_City'
+const MAX_PALABRAS_PREGUNTA = 30
+
+/**
+ * Si la IA llegó al límite de longitud, recorta hasta la última oración
+ * completa para que el usuario nunca vea una respuesta cortada a la mitad.
+ */
+function cerrarEnOracionCompleta(texto: string): string {
+  const limpio = texto.trim()
+  // Ya termina en oración completa (y no en un número cortado como "1,450.")
+  if (/[.!?]$/.test(limpio) && !/\d\.$/.test(limpio)) return limpio
+  // Último punto, signo de exclamación o interrogación seguido de espacio:
+  // así no se confunde con el punto decimal de una cifra ($1,450.00).
+  let corte = -1
+  for (const coincidencia of limpio.matchAll(/[.!?](?=\s)/g)) corte = coincidencia.index ?? corte
+  return corte > 0 ? limpio.slice(0, corte + 1) : limpio
+}
 
 function zonaValida(zona: unknown): zona is string {
   if (typeof zona !== 'string' || zona.length > 64) return false
@@ -60,29 +76,17 @@ Deno.serve(async (req) => {
     }
 
     const { pregunta, zonaHoraria } = await req.json()
-    if (!pregunta?.trim() || pregunta.trim().length > 100) {
-      return new Response(JSON.stringify({ error: 'Falta la pregunta' }), {
+    // Máximo 30 palabras (y 250 caracteres como tope de seguridad)
+    const textoPregunta = String(pregunta || '').trim()
+    const palabrasPregunta = textoPregunta ? textoPregunta.split(/\s+/).length : 0
+    if (!textoPregunta || palabrasPregunta > MAX_PALABRAS_PREGUNTA || textoPregunta.length > 250) {
+      return new Response(JSON.stringify({ error: `La pregunta debe tener entre 1 y ${MAX_PALABRAS_PREGUNTA} palabras.` }), {
         status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' }
       })
     }
 
     const adminClient = createClient(supabaseUrl, serviceKey)
     const uid = user.id
-
-    // Kairen IA es solo para usuarios Premium o con acceso fundador. Se
-    // valida aquí (en el servidor) porque el bloqueo de la pantalla se
-    // puede saltar; sin esta verificación cualquiera podría usarla.
-    const { data: perfil } = await adminClient
-      .from('perfiles')
-      .select('acceso_fundador, plan')
-      .eq('user_id', uid)
-      .maybeSingle()
-    const tieneAcceso = perfil?.acceso_fundador === true || perfil?.plan === 'premium'
-    if (!tieneAcceso) {
-      return new Response(JSON.stringify({ error: 'premium_requerido' }), {
-        status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-      })
-    }
 
     // Nombre de pila del usuario para el saludo (Google o registro con correo).
     // Se limpia para que no pueda colar instrucciones dentro del prompt.
@@ -93,7 +97,6 @@ Deno.serve(async (req) => {
       .split(/\s+/)[0]
       ?.slice(0, 30) || ''
 
-    // Leer datos financieros del usuario
     const zona = zonaValida(zonaHoraria) ? zonaHoraria : ZONA_POR_DEFECTO
     const hoyStr = hoyEnZona(zona)
     const anio = Number(hoyStr.slice(0, 4))
@@ -106,30 +109,50 @@ Deno.serve(async (req) => {
 
     // TODOS los movimientos del mes, en páginas de 1000. Antes se tomaban
     // solo los últimos 50, y con más movimientos los totales salían mal.
-    const transaccionesMes: { tipo: string, monto: number, categoria_nombre: string }[] = []
-    for (let desde = 0; desde < 50000; desde += 1000) {
-      const { data, error } = await adminClient.from('transacciones')
-        .select('id, tipo, monto, categoria_nombre')
-        .eq('user_id', uid)
-        .gte('fecha', inicioMes)
-        .lt('fecha', inicioSiguiente)
-        .order('id', { ascending: true })
-        .range(desde, desde + 999)
-      if (error) throw error
-      transaccionesMes.push(...(data || []))
-      if (!data || data.length < 1000) break
+    const traerTransaccionesMes = async () => {
+      const filas: { tipo: string, monto: number, categoria_nombre: string }[] = []
+      for (let desde = 0; desde < 50000; desde += 1000) {
+        const { data, error } = await adminClient.from('transacciones')
+          .select('id, tipo, monto, categoria_nombre')
+          .eq('user_id', uid)
+          .gte('fecha', inicioMes)
+          .lt('fecha', inicioSiguiente)
+          .order('id', { ascending: true })
+          .range(desde, desde + 999)
+        if (error) throw error
+        filas.push(...(data || []))
+        if (!data || data.length < 1000) break
+      }
+      return filas
     }
 
+    // Todas las consultas en paralelo (antes iban una tras otra): la
+    // respuesta llega antes. Nada se envía a la IA ni al usuario hasta
+    // confirmar el acceso.
     const [
+      { data: perfil },
+      transaccionesMes,
       { data: cuentas },
       { data: metas },
       { data: presupuestos }
     ] = await Promise.all([
+      adminClient.from('perfiles').select('acceso_fundador, plan').eq('user_id', uid).maybeSingle(),
+      traerTransaccionesMes(),
       adminClient.from('cuentas').select('nombre, saldo, tipo').eq('user_id', uid),
       adminClient.from('metas').select('nombre, monto_objetivo, monto_actual, fecha_limite, completada')
         .eq('user_id', uid).eq('completada', false),
       adminClient.from('presupuestos').select('categoria_nombre, monto_limite').eq('user_id', uid)
     ])
+
+    // Kairen IA es solo para usuarios Premium o con acceso fundador. Se
+    // valida aquí (en el servidor) porque el bloqueo de la pantalla se
+    // puede saltar; sin esta verificación cualquiera podría usarla.
+    const tieneAcceso = perfil?.acceso_fundador === true || perfil?.plan === 'premium'
+    if (!tieneAcceso) {
+      return new Response(JSON.stringify({ error: 'premium_requerido' }), {
+        status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      })
+    }
 
     // Calcular resumen financiero
     const ingresosMes = (transaccionesMes || [])
@@ -171,10 +194,18 @@ ESTILO OBLIGATORIO:
 - No uses modismos, regionalismos ni expresiones coloquiales (por ejemplo: "qué onda", "chido", "neta", "güey").
 - No uses emojis.
 
-CONTENIDO:
-- Responde SOLO con base en los datos reales del usuario que se te proporcionan.
-- Respuestas concisas (máximo 80 palabras) y prácticas.
-- Nunca inventes datos ni des consejos genéricos sin base en los números del usuario.
+FORMATO DE RESPUESTA (lo más importante):
+- Lo más breve posible: 1 o 2 oraciones, máximo 35 palabras contando el saludo.
+- Ve directo al dato que se pregunta, con la cifra exacta de los datos. Sin introducciones, sin repetir la pregunta, sin listas ni viñetas.
+- Si es útil, agrega un solo tip corto al final, en la misma respuesta.
+- Termina siempre con una oración completa.
+- Responde SOLO con base en los datos reales del usuario que se te proporcionan. Nunca inventes datos.
+- Si la pregunta no tiene que ver con sus finanzas, indícalo en una sola oración.
+
+EJEMPLOS DEL LARGO Y ESTILO ESPERADOS (los corchetes se reemplazan con los datos reales, nunca se copian):
+- "¿En qué gasto más?" → "Buen día. Su mayor gasto este mes es [categoría], con [monto]. Considere fijarle un presupuesto."
+- "¿Me alcanza para fin de mes?" → "Buen día. Sí: tiene [monto] disponible y su balance del mes es positivo."
+- "¿Cómo voy con mis metas?" → "Buen día. Su meta [nombre] lleva [monto] de [monto objetivo], un [porcentaje]%."
 
 DATOS FINANCIEROS DEL USUARIO (${nombreMes}):
 
@@ -219,12 +250,15 @@ Número de transacciones este mes: ${(transaccionesMes || []).length}
           contents: [
             {
               role: 'user',
-              parts: [{ text: `${contexto}\n\nPREGUNTA DEL USUARIO: ${pregunta}` }]
+              parts: [{ text: `${contexto}\n\nPREGUNTA DEL USUARIO: ${textoPregunta}` }]
             }
           ],
           generationConfig: {
-            temperature: 0.7,
-            maxOutputTokens: 220,
+            // Más baja = respuestas más directas y consistentes
+            temperature: 0.4,
+            // Techo de seguridad, no el largo deseado: el largo lo controla
+            // el prompt (máx. 35 palabras). Se deja margen para que nunca corte.
+            maxOutputTokens: 300,
             topP: 0.9
           }
         })
@@ -235,7 +269,15 @@ Número de transacciones este mes: ${(transaccionesMes || []).length}
     // Solo el estado: la respuesta completa contiene datos financieros del
     // usuario y no debe quedar en los logs de Supabase.
     if (!geminiRes.ok) console.error('[preguntar-kairen] Gemini respondió', geminiRes.status)
-    const respuesta = geminiData?.candidates?.[0]?.content?.parts?.[0]?.text
+    const candidato = geminiData?.candidates?.[0]
+    const textoIA = (candidato?.content?.parts || [])
+      .filter((parte: { text?: string, thought?: boolean }) => parte?.text && !parte.thought)
+      .map((parte: { text: string }) => parte.text)
+      .join('')
+      .trim()
+    const respuesta = candidato?.finishReason === 'MAX_TOKENS'
+      ? cerrarEnOracionCompleta(textoIA)
+      : textoIA
 
     if (!respuesta) {
       return new Response(JSON.stringify({ error: 'No se pudo obtener respuesta de la IA' }), {
