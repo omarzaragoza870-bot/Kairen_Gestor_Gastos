@@ -50,6 +50,11 @@
                 android:resource="@xml/file_paths"></meta-data>
         </provider>
 
+        <!-- Ícono pequeño de las notificaciones push (silueta blanca del ícono de Kairen) -->
+        <meta-data
+            android:name="com.google.firebase.messaging.default_notification_icon"
+            android:resource="@drawable/ic_stat_kairen" />
+
         <!-- Widget de pantalla de inicio: Dinero Disponible -->
         <receiver android:name=".SaldoWidgetProvider" android:exported="false">
             <intent-filter>

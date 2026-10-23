@@ -1,4 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <color name="ic_launcher_background">#FFFFFF</color>
+    <color name="ic_launcher_background">#0A0A0A</color>
+    <!-- Fondo de la pantalla de arranque del sistema (Android 12+) -->
+    <color name="splash_background">#000000</color>
 </resources>

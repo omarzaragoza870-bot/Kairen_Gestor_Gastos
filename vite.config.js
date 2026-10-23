@@ -24,7 +24,9 @@ export default defineConfig({
         orientation: 'portrait',
         icons: [
           { src: '/favicon-192.png', sizes: '192x192', type: 'image/png' },
-          { src: '/favicon-512.png', sizes: '512x512', type: 'image/png' }
+          { src: '/favicon-512.png', sizes: '512x512', type: 'image/png' },
+          // El ícono es a sangre con la marca dentro de la zona segura: Android lo puede recortar
+          { src: '/favicon-512.png', sizes: '512x512', type: 'image/png', purpose: 'maskable' }
         ]
       }
     })
