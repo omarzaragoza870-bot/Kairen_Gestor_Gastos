@@ -146,8 +146,8 @@ export async function guardarEnCache(clave, valor) {
 /** Recupera el último resultado guardado para una clave, o null si no hay nada. */
 export async function leerDeCache(clave) {
   try {
-    return await new Promise(async (resolve) => {
-      const db = await abrirDB()
+    const db = await abrirDB()
+    return await new Promise((resolve) => {
       const tx = db.transaction(STORE_CACHE, 'readonly')
       const req = tx.objectStore(STORE_CACHE).get(clave)
       req.onsuccess = () => resolve(req.result?.valor ?? null)
@@ -198,8 +198,8 @@ export async function encolarOperacion(operacion) {
 
 export async function obtenerColaPendiente() {
   try {
-    return await new Promise(async (resolve) => {
-      const db = await abrirDB()
+    const db = await abrirDB()
+    return await new Promise((resolve) => {
       const tx = db.transaction(STORE_COLA, 'readonly')
       const req = tx.objectStore(STORE_COLA).getAll()
       req.onsuccess = () => resolve(req.result || [])

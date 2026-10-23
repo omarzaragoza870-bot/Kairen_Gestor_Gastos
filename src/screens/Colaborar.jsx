@@ -89,7 +89,7 @@ export default function Colaborar({ onBack }) {
   if (cargando) return (
     <div style={{ padding: '16px 16px 100px', maxWidth: 680, margin: '0 auto' }}>
       <div className="screen-header">
-        <button onClick={onBack} className="back-button">←</button>
+        <button onClick={onBack} aria-label="Volver" className="back-button">←</button>
         <h1>Colaborar</h1>
       </div>
       <div style={{ textAlign: 'center', padding: 40, color: 'var(--text-muted)' }}>Cargando…</div>
@@ -99,7 +99,7 @@ export default function Colaborar({ onBack }) {
   return (
     <div style={{ padding: '16px 16px 100px', maxWidth: 680, margin: '0 auto' }}>
       <div className="screen-header">
-        <button onClick={onBack} className="back-button">←</button>
+        <button onClick={onBack} aria-label="Volver" className="back-button">←</button>
         <h1>Colaborar</h1>
       </div>
 

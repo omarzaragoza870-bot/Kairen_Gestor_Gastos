@@ -66,4 +66,6 @@
         </receiver>
     </application>
     <uses-permission android:name="android.permission.INTERNET" />
+    <!-- Android 13+: necesario para mostrar notificaciones push -->
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
 </manifest>

@@ -12,6 +12,7 @@ import { corsHeadersPara } from '../_shared/cors.ts'
 // mes siguiente y los totales salían en cero.
 const ZONA_POR_DEFECTO = 'America/Mexico_City'
 const MAX_PALABRAS_PREGUNTA = 30
+const MAX_PREGUNTAS_POR_HORA = 30
 
 /**
  * Si la IA llegó al límite de longitud, recorta hasta la última oración
@@ -153,6 +154,20 @@ Deno.serve(async (req) => {
         status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' }
       })
     }
+
+    // Límite de uso por usuario (tabla ia_rate_limit): protege la cuota de
+    // Gemini. Si la tabla falla, no se bloquea al usuario.
+    const haceUnaHora = new Date(Date.now() - 60 * 60 * 1000).toISOString()
+    const { count: usadas, error: errorLimite } = await adminClient.from('ia_rate_limit')
+      .select('id', { count: 'exact', head: true })
+      .eq('user_id', uid)
+      .gte('created_at', haceUnaHora)
+    if (!errorLimite && (usadas ?? 0) >= MAX_PREGUNTAS_POR_HORA) {
+      return new Response(JSON.stringify({ error: 'Demasiadas preguntas. Intente de nuevo más tarde.' }), {
+        status: 429, headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      })
+    }
+    await adminClient.from('ia_rate_limit').insert({ user_id: uid })
 
     // Calcular resumen financiero
     const ingresosMes = (transaccionesMes || [])

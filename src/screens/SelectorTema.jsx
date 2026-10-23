@@ -11,7 +11,7 @@ export default function SelectorTema({ onBack }) {
   return (
     <div style={{ padding: '16px 16px 100px', maxWidth: 680, margin: '0 auto' }}>
       <div className="screen-header">
-        <button onClick={onBack} className="back-button">←</button>
+        <button onClick={onBack} aria-label="Volver" className="back-button">←</button>
         <h1>{t('ajustes_tema')}</h1>
       </div>
 

@@ -34,18 +34,8 @@ async function inicializarFirebaseMessaging(userId) {
     await supabase.from('fcm_tokens').upsert({
       user_id: userId,
       token,
-      plataforma: 'android'
+      plataforma: window.Capacitor?.getPlatform?.() || 'android'
     }, { onConflict: 'user_id,token' })
-
-    // Escuchar notificaciones cuando la app está en primer plano
-    await FirebaseMessaging.addListener('notificationReceived', ({ notification }) => {
-      console.log('[FCM] Notificación recibida:', notification.title)
-    })
-
-    // Cuando el usuario toca la notificación
-    await FirebaseMessaging.addListener('notificationActionPerformed', ({ notification }) => {
-      console.log('[FCM] Notificación tocada:', notification.notification?.title)
-    })
   } catch (err) {
     logError('Error inicializando Firebase Messaging', err)
   }

@@ -72,7 +72,7 @@ export default function EmailAuth({ onCancelar }) {
       minHeight: '100dvh', display: 'flex', flexDirection: 'column',
       padding: 24, paddingTop: 'calc(24px + var(--safe-top))'
     }}>
-      <button onClick={onCancelar} style={{ background: 'transparent', color: 'var(--text-secondary)', fontSize: 20, alignSelf: 'flex-start', marginBottom: 12 }}>←</button>
+      <button onClick={onCancelar} aria-label="Volver" style={{ background: 'transparent', color: 'var(--text-secondary)', fontSize: 20, alignSelf: 'flex-start', marginBottom: 12 }}>←</button>
 
       <h1 style={{ fontSize: 22, fontWeight: 800, margin: '0 0 20px' }}>
         {modo === 'entrar' ? 'Iniciar sesión' : 'Crear cuenta'}

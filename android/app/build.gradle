@@ -1,5 +1,14 @@
 apply plugin: 'com.android.application'
 
+// Firma de release: lee keystore.properties (ignorado por git) o variables de entorno.
+// Si no existen, el release queda sin firmar y los builds debug siguen funcionando.
+def keystoreProps = new Properties()
+def keystorePropsFile = rootProject.file('keystore.properties')
+if (keystorePropsFile.exists()) {
+    keystorePropsFile.withInputStream { keystoreProps.load(it) }
+}
+def signingValue = { String key, String envKey -> keystoreProps.getProperty(key) ?: System.getenv(envKey) }
+
 android {
     namespace = "com.kairen.finanzas"
     compileSdk = rootProject.ext.compileSdkVersion
@@ -22,8 +31,23 @@ android {
         }
     }
 
+    signingConfigs {
+        release {
+            def storePath = signingValue('storeFile', 'KAIREN_KEYSTORE_FILE')
+            if (storePath) {
+                storeFile rootProject.file(storePath)
+                storePassword signingValue('storePassword', 'KAIREN_KEYSTORE_PASSWORD')
+                keyAlias signingValue('keyAlias', 'KAIREN_KEY_ALIAS')
+                keyPassword signingValue('keyPassword', 'KAIREN_KEY_PASSWORD')
+            }
+        }
+    }
+
     buildTypes {
         release {
+            if (signingValue('storeFile', 'KAIREN_KEYSTORE_FILE')) {
+                signingConfig signingConfigs.release
+            }
             minifyEnabled false
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
         }

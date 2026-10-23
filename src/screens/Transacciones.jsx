@@ -92,7 +92,7 @@ export default function Transacciones({ onBack, onEditar, refreshKey, onCambio }
 
   return (
     <div style={{ padding: '16px 16px 40px', maxWidth: 680, margin: '0 auto' }}>
-      <div className="screen-header"><button onClick={onBack} className="back-button">←</button><h1>{t('tx_titulo')}</h1></div>
+      <div className="screen-header"><button onClick={onBack} aria-label="Volver" className="back-button">←</button><h1>{t('tx_titulo')}</h1></div>
 
       <div className="input-shell" style={{ marginBottom: 12 }}>
         <Search size={18} color="var(--text-muted)" aria-hidden="true" style={{ flexShrink: 0 }} />
