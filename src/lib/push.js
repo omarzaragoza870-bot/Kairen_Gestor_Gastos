@@ -6,6 +6,7 @@
  * moderno y en la PWA instalada tanto en Android como en iOS 16.4+.
  */
 import { supabase } from './supabaseClient.js'
+import { esNativo } from './capacitor.js'
 
 const VAPID_PUBLIC_KEY = import.meta.env.VITE_VAPID_PUBLIC_KEY || 'BKeKHElhKaBgabfWABu4zQXtzW-UBx4uDCnYXmDSXr7XhWzjYzywhk0UQu9Me3xv7Zs00fXlGpDBcgs7i0FDyfw'
 
@@ -17,9 +18,9 @@ function urlBase64ToUint8Array(base64String) {
   return Uint8Array.from([...raw].map(c => c.charCodeAt(0)))
 }
 
-/** true si el navegador soporta notificaciones push */
+/** true si el navegador soporta notificaciones push (en la app nativa se usa FCM) */
 export function pushSoportado() {
-  return 'serviceWorker' in navigator && 'PushManager' in window && 'Notification' in window
+  return !esNativo() && 'serviceWorker' in navigator && 'PushManager' in window && 'Notification' in window
 }
 
 /** Estado actual del permiso de notificaciones */
