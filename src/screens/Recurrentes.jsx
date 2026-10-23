@@ -2,7 +2,6 @@ import { useEffect, useState, useCallback } from 'react'
 import { supabase } from '../lib/supabaseClient.js'
 import { obtenerRecurrentes, crearRecurrente, editarRecurrente, eliminarRecurrente, obtenerCuentas, obtenerCategorias } from '../lib/db.js'
 import { useScrollLock } from '../hooks/useScrollLock.js'
-import { usePreferencias } from '../context/PreferenciasContext.jsx'
 import { mensajeAmigable } from '../lib/errores.js'
 import Monto from '../components/Monto.jsx'
 import { hoyLocal } from '../lib/fechas.js'
@@ -21,7 +20,6 @@ const FRECUENCIAS = [
 const hoy = () => hoyLocal()
 
 export default function Recurrentes({ onBack }) {
-  const { t } = usePreferencias()
   const [lista, setLista] = useState([])
   const [cuentas, setCuentas] = useState([])
   const [categorias, setCategorias] = useState([])

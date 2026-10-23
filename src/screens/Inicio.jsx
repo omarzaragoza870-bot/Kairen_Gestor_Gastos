@@ -16,7 +16,6 @@ import { useScrollLock } from '../hooks/useScrollLock.js'
 import { ArrowUpRight, ArrowDownRight, Landmark, CalendarDays, Banknote, CreditCard, Inbox, Pencil, Trash2 } from 'lucide-react'
 import CategoriaIcono from '../components/CategoriaIcono.jsx'
 
-const fmt = n => Number(n).toLocaleString('es-MX', { style: 'currency', currency: 'MXN' })
 const fmtFecha = fechaISO => new Date(`${fechaISO}T12:00:00`).toLocaleDateString('es-MX', { day: '2-digit', month: 'short', year: 'numeric' })
 const fmtFechaCorta = iso => new Date(`${iso}T12:00:00`).toLocaleDateString('es-MX', { day: '2-digit', month: 'short' })
 const fmtFechaLarga = iso => new Date(`${iso}T12:00:00`).toLocaleDateString('es-MX', { day: '2-digit', month: 'long', year: 'numeric' })

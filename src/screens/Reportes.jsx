@@ -2,14 +2,12 @@ import { useState, useEffect } from 'react'
 import { supabase } from '../lib/supabaseClient.js'
 import { obtenerTransaccionesPorMes, obtenerCuentas } from '../lib/db.js'
 import { agruparPorCategoria } from '../lib/estadisticas.js'
-import { usePreferencias } from '../context/PreferenciasContext.jsx'
 import { mensajeAmigable } from '../lib/errores.js'
 import { Loader2, FileDown } from 'lucide-react'
 
 const MESES_ES = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre']
 
 export default function Reportes({ onBack }) {
-  const { t } = usePreferencias()
   const hoy = new Date()
   const [anio, setAnio] = useState(hoy.getFullYear())
   const [mes, setMes] = useState(hoy.getMonth())

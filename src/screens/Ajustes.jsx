@@ -134,6 +134,17 @@ export default function Ajustes({ onVerTutorial }) {
     }
   }
 
+  // La política vive en la web pública (las tiendas exigen la misma URL)
+  const abrirPrivacidad = async () => {
+    const url = 'https://kairen-gestor-gastos.vercel.app/privacidad.html'
+    if (Capacitor.isNativePlatform()) {
+      const { Browser } = await import('@capacitor/browser')
+      await Browser.open({ url })
+    } else {
+      window.open(url, '_blank', 'noopener')
+    }
+  }
+
   const handleExportar = async () => {
     if (!user) return
     setExportando(true)
@@ -533,6 +544,12 @@ export default function Ajustes({ onVerTutorial }) {
         <div style={{ fontWeight: 700, fontSize: 15 }}>Kairen Finanzas</div>
         <div style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 2 }}>{t('ajustes_version')}</div>
         <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 8 }}>{t('ajustes_ecosistema')}</div>
+        <button
+          onClick={abrirPrivacidad}
+          style={{ marginTop: 12, background: 'transparent', color: 'var(--text-primary)', fontSize: 13, fontWeight: 500, textDecoration: 'underline', textUnderlineOffset: 3, padding: 4 }}
+        >
+          {t('ajustes_privacidad')}
+        </button>
       </section>
 
       {/* Modal de confirmación para eliminar cuenta */}

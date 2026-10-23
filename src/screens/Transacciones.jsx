@@ -8,7 +8,6 @@ import { usePreferencias } from '../context/PreferenciasContext.jsx'
 import { mensajeAmigable } from '../lib/errores.js'
 import { Search, Pencil, Trash2 } from 'lucide-react'
 
-const fmt = n => Number(n).toLocaleString('es-MX', { style: 'currency', currency: 'MXN' })
 const fmtFecha = f => new Date(`${f}T12:00:00`).toLocaleDateString('es-MX', { day: '2-digit', month: 'long', year: 'numeric' })
 
 export default function Transacciones({ onBack, onEditar, refreshKey, onCambio }) {

@@ -25,7 +25,7 @@ export default function ContinuarSinCuenta({ onCancelar }) {
     setProcesando(true)
     setError(null)
     try {
-      const { data, error: authError } = await supabase.auth.signInAnonymously()
+      const { error: authError } = await supabase.auth.signInAnonymously()
       if (authError) throw authError
 
       await supabase.auth.updateUser({ data: { full_name: nombre.trim() } })

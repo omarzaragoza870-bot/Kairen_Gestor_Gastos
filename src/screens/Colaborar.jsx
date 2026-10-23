@@ -1,11 +1,9 @@
 import { useState, useEffect } from 'react'
 import { supabase } from '../lib/supabaseClient.js'
 import { mensajeAmigable } from '../lib/errores.js'
-import { usePreferencias } from '../context/PreferenciasContext.jsx'
 import { Lock, Check, Crown, User } from 'lucide-react'
 
 export default function Colaborar({ onBack }) {
-  const { t } = usePreferencias()
   const [cargando, setCargando] = useState(true)
   const [esPremium, setEsPremium] = useState(false)
   const [grupos, setGrupos] = useState([])

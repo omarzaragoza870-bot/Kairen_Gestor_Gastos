@@ -9,7 +9,6 @@ import { mensajeAmigable } from '../lib/errores.js'
 import { usePreferencias } from '../context/PreferenciasContext.jsx'
 import { Pencil, Trash2, Landmark } from 'lucide-react'
 
-const fmt = (n) => Number(n).toLocaleString('es-MX', { style: 'currency', currency: 'MXN' })
 const hoy = () => {
   const fecha = new Date()
   const año = fecha.getFullYear()

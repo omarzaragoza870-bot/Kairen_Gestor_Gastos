@@ -11,7 +11,6 @@ import { usePreferencias } from '../context/PreferenciasContext.jsx'
 import { conRespaldoOffline } from '../lib/offline.js'
 import { mensajeAmigable } from '../lib/errores.js'
 
-const fmt = (n) => Number(n).toLocaleString('es-MX', { style: 'currency', currency: 'MXN' })
 const fmtFecha = (f) => f ? new Date(`${f}T12:00:00`).toLocaleDateString('es-MX', { day: '2-digit', month: 'short', year: 'numeric' }) : null
 
 const PRIORIDADES_IDS = [

@@ -1,10 +1,8 @@
 import { useState } from 'react'
 import { supabase } from '../lib/supabaseClient.js'
-import { usePreferencias } from '../context/PreferenciasContext.jsx'
 import { logError } from '../lib/logger.js'
 
 export default function EmailAuth({ onCancelar }) {
-  const { t } = usePreferencias()
   const [modo, setModo] = useState('entrar') // 'entrar' | 'crear'
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')

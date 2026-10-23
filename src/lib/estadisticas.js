@@ -102,7 +102,6 @@ export function calcularHabitos(transacciones) {
 export function calcularInsights(transacciones, cuentasPorId) {
   const insights = []
   const gastos = transacciones.filter(t => t.tipo === 'gasto')
-  const ingresos = transacciones.filter(t => t.tipo === 'ingreso')
   const totalGastos = sumar(transacciones, 'gasto')
   const totalIngresos = sumar(transacciones, 'ingreso')
 

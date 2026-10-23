@@ -4,25 +4,13 @@ const config: CapacitorConfig = {
   appName: 'Kairen Finanzas',
   webDir: 'dist',
   server: {
+    // iOS usa su esquema por defecto (capacitor://): WKWebView no admite https como esquema propio
     androidScheme: 'https',
-    iosScheme: 'https',
     allowNavigation: ['*.googleusercontent.com']
   },
   plugins: {
-    Deeplinks: {
-      androidPathPrefix: '/auth/callback',
-      iosPathPrefix: '/auth/callback'
-    },
-    SplashScreen: {
-      launchShowDuration: 2000,
-      launchAutoHide: true,
-      backgroundColor: '#000000',
-      androidSplashResourceName: 'splash',
-      showSpinner: false,
-      splashFullScreen: true,
-      splashImmersive: true
-    },
-    PushNotifications: {
+    // @capacitor-firebase/messaging — solo aplica en iOS (notificaciones con la app abierta)
+    FirebaseMessaging: {
       presentationOptions: ['badge', 'sound', 'alert']
     }
   }
