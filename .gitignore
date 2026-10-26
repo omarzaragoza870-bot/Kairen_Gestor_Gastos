@@ -8,6 +8,7 @@ fix-java.sh
 
 # Supabase — contiene IDs internos del proyecto
 supabase/.temp/
+supabase/.branches/
 
 # Android (Capacitor) — se regenera con npx cap add android
 android/build/

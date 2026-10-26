@@ -367,7 +367,7 @@ export async function obtenerDisponibleHistorico(userId, hastaExclusiva) {
   })
   if (error) {
     if (esFuncionNoDisponible(error)) {
-      throw errorFuncionFaltante('obtener_disponible_historico', 'el respaldo del esquema de producción (supabase/schema_produccion.sql)')
+      throw errorFuncionFaltante('obtener_disponible_historico', 'el volcado de producción (supabase/migrations/20261019000000_esquema_base.sql)')
     }
     throw error
   }
@@ -684,7 +684,7 @@ export async function reiniciarCuentaActual(userId) {
   const { error } = await supabase.rpc('reiniciar_cuenta_segura')
   if (error) {
     if (esFuncionNoDisponible(error)) {
-      throw errorFuncionFaltante('reiniciar_cuenta_segura', 'el respaldo del esquema de producción (supabase/schema_produccion.sql)')
+      throw errorFuncionFaltante('reiniciar_cuenta_segura', 'el volcado de producción (supabase/migrations/20261019000000_esquema_base.sql)')
     }
     throw error
   }

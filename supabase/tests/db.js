@@ -1,7 +1,7 @@
 // Base de datos de prueba: Postgres en WASM (PGlite) con el esquema real.
 //
-// Carga supabase/schema_produccion.sql y luego, en orden, todo lo que haya en
-// supabase/migrations/ (lo posterior al volcado) sobre un Postgres vacío.
+// Carga en orden todo lo que haya en supabase/migrations/ sobre un Postgres
+// vacío: la primera es el volcado de producción del 2026-10-19.
 // Antes crea lo mínimo que Supabase trae de fábrica y el volcado da
 // por hecho: los roles, auth.uid(), Vault y pg_net. net.http_post no hace
 // ninguna petición: guarda la llamada en net.llamadas para poder revisarla,
@@ -72,11 +72,12 @@ const PRELUDIO = `
 export async function crearBaseDePrueba() {
   const db = new PGlite()
   await db.exec(PRELUDIO)
-  await db.exec(leer('supabase/schema_produccion.sql'))
-  // El volcado deja search_path vacío y row_security apagado para la sesión;
-  // los restauramos para que las pruebas se comporten como producción.
-  await db.exec(`select pg_catalog.set_config('search_path', 'public', false); set row_security = on;`)
-  for (const migracion of MIGRACIONES) await db.exec(leer(migracion))
+  for (const migracion of MIGRACIONES) {
+    await db.exec(leer(migracion))
+    // El volcado deja search_path vacío y row_security apagado para la sesión;
+    // los restauramos para que las pruebas se comporten como producción.
+    await db.exec(`select pg_catalog.set_config('search_path', 'public', false); set row_security = on;`)
+  }
   return db
 }
 

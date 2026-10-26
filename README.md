@@ -33,9 +33,8 @@ VITE_VAPID_PUBLIC_KEY=...   # push en web
 
 ## Configurar Supabase desde cero
 
-1. Ejecuta `supabase/schema_produccion.sql` en el SQL Editor (volcado del 2026-10-19: el punto de partida).
-2. Ejecuta en orden los archivos de `supabase/migrations/` (todo lo posterior al volcado).
-   `supabase/historico/` es solo historia: no hace falta aplicar nada de ahí.
+1. Ejecuta en orden los archivos de `supabase/migrations/`. El primero (`20261019000000_esquema_base.sql`) es el volcado de producción del 2026-10-19; los demás, lo posterior.
+2. `supabase/historico/` es solo historia: no hace falta aplicar nada de ahí.
 3. Activa Google en Authentication > Providers.
 4. Crea en Vault los secretos `project_url` (URL del proyecto) e `internal_cron_secret`; los usan los triggers y tareas de pg_cron para llamar a `send-push`.
 5. Programa en pg_cron las tareas que tiene producción (la última la crea su migración):
@@ -57,7 +56,9 @@ VITE_VAPID_PUBLIC_KEY=...   # push en web
 
 `ALLOWED_ORIGINS` son los orígenes que acepta CORS (`_shared/cors.ts`). `SUPABASE_URL` y `SUPABASE_SERVICE_ROLE_KEY` los pone Supabase.
 
-Las migraciones nuevas van en `supabase/migrations/` con el formato de la CLI (`AAAAMMDDhhmmss_nombre.sql`) y las pruebas (`npm test`) las cargan solas sobre el volcado. Para aplicar una a un proyecto ya enlazado: `npx supabase db query --linked -f <archivo>`.
+Las migraciones nuevas van en `supabase/migrations/` con el formato de la CLI (`AAAAMMDDhhmmss_nombre.sql`) y las pruebas (`npm test`) las cargan solas en orden.
+
+Supabase local (necesita Docker; en Windows, dentro de WSL con Node instalado): `npm run supabase:local -- start` levanta todo y aplica las migraciones; también `stop`, `status` y `db reset`. En Linux o macOS: `bash supabase/local.sh start`. Para aplicar una a un proyecto ya enlazado: `npx supabase db query --linked -f <archivo>`.
 
 Para revisar los avisos push enviados: `select * from public.push_envios order by id desc limit 50;`
 
