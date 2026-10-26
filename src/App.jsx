@@ -15,6 +15,17 @@ import { PreferenciasProvider } from './context/PreferenciasContext.jsx'
 import { esNativo } from './lib/capacitor.js'
 import { obtenerVerifier, limpiarVerifier } from './lib/pkce.js'
 
+// Guarda el token FCM de este dispositivo para el usuario dado
+function guardarTokenFcm(userId, token) {
+  return supabase.from('fcm_tokens').upsert({
+    user_id: userId,
+    token,
+    plataforma: window.Capacitor?.getPlatform?.() || 'android'
+  }, { onConflict: 'user_id,token' })
+}
+
+let escuchandoCambioDeToken = false
+
 // Inicializar Firebase Messaging en la app nativa (Android)
 // Se hace aquí para que el token FCM esté disponible lo antes posible
 async function inicializarFirebaseMessaging(userId) {
@@ -31,11 +42,18 @@ async function inicializarFirebaseMessaging(userId) {
     if (!token) return
 
     // Guardar el token en Supabase para poder enviarle notificaciones
-    await supabase.from('fcm_tokens').upsert({
-      user_id: userId,
-      token,
-      plataforma: window.Capacitor?.getPlatform?.() || 'android'
-    }, { onConflict: 'user_id,token' })
+    await guardarTokenFcm(userId, token)
+
+    // Firebase cambia el token de vez en cuando: sin esto el nuevo no se
+    // guardaba hasta la siguiente vez que se abría la app y los avisos no llegaban.
+    if (!escuchandoCambioDeToken) {
+      escuchandoCambioDeToken = true
+      await FirebaseMessaging.addListener('tokenReceived', async ({ token: nuevo }) => {
+        const { data } = await supabase.auth.getSession()
+        const uid = data.session?.user?.id
+        if (uid && nuevo) await guardarTokenFcm(uid, nuevo)
+      })
+    }
   } catch (err) {
     logError('Error inicializando Firebase Messaging', err)
   }

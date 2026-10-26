@@ -437,3 +437,42 @@ describe('importar_respaldo', () => {
     await expect(rpc(ana, 'importar_respaldo', { p_datos: respaldo(ana) })).rejects.toThrow('debe estar vacía')
   })
 })
+
+describe('un dispositivo, una sola cuenta', () => {
+  const registrarToken = (userId, token) => comoUsuario(db, userId, () => db.query(
+    `insert into public.fcm_tokens (user_id, token) values ($1, $2)
+     on conflict (user_id, token) do update set plataforma = excluded.plataforma`, [userId, token]))
+  const duenosDe = async (token) => (await db.query(
+    `select user_id from public.fcm_tokens where token = $1`, [token])).rows.map(f => f.user_id)
+
+  it('al entrar otra cuenta en el mismo teléfono, el token deja de ser de la anterior', async () => {
+    const ana = await crearUsuario(db)
+    const beto = await crearUsuario(db)
+    await registrarToken(ana, 'token-del-fold')
+    await registrarToken(beto, 'token-del-fold')
+    expect(await duenosDe('token-del-fold')).toEqual([beto])
+
+    // Volver a registrarlo la misma cuenta no duplica ni borra
+    await registrarToken(beto, 'token-del-fold')
+    expect(await duenosDe('token-del-fold')).toEqual([beto])
+  })
+
+  it('no toca los tokens de otros dispositivos', async () => {
+    const ana = await crearUsuario(db)
+    const beto = await crearUsuario(db)
+    await registrarToken(ana, 'token-de-ana')
+    await registrarToken(beto, 'token-de-beto')
+    expect(await duenosDe('token-de-ana')).toEqual([ana])
+  })
+
+  it('igual con la suscripción push del navegador', async () => {
+    const ana = await crearUsuario(db)
+    const beto = await crearUsuario(db)
+    const suscribir = (userId) => comoUsuario(db, userId, () => db.query(
+      `insert into public.push_subscriptions (user_id, endpoint, p256dh, auth) values ($1, 'https://push/x', 'k', 'a')`, [userId]))
+    await suscribir(ana)
+    await suscribir(beto)
+    const { rows } = await db.query(`select user_id from public.push_subscriptions where endpoint = 'https://push/x'`)
+    expect(rows.map(f => f.user_id)).toEqual([beto])
+  })
+})
