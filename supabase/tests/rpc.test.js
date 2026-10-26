@@ -398,3 +398,42 @@ describe('validaciones v3.1', () => {
     expect(Number(await rpc(ana, 'registrar_contribucion_meta', { p_meta_id: meta, p_tipo: 'contribucion', p_monto: 250 }))).toBe(250)
   })
 })
+
+describe('importar_respaldo', () => {
+  const respaldo = (dueno) => ({
+    cuentas: [
+      { id: 'c1', user_id: dueno, nombre: 'Efectivo', tipo: 'efectivo', saldo: 850 },
+      { id: 'c2', user_id: dueno, nombre: 'Visa', tipo: 'tarjeta_credito', saldo: 300, limite_credito: 5000, fecha_corte: 15, fecha_pago: 5 },
+    ],
+    categorias: [{ id: 'k1', nombre: 'Comida', tipo: 'gasto', icono: 'UtensilsCrossed' }],
+    transacciones: [
+      { cuenta_id: 'c1', categoria_id: 'k1', categoria_nombre: 'Comida', tipo: 'gasto', monto: 150, fecha: HOY },
+      { cuenta_id: 'c2', categoria_nombre: 'Comida', tipo: 'gasto', monto: 300, fecha: HOY },
+    ],
+    metas: [{ id: 'm1', user_id: dueno, nombre: 'Viaje', monto_objetivo: 1000, monto_actual: 200 }],
+    meta_contribuciones: [{ meta_id: 'm1', tipo: 'contribucion', monto: 200, fecha: HOY }],
+    presupuestos: [{ categoria_nombre: 'Comida', monto_limite: 2000 }],
+  })
+
+  it('restaura cuentas, movimientos y metas con los saldos del respaldo', async () => {
+    const ana = await crearUsuario(db)
+    const conteo = await rpc(ana, 'importar_respaldo', { p_datos: respaldo('otro-usuario') })
+    expect(conteo).toMatchObject({ cuentas: 2, categorias: 1, transacciones: 2, metas: 1, meta_contribuciones: 1, presupuestos: 1 })
+
+    const { rows } = await db.query(
+      `select c.nombre, c.saldo::float as saldo, count(t.id)::int as movimientos
+         from public.cuentas c left join public.transacciones t on t.cuenta_id = c.id
+        where c.user_id = $1 group by c.nombre, c.saldo order by c.nombre`, [ana])
+    expect(rows).toEqual([
+      { nombre: 'Efectivo', saldo: 850, movimientos: 1 },
+      { nombre: 'Visa', saldo: 300, movimientos: 1 },
+    ])
+  })
+
+  it('no restaura sobre una cuenta que ya tiene movimientos', async () => {
+    const ana = await crearUsuario(db)
+    const efectivo = await crearCuenta(db, ana, { saldo: 100 })
+    await crearTx(ana, efectivo, 'gasto', 10)
+    await expect(rpc(ana, 'importar_respaldo', { p_datos: respaldo(ana) })).rejects.toThrow('debe estar vacía')
+  })
+})
