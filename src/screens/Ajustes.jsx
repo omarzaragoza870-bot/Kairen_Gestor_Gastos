@@ -276,6 +276,7 @@ export default function Ajustes({ onVerTutorial }) {
   const avatar = avatarBruto?.startsWith('https://') ? avatarBruto : null
   const email = user?.email
   const esInvitado = Boolean(user?.is_anonymous)
+  const conGoogle = Boolean(user?.identities?.some(i => i.provider === 'google'))
 
   if (mostrarColaborar) return <Colaborar onBack={() => setMostrarColaborar(false)} />
   if (mostrarCategorias && user) {
@@ -327,7 +328,7 @@ export default function Ajustes({ onVerTutorial }) {
           ) : (
             <>
               <div style={{ fontSize: 12, color: 'var(--text-secondary)', overflow: 'hidden', textOverflow: 'ellipsis' }}>{email}</div>
-              <div style={{ fontSize: 11, color: 'var(--success)', marginTop: 2 }}>● {t('ajustes_sesion_google')}</div>
+              <div style={{ fontSize: 11, color: 'var(--success)', marginTop: 2 }}>● {t(conGoogle ? 'ajustes_sesion_google' : 'ajustes_sesion_correo')}</div>
             </>
           )}
         </div>
