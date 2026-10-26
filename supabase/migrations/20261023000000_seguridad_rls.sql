@@ -1,9 +1,8 @@
--- upgrade_v2_9_seguridad_rls.sql
+-- 20261023000000_seguridad_rls.sql (antes upgrade_v2_9_seguridad_rls.sql)
 --
 -- Correcciones de seguridad detectadas en la auditoría previa a publicación.
--- Idempotente y sin borrar datos. NO HA SIDO APLICADA a la base de datos:
--- revisar y ejecutar manualmente (SQL Editor de Supabase) y probar después
--- Premium, Kairen IA y el modo colaborativo.
+-- Idempotente y sin borrar datos. Aplicada en producción el 2026-10-23
+-- (verificado contra el catálogo el 2026-10-26).
 
 -- ───────────────────────────────────────────────────────────────────────────
 -- 1) CRÍTICO — perfiles: cualquier usuario podía hacer

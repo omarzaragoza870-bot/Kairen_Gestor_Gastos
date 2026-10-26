@@ -193,7 +193,7 @@ export async function crearTransferencia({ clientOpId, cuentaOrigenId, cuentaDes
 
   const { data, error } = await supabase.rpc('crear_transferencia_segura', parametros)
   if (error) {
-    if (esFuncionNoDisponible(error)) throw errorFuncionFaltante('crear_transferencia_segura', 'src/sql/upgrade_v1_5_transferencias.sql')
+    if (esFuncionNoDisponible(error)) throw errorFuncionFaltante('crear_transferencia_segura', 'supabase/historico/upgrade_v1_5_transferencias.sql')
     throw error
   }
   return data
@@ -214,7 +214,7 @@ export async function pagarTarjetaCredito({ tarjetaId, cuentaOrigenId, monto, fe
   })
   if (error) {
     if (esFuncionNoDisponible(error)) {
-      throw errorFuncionFaltante('pagar_tarjeta_credito', 'src/sql/upgrade_v2_3_tarjetas_credito.sql')
+      throw errorFuncionFaltante('pagar_tarjeta_credito', 'supabase/historico/upgrade_v2_3_tarjetas_credito.sql')
     }
     throw error
   }
@@ -261,7 +261,7 @@ export async function eliminarTransferencia(transferenciaId) {
   })
   if (error) {
     if (esFuncionNoDisponible(error)) {
-      throw errorFuncionFaltante('eliminar_transferencia_segura', 'src/sql/upgrade_v1_5_transferencias.sql')
+      throw errorFuncionFaltante('eliminar_transferencia_segura', 'supabase/historico/upgrade_v1_5_transferencias.sql')
     }
     throw error
   }
@@ -516,7 +516,7 @@ export async function registrarContribucionMeta({ metaId, tipo, monto, nota }) {
     p_fecha: hoyLocal()
   })
   if (error) {
-    if (esFuncionNoDisponible(error)) throw errorFuncionFaltante('registrar_contribucion_meta', 'src/sql/upgrade_v2_8_estabilidad.sql')
+    if (esFuncionNoDisponible(error)) throw errorFuncionFaltante('registrar_contribucion_meta', 'supabase/historico/upgrade_v2_8_estabilidad.sql')
     throw error
   }
   return Number(data)
@@ -551,7 +551,7 @@ export async function crearTransaccion(datos) {
 
   const { data, error } = await supabase.rpc('crear_transaccion_segura', parametros)
   if (error) {
-    if (esFuncionNoDisponible(error)) throw errorFuncionFaltante('crear_transaccion_segura', 'src/sql/upgrade_v2_3_tarjetas_credito.sql')
+    if (esFuncionNoDisponible(error)) throw errorFuncionFaltante('crear_transaccion_segura', 'supabase/historico/upgrade_v2_3_tarjetas_credito.sql')
     throw error
   }
   return data
@@ -570,7 +570,7 @@ export async function editarTransaccion({ transaccionId, cuentaId, categoriaNomb
 
   if (error) {
     if (esFuncionNoDisponible(error)) {
-      throw errorFuncionFaltante('editar_transaccion_segura', 'src/sql/upgrade_v2_3_tarjetas_credito.sql')
+      throw errorFuncionFaltante('editar_transaccion_segura', 'supabase/historico/upgrade_v2_3_tarjetas_credito.sql')
     }
     throw error
   }
@@ -584,7 +584,7 @@ export async function eliminarTransaccion(transaccionId) {
 
   if (error) {
     if (esFuncionNoDisponible(error)) {
-      throw errorFuncionFaltante('eliminar_transaccion_segura', 'src/sql/upgrade_v2_8_estabilidad.sql')
+      throw errorFuncionFaltante('eliminar_transaccion_segura', 'supabase/historico/upgrade_v2_8_estabilidad.sql')
     }
     throw error
   }
@@ -654,7 +654,7 @@ export async function exportarTodosLosDatos(userId) {
 export async function importarTodosLosDatos(userId, datos) {
   const { data, error } = await supabase.rpc('importar_respaldo', { p_datos: datos })
   if (error) {
-    if (esFuncionNoDisponible(error)) throw errorFuncionFaltante('importar_respaldo', 'src/sql/upgrade_v2_8_estabilidad.sql')
+    if (esFuncionNoDisponible(error)) throw errorFuncionFaltante('importar_respaldo', 'supabase/historico/upgrade_v2_8_estabilidad.sql')
     throw error
   }
 
