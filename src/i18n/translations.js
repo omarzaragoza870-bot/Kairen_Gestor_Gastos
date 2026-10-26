@@ -79,6 +79,7 @@ export const traducciones = {
 
     // Inicio
     inicio_ver_todas: 'Ver todas',
+    inicio_reintentar: 'Reintentar',
     inicio_transacciones: 'Transacciones',
     inicio_vacio_titulo: 'No hay transacciones en este período.',
     inicio_vacio_subtitulo: 'Toca el botón + para registrar la primera.',
@@ -402,6 +403,7 @@ export const traducciones = {
     ajustes_privacidad: 'Privacy policy',
 
     inicio_ver_todas: 'View all',
+    inicio_reintentar: 'Retry',
     inicio_transacciones: 'Transactions',
     inicio_vacio_titulo: 'No transactions in this period.',
     inicio_vacio_subtitulo: 'Tap the + button to record the first one.',

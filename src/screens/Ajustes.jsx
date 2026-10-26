@@ -13,7 +13,7 @@ import Presupuestos from './Presupuestos.jsx'
 import Recurrentes from './Recurrentes.jsx'
 import Reportes from './Reportes.jsx'
 import Colaborar from './Colaborar.jsx'
-import { pushSoportado, permisoPush, suscribirPush, desuscribirPush, estaSuscrito } from '../lib/push.js'
+import { pushSoportado, permisoPush, suscribirPush, desuscribirPush, estaSuscrito, olvidarEsteDispositivo } from '../lib/push.js'
 import SelectorMoneda from './SelectorMoneda.jsx'
 import SelectorTema from './SelectorTema.jsx'
 import SelectorIdioma from './SelectorIdioma.jsx'
@@ -111,6 +111,8 @@ export default function Ajustes({ onVerTutorial }) {
   }
 
   const handleLogout = async () => {
+    // Antes de cerrar: con la sesión cerrada ya no se podría borrar el token
+    if (user) await olvidarEsteDispositivo(user.id)
     await supabase.auth.signOut({ scope: 'global' }) // invalida el refresh token en todos los dispositivos, no solo este
     // onAuthStateChange en App.jsx detecta esto solo y regresa al Login
   }

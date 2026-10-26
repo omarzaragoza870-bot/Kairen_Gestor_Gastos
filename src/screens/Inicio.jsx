@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { supabase } from '../lib/supabaseClient.js'
 import { obtenerTransaccionesPorMes, obtenerTransaccionesEnRango, obtenerDisponibleHistorico, obtenerCategorias, obtenerCuentas, eliminarTransaccion, pagarTarjetaCredito } from '../lib/db.js'
 import InfoTooltip from '../components/InfoTooltip.jsx'
@@ -38,6 +38,9 @@ export default function Inicio({ onNuevo, onEditar, onVerTodas, refreshKey }) {
   const hoy = new Date()
   const [periodo, setPeriodo] = useState({ tipo: 'mes', anio: hoy.getFullYear(), mes: hoy.getMonth() })
   const [mostrarSelector, setMostrarSelector] = useState(false)
+  // Cada carga lleva un número: si el usuario cambia de mes mientras otra
+  // reintenta, la vieja ya no escribe sobre la pantalla nueva.
+  const ultimaCarga = useRef(0)
   const { t, idioma, moneda } = usePreferencias()
   const MESES = MESES_POR_IDIOMA[idioma] || MESES_POR_IDIOMA.es
 
@@ -53,14 +56,16 @@ export default function Inicio({ onNuevo, onEditar, onVerTodas, refreshKey }) {
   }, [verDetalle, aEliminar, eliminando, mostrarSelector])
 
   const cargarDatos = useCallback(async uid => {
+    const carga = ++ultimaCarga.current
+    const vigente = () => carga === ultimaCarga.current
     setCargando(true)
     setError(null)
-    try {
+    const traer = async () => {
       let hastaStr
       if (periodo.tipo === 'mes') {
         const clave = `inicio:${uid}:${periodo.anio}-${periodo.mes}`
         const datos = await conRespaldoOffline(clave, () => obtenerTransaccionesPorMes(uid, new Date(periodo.anio, periodo.mes, 1)))
-        setTransacciones(datos)
+        if (vigente()) setTransacciones(datos)
         // Boundary exclusivo = primer día del mes siguiente al que se está viendo
         hastaStr = new Date(periodo.anio, periodo.mes + 1, 1).toISOString().slice(0, 10)
       } else {
@@ -70,7 +75,7 @@ export default function Inicio({ onNuevo, onEditar, onVerTodas, refreshKey }) {
         hastaStr = hastaExclusivo.toISOString().slice(0, 10)
         const clave = `inicio:${uid}:${periodo.desde}_${hastaStr}`
         const datos = await conRespaldoOffline(clave, () => obtenerTransaccionesEnRango(uid, periodo.desde, hastaStr))
-        setTransacciones(datos)
+        if (vigente()) setTransacciones(datos)
       }
 
       // "Dinero Disponible" es acumulado desde siempre hasta el fin del período
@@ -80,12 +85,25 @@ export default function Inicio({ onNuevo, onEditar, onVerTodas, refreshKey }) {
       // de crédito no lo baja, solo bajarlo cuando pagas esa tarjeta.
       const claveDisponible = `inicio-disponible:${uid}:${hastaStr}`
       const valorDisponible = await conRespaldoOffline(claveDisponible, () => obtenerDisponibleHistorico(uid, hastaStr))
-      setDisponible(valorDisponible)
+      if (vigente()) setDisponible(valorDisponible)
+    }
+    try {
+      try {
+        await traer()
+      } catch (err) {
+        // Justo al iniciar sesión o al volver de segundo plano la primera
+        // consulta puede fallar por la red, y una cuenta recién abierta no
+        // tiene caché de respaldo: se reintenta una vez antes del error.
+        logWarn('Reintentando carga de inicio', err)
+        await new Promise(resolver => setTimeout(resolver, 1500))
+        if (!vigente()) return
+        await traer()
+      }
     } catch (err) {
       logError('Error cargando inicio', err)
-      setError('No se pudieron cargar los movimientos.')
+      if (vigente()) setError('No se pudieron cargar los movimientos.')
     } finally {
-      setCargando(false)
+      if (vigente()) setCargando(false)
     }
   }, [periodo])
 
@@ -140,7 +158,11 @@ export default function Inicio({ onNuevo, onEditar, onVerTodas, refreshKey }) {
     try {
       await eliminarTransaccion(aEliminar.id)
       setAEliminar(null)
-      if (userId) await cargarDatos(userId)
+      if (userId) {
+        // Borrar devuelve el monto a su cuenta: los saldos también cambian
+        await cargarCuentas(userId)
+        await cargarDatos(userId)
+      }
     } catch (err) {
       setError(mensajeAmigable(err, 'No se pudo eliminar el movimiento.'))
     } finally {
@@ -191,7 +213,7 @@ export default function Inicio({ onNuevo, onEditar, onVerTodas, refreshKey }) {
       <AdministrarCuentas
         userId={userId}
         onBack={() => setMostrarCuentas(false)}
-        onCambio={() => cargarDatos(userId)}
+        onCambio={() => { cargarCuentas(userId); cargarDatos(userId) }}
       />
     )
   }
@@ -303,7 +325,14 @@ export default function Inicio({ onNuevo, onEditar, onVerTodas, refreshKey }) {
         {transacciones.length > 0 && <button onClick={onVerTodas} className="link-button">{t('inicio_ver_todas')}</button>}
       </div>
 
-      {error && <p className="error-message">{error}</p>}
+      {error && (
+        <p className="error-message">
+          {error}{' '}
+          {userId && !cargando && (
+            <button onClick={() => { cargarCuentas(userId); cargarDatos(userId) }} className="link-button">{t('inicio_reintentar')}</button>
+          )}
+        </p>
+      )}
       {!cargando && !error && transacciones.length === 0 && (
         <div className="empty-state"><div style={{ marginBottom: 8, display: 'flex', justifyContent: 'center', color: 'var(--text-muted)' }}><Inbox size={34} strokeWidth={1.6} aria-hidden="true" /></div><p>{t('inicio_vacio_titulo')}</p><small>{t('inicio_vacio_subtitulo')}</small></div>
       )}

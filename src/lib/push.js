@@ -102,6 +102,38 @@ export async function desuscribirPush(userId) {
 }
 
 /**
+ * Al cerrar sesión: deja de enviar a este dispositivo los avisos de esa cuenta.
+ * Sin esto, quien entrara después en el mismo teléfono seguiría recibiendo
+ * los avisos (con montos) de la cuenta anterior. Nunca bloquea el cierre de sesión.
+ */
+export async function olvidarEsteDispositivo(userId) {
+  const olvidar = async () => {
+    if (esNativo()) {
+      const { FirebaseMessaging } = await import('@capacitor-firebase/messaging')
+      const { token } = await FirebaseMessaging.getToken()
+      if (!token) return
+      const { error } = await supabase.from('fcm_tokens').delete().eq('user_id', userId).eq('token', token)
+      if (error) throw error
+    } else if (pushSoportado()) {
+      // getRegistration y no .ready: sin service worker .ready nunca termina
+      const registration = await navigator.serviceWorker.getRegistration()
+      const subscription = await registration?.pushManager.getSubscription()
+      if (!subscription) return
+      const { endpoint } = subscription
+      await subscription.unsubscribe()
+      const { error } = await supabase.from('push_subscriptions').delete().eq('user_id', userId).eq('endpoint', endpoint)
+      if (error) throw error
+    }
+  }
+  try {
+    // Con la red lenta no se deja al usuario esperando: a los 3 s se cierra igual
+    await Promise.race([olvidar(), new Promise(resolver => setTimeout(resolver, 3000))])
+  } catch (err) {
+    console.warn('[push] No se pudo quitar el aviso de este dispositivo:', err?.message)
+  }
+}
+
+/**
  * Verifica si este navegador ya está suscrito.
  */
 export async function estaSuscrito() {

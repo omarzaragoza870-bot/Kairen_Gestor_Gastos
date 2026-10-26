@@ -224,23 +224,25 @@ function AppInner() {
   }, [])
 
   useEffect(() => {
-    let yaVistoAntes = false
-    try { yaVistoAntes = localStorage.getItem(TOUR_STORAGE_KEY) === 'true' } catch { /* noop */ }
-
     // Se ejecuta UNA sola vez por usuario/sesión — evita la condición de
     // carrera que creaba cuentas/categorías por defecto duplicadas cuando
     // getSession() y onAuthStateChange() se disparaban casi al mismo tiempo.
-    let yaInicializado = false
+    // Se guarda el usuario y no un sí/no: al cerrar sesión y entrar con otra
+    // cuenta, App no se vuelve a montar y la nueva también necesita su arranque.
+    let uidInicializado = null
 
     const inicializarUsuario = (uid) => {
-      if (yaInicializado) return
-      yaInicializado = true
+      if (uidInicializado === uid) return
+      uidInicializado = uid
       setUserIdActual(uid)
       asegurarCuentasPorDefecto(uid).catch(err => logError('Error creando cuentas por defecto', err))
       asegurarCategoriasPorDefecto(uid).catch(err => logError('Error creando categorías por defecto', err))
       precargarOffline(uid)
       procesarRecurrentes().then(n => { if (n > 0) setRefreshKey(k => k + 1) }).catch(() => {})
       inicializarFirebaseMessaging(uid)
+      // Se lee aquí y no al montar: si ya se vio con la cuenta anterior, no se repite
+      let yaVistoAntes = false
+      try { yaVistoAntes = localStorage.getItem(TOUR_STORAGE_KEY) === 'true' } catch { /* noop */ }
       if (!yaVistoAntes) {
         setMostrarTour(true)
       } else {
@@ -258,6 +260,13 @@ function AppInner() {
 
     const { data: listener } = supabase.auth.onAuthStateChange((event, nueva) => {
       setSession(nueva)
+      if (!nueva) {
+        // La siguiente cuenta empieza desde Inicio, no donde se quedó la anterior
+        uidInicializado = null
+        setTab('inicio')
+        setVista('principal')
+        setTransaccionEditar(null)
+      }
       // 'INITIAL_SESSION' ya lo maneja el getSession() de arriba — solo nos
       // interesa aquí un login/token nuevo genuino (ej. el usuario acaba de
       // iniciar sesión desde la pantalla de Login, o vincular con Google).

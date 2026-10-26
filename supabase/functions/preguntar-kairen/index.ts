@@ -13,6 +13,39 @@ import { corsHeadersPara } from '../_shared/cors.ts'
 const ZONA_POR_DEFECTO = 'America/Mexico_City'
 const MAX_PALABRAS_PREGUNTA = 30
 const MAX_PREGUNTAS_POR_HORA = 30
+// Gemini a veces se queda colgado en la primera llamada. Cada intento dura
+// como mucho 12 s y todo debe terminar antes de los 27 s, para responder
+// antes de que la app se rinda a los 30 s.
+const TIEMPO_GEMINI_MS = 12000
+const PLAZO_TOTAL_MS = 27000
+const MINIMO_PARA_REINTENTAR_MS = 4000
+
+/**
+ * Llama a Gemini y lee su respuesta sin pasar de `limite` (timestamp en ms);
+ * reintenta una vez si tarda o falla su servidor y aún queda tiempo.
+ */
+async function llamarGemini(url: string, cuerpo: unknown, limite: number) {
+  for (let intento = 1; ; intento++) {
+    const restante = limite - Date.now()
+    try {
+      const res = await fetch(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(cuerpo),
+        signal: AbortSignal.timeout(Math.max(1, Math.min(TIEMPO_GEMINI_MS, restante)))
+      })
+      const puedeReintentar = intento < 2 && limite - Date.now() >= MINIMO_PARA_REINTENTAR_MS
+      if (res.status >= 500 && puedeReintentar) {
+        console.error('[preguntar-kairen] Gemini respondió', res.status, '- reintentando')
+        continue
+      }
+      return { ok: res.ok, status: res.status, datos: await res.json() }
+    } catch (err) {
+      if (intento >= 2 || limite - Date.now() < MINIMO_PARA_REINTENTAR_MS) throw err
+      console.error('[preguntar-kairen] Gemini no respondió a tiempo - reintentando')
+    }
+  }
+}
 
 /**
  * Si la IA llegó al límite de longitud, recorta hasta la última oración
@@ -51,6 +84,10 @@ Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders })
   }
+
+  const limite = Date.now() + PLAZO_TOTAL_MS
+  // Si algo falla después de reservar el lugar en el límite por hora, se devuelve
+  let liberarReserva = async () => {}
 
   try {
     const authHeader = req.headers.get('Authorization')
@@ -167,7 +204,12 @@ Deno.serve(async (req) => {
         status: 429, headers: { ...corsHeaders, 'Content-Type': 'application/json' }
       })
     }
-    await adminClient.from('ia_rate_limit').insert({ user_id: uid })
+    // Se reserva el lugar antes de llamar a la IA (así muchas preguntas a la
+    // vez no se saltan el límite) y se libera si no hubo respuesta.
+    const { data: reserva } = await adminClient.from('ia_rate_limit').insert({ user_id: uid }).select('id').single()
+    if (reserva?.id) {
+      liberarReserva = async () => { await adminClient.from('ia_rate_limit').delete().eq('id', reserva.id) }
+    }
 
     // Calcular resumen financiero
     const ingresosMes = (transaccionesMes || [])
@@ -256,35 +298,31 @@ Número de transacciones este mes: ${(transaccionesMes || []).length}
 `.trim()
 
     // Llamar a Gemini
-    const geminiRes = await fetch(
+    const gemini = await llamarGemini(
       `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-lite:generateContent?key=${geminiKey}`,
       {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          contents: [
-            {
-              role: 'user',
-              parts: [{ text: `${contexto}\n\nPREGUNTA DEL USUARIO: ${textoPregunta}` }]
-            }
-          ],
-          generationConfig: {
-            // Más baja = respuestas más directas y consistentes
-            temperature: 0.4,
-            // Techo de seguridad, no el largo deseado: el largo lo controla
-            // el prompt (máx. 35 palabras). Se deja margen para que nunca corte.
-            maxOutputTokens: 300,
-            topP: 0.9
+        contents: [
+          {
+            role: 'user',
+            parts: [{ text: `${contexto}\n\nPREGUNTA DEL USUARIO: ${textoPregunta}` }]
           }
-        })
-      }
+        ],
+        generationConfig: {
+          // Más baja = respuestas más directas y consistentes
+          temperature: 0.4,
+          // Techo de seguridad, no el largo deseado: el largo lo controla
+          // el prompt (máx. 35 palabras). Se deja margen para que nunca corte.
+          maxOutputTokens: 300,
+          topP: 0.9
+        }
+      },
+      limite
     )
 
-    const geminiData = await geminiRes.json()
     // Solo el estado: la respuesta completa contiene datos financieros del
     // usuario y no debe quedar en los logs de Supabase.
-    if (!geminiRes.ok) console.error('[preguntar-kairen] Gemini respondió', geminiRes.status)
-    const candidato = geminiData?.candidates?.[0]
+    if (!gemini.ok) console.error('[preguntar-kairen] Gemini respondió', gemini.status)
+    const candidato = gemini.datos?.candidates?.[0]
     const textoIA = (candidato?.content?.parts || [])
       .filter((parte: { text?: string, thought?: boolean }) => parte?.text && !parte.thought)
       .map((parte: { text: string }) => parte.text)
@@ -295,6 +333,7 @@ Número de transacciones este mes: ${(transaccionesMes || []).length}
       : textoIA
 
     if (!respuesta) {
+      await liberarReserva()
       return new Response(JSON.stringify({ error: 'No se pudo obtener respuesta de la IA' }), {
         status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' }
       })
@@ -306,6 +345,7 @@ Número de transacciones este mes: ${(transaccionesMes || []).length}
 
   } catch (err) {
     console.error('[preguntar-kairen]', err)
+    await liberarReserva().catch(() => {})
     return new Response(JSON.stringify({ error: 'No se pudo procesar la pregunta.' }), {
       status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' }
     })
