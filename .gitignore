@@ -4,6 +4,7 @@ dist/
 .DS_Store
 kairen-icon__1_.png
 fix-java.sh
+*.log
 
 # Supabase — contiene IDs internos del proyecto
 supabase/.temp/
