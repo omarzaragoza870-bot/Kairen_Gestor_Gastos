@@ -331,7 +331,8 @@ function AppInner() {
             {tab === 'analisis' && <Analisis />}
             {tab === 'ahorro' && <AhorroExterno />}
             {tab === 'metas' && <Metas />}
-            {tab === 'ajustes' && <Ajustes onVerTutorial={() => setMostrarTour(true)} />}
+            {/* El tour empieza señalando el botón + de Inicio */}
+            {tab === 'ajustes' && <Ajustes onVerTutorial={() => { setTab('inicio'); setMostrarTour(true) }} />}
             <BottomNav active={tab} onChange={setTab} />
           </>
         )}

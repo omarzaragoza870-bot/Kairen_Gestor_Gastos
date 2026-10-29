@@ -652,21 +652,17 @@ export const MESES_POR_IDIOMA = {
 
 export const pasosTour = {
   es: [
-    { icono: '👋', titulo: 'Bienvenido a Kairen Finanzas', texto: 'Un recorrido rápido de 30 segundos para que sepas dónde está todo. Puedes saltarlo cuando quieras.' },
-    { icono: '➕', titulo: 'El botón (+)', texto: 'Desde Inicio, este botón te deja registrar un Gasto o un Ingreso. Es la acción que más vas a usar.' },
-    { icono: '💵', titulo: 'Cuentas: Efectivo y Tarjeta', texto: 'Al registrar un movimiento eliges de dónde sale o a dónde entra el dinero. Son cuentas internas de la app — no están conectadas a tu banco real.' },
-    { icono: '🏷️', titulo: 'Categorías', texto: 'Cada movimiento se clasifica en una categoría (Alimentación, Transporte, etc.) para que Análisis pueda mostrarte en qué se te va el dinero.' },
-    { icono: '📊', titulo: 'Análisis', texto: 'Aquí ves tu Resumen (ingresos vs gastos), la Distribución por categoría, y Tendencias con hábitos e insights automáticos sobre tu mes.' },
-    { icono: '🏦', titulo: 'Ahorro externo', texto: 'Esta sección es solo para anotar cuánto llevas en tus cuentas de banco reales, como referencia. No mueve dinero real ni afecta tu Dinero Disponible.' },
-    { icono: '⚙️', titulo: 'Ajustes', texto: 'Ahí ves tu sesión de Google, puedes cerrar sesión (tus datos quedan guardados) o eliminar tu cuenta por completo. Y puedes volver a ver este tutorial cuando quieras.' }
+    { objetivo: 'nuevo', titulo: 'Anota aquí', texto: 'Registra un gasto, ingreso o transferencia.' },
+    { objetivo: 'analisis', titulo: 'Análisis', texto: 'Mira en qué se va tu dinero.' },
+    { objetivo: 'ahorro', titulo: 'Ahorro', texto: 'Anota lo que tienes en el banco. Es solo referencia.' },
+    { objetivo: 'metas', titulo: 'Metas', texto: 'Ahorra para algo, solo o en grupo.' },
+    { objetivo: 'ajustes', titulo: 'Ajustes', texto: 'Tu cuenta, idioma, tema y este tutorial.' }
   ],
   en: [
-    { icono: '👋', titulo: 'Welcome to Kairen Finanzas', texto: 'A quick 30-second tour so you know where everything is. You can skip it anytime.' },
-    { icono: '➕', titulo: 'The (+) button', texto: "From Home, this button lets you record an Expense or Income. It's the action you'll use most." },
-    { icono: '💵', titulo: 'Accounts: Cash and Card', texto: "When recording a transaction, you choose where the money comes from or goes to. These are internal app accounts — they aren't connected to your real bank." },
-    { icono: '🏷️', titulo: 'Categories', texto: 'Every transaction is classified into a category (Food, Transportation, etc.) so Analytics can show you where your money goes.' },
-    { icono: '📊', titulo: 'Analytics', texto: 'Here you see your Summary (income vs expenses), Distribution by category, and Trends with habits and automatic insights about your month.' },
-    { icono: '🏦', titulo: 'External savings', texto: "This section is just to note how much you have in your real bank accounts, as a reference. It doesn't move real money or affect your Available Money." },
-    { icono: '⚙️', titulo: 'Settings', texto: "There you see your Google session, you can sign out (your data stays saved) or delete your account entirely. And you can watch this tutorial again anytime." }
+    { objetivo: 'nuevo', titulo: 'Add here', texto: 'Record an expense, income or transfer.' },
+    { objetivo: 'analisis', titulo: 'Analytics', texto: 'See where your money goes.' },
+    { objetivo: 'ahorro', titulo: 'Savings', texto: 'Note what you have in the bank. Just for reference.' },
+    { objetivo: 'metas', titulo: 'Goals', texto: 'Save for something, alone or with a group.' },
+    { objetivo: 'ajustes', titulo: 'Settings', texto: 'Your account, language, theme and this tutorial.' }
   ]
 }

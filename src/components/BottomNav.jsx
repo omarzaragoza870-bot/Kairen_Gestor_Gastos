@@ -47,6 +47,7 @@ export default function BottomNav({ active, onChange }) {
           return (
             <button
               key={id}
+              data-tour={id}
               onClick={() => onChange(id)}
               aria-current={activo ? 'page' : undefined}
               className={activo ? 'tabbar-item active' : 'tabbar-item'}

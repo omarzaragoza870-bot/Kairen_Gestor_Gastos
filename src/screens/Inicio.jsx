@@ -409,7 +409,7 @@ export default function Inicio({ onNuevo, onEditar, onVerTodas, refreshKey }) {
         </div>
       )}
 
-        <button onClick={onNuevo} aria-label="Nueva transacción" className="floating-button">+</button>
+        <button onClick={onNuevo} aria-label="Nueva transacción" className="floating-button" data-tour="nuevo">+</button>
 
       {mostrarSelector && (
         <SelectorPeriodo
