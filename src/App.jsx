@@ -1,6 +1,6 @@
 import { useEffect, useState, lazy, Suspense } from 'react'
 import { supabase } from './lib/supabaseClient.js'
-import { asegurarCuentasPorDefecto, asegurarCategoriasPorDefecto, crearTransaccion, crearTransferencia, editarTransaccion, obtenerCuentas, obtenerCategorias, obtenerTransaccionesPorMes, obtenerMetas, obtenerAhorroExterno, procesarRecurrentes } from './lib/db.js'
+import { asegurarCuentasPorDefecto, asegurarCategoriasPorDefecto, crearTransaccion, crearCompraMeses, crearTransferencia, editarTransaccion, obtenerCuentas, obtenerCategorias, obtenerTransaccionesPorMes, obtenerMetas, obtenerAhorroExterno, procesarRecurrentes } from './lib/db.js'
 import { logError } from './lib/logger.js'
 import { useEnLinea } from './hooks/useEnLinea.js'
 import { obtenerColaPendiente, sincronizarCola, conRespaldoOffline, idOperacionDe } from './lib/offline.js'
@@ -105,6 +105,7 @@ function AppInner() {
   const ejecutarOperacionPendiente = async (op) => {
     const clientOpId = idOperacionDe(op)
     if (op.accion === 'crearTransaccion') return crearTransaccion({ ...op.datos, clientOpId })
+    if (op.accion === 'crearCompraMeses') return crearCompraMeses({ ...op.datos, clientOpId })
     if (op.accion === 'crearTransferencia') return crearTransferencia({ ...op.datos, clientOpId })
     if (op.accion === 'editarTransaccion') return editarTransaccion(op.datos)
     throw new Error(`Acción offline desconocida: ${op.accion}`)

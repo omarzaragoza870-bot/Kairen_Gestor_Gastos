@@ -1,11 +1,12 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { supabase } from '../lib/supabaseClient.js'
-import { eliminarTransaccion, obtenerTodasLasTransacciones, obtenerCuentas, obtenerCategorias } from '../lib/db.js'
+import { eliminarTransaccion, eliminarCompraMeses, obtenerTodasLasTransacciones, obtenerCuentas, obtenerCategorias } from '../lib/db.js'
 import { useScrollLock } from '../hooks/useScrollLock.js'
 import Monto from '../components/Monto.jsx'
 import CategoriaIcono from '../components/CategoriaIcono.jsx'
 import { usePreferencias } from '../context/PreferenciasContext.jsx'
 import { mensajeAmigable } from '../lib/errores.js'
+import { hoyLocal } from '../lib/fechas.js'
 import { Search, Pencil, Trash2 } from 'lucide-react'
 
 const fmtFecha = f => new Date(`${f}T12:00:00`).toLocaleDateString('es-MX', { day: '2-digit', month: 'long', year: 'numeric' })
@@ -46,7 +47,10 @@ export default function Transacciones({ onBack, onEditar, refreshKey, onCambio }
         obtenerCuentas(data.user.id),
         obtenerCategorias(data.user.id)
       ])
-      setLista(tx)
+      // Las mensualidades futuras de compras a meses se ven en su mes desde Inicio;
+      // aquí taparían los movimientos de hoy.
+      const hoy = hoyLocal()
+      setLista(tx.filter(m => !(m.compra_meses_id && m.fecha > hoy)))
       setCuentas(ctas)
       const mapa = {}
       cats.forEach(c => { mapa[`${c.tipo}:${c.nombre}`] = c.icono || 'Tag' })
@@ -78,7 +82,8 @@ export default function Transacciones({ onBack, onEditar, refreshKey, onCambio }
     setEliminando(true)
     setError(null)
     try {
-      await eliminarTransaccion(aEliminar.id)
+      if (aEliminar.compra_meses_id) await eliminarCompraMeses(aEliminar.compra_meses_id)
+      else await eliminarTransaccion(aEliminar.id)
       setAEliminar(null)
       await cargar()
       onCambio?.()
@@ -150,6 +155,7 @@ export default function Transacciones({ onBack, onEditar, refreshKey, onCambio }
                   {tx.descripcion && <span>{tx.descripcion}</span>}
                   <small style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
                     {fmtFecha(tx.fecha)}
+                    {tx.compra_meses_id && <span>{tx.mensualidad}/{tx.meses}</span>}
                     {cuentaTx && (
                       <span style={{
                         fontSize: 10, fontWeight: 700, padding: '1px 6px', borderRadius: 999,
@@ -178,6 +184,9 @@ export default function Transacciones({ onBack, onEditar, refreshKey, onCambio }
             <h3 style={{ margin: '0 0 4px' }}>{verDetalle.categoria_nombre}</h3>
             <p style={{ color: 'var(--text-muted)', margin: '0 0 2px', fontSize: 13, fontWeight: 600 }}>{cuentaDe(verDetalle)}</p>
             <p style={{ color: 'var(--text-muted)', margin: '0 0 16px', fontSize: 12 }}>{fmtFecha(verDetalle.fecha)}</p>
+            {verDetalle.compra_meses_id && (
+              <p style={{ color: 'var(--text-muted)', margin: '-12px 0 16px', fontSize: 12 }}>{t('msi_mensualidad')} {verDetalle.mensualidad} {t('msi_de')} {verDetalle.meses} · {t('msi_no_editable')}</p>
+            )}
             {verDetalle.descripcion && (
               <p style={{ margin: '0 0 16px', fontSize: 14, color: 'var(--text-secondary)' }}>{verDetalle.descripcion}</p>
             )}
@@ -190,14 +199,15 @@ export default function Transacciones({ onBack, onEditar, refreshKey, onCambio }
 
             <div className="modal-actions">
               <button onClick={() => setVerDetalle(null)}>{t('comun_cancelar')}</button>
-              <button onClick={() => { onEditar(verDetalle); setVerDetalle(null) }}><Pencil size={15} aria-hidden="true" style={{ verticalAlign: '-2px', marginRight: 6 }} />{t('comun_editar')}</button>
+              {/* Una mensualidad no se edita sola: solo se elimina la compra completa */}
+              {!verDetalle.compra_meses_id && <button onClick={() => { onEditar(verDetalle); setVerDetalle(null) }}><Pencil size={15} aria-hidden="true" style={{ verticalAlign: '-2px', marginRight: 6 }} />{t('comun_editar')}</button>}
             </div>
             <button
               className="danger-link"
               style={{ marginTop: 14, width: '100%', textAlign: 'center' }}
               onClick={() => { setAEliminar(verDetalle); setVerDetalle(null) }}
             >
-              <Trash2 size={15} aria-hidden="true" style={{ verticalAlign: '-2px', marginRight: 6 }} />{t('comun_eliminar')}
+              <Trash2 size={15} aria-hidden="true" style={{ verticalAlign: '-2px', marginRight: 6 }} />{verDetalle.compra_meses_id ? t('msi_eliminar_compra') : t('comun_eliminar')}
             </button>
           </div>
         </div>
@@ -205,8 +215,10 @@ export default function Transacciones({ onBack, onEditar, refreshKey, onCambio }
 
       {aEliminar && <div className="modal-backdrop" onClick={() => !eliminando && setAEliminar(null)}>
         <div className="modal-card" onClick={e => e.stopPropagation()}>
-          <h3>{t('tx_eliminar_confirmar_titulo')}</h3>
-          <p>{t('tx_eliminar_confirmar_1')} "{aEliminar.categoria_nombre}" {t('tx_eliminar_confirmar_2')} <Monto valor={aEliminar.monto} /> {t('tx_eliminar_confirmar_3')}</p>
+          <h3>{aEliminar.compra_meses_id ? t('msi_eliminar_titulo') : t('tx_eliminar_confirmar_titulo')}</h3>
+          {aEliminar.compra_meses_id
+            ? <p>{t('msi_eliminar_texto')}</p>
+            : <p>{t('tx_eliminar_confirmar_1')} "{aEliminar.categoria_nombre}" {t('tx_eliminar_confirmar_2')} <Monto valor={aEliminar.monto} /> {t('tx_eliminar_confirmar_3')}</p>}
           <div className="modal-actions"><button onClick={() => setAEliminar(null)} disabled={eliminando}>{t('comun_cancelar')}</button><button className="danger-button" onClick={confirmarEliminar} disabled={eliminando}>{eliminando ? t('comun_eliminando') : t('comun_si_eliminar')}</button></div>
         </div>
       </div>}

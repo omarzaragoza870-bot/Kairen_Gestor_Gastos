@@ -1,5 +1,6 @@
 import { useEffect, useState, useCallback } from 'react'
-import { obtenerCuentas, crearCuenta, editarCuenta, eliminarCuenta, obtenerTransferencias, eliminarTransferencia, pagarTarjetaCredito } from '../lib/db.js'
+import { obtenerCuentas, crearCuenta, editarCuenta, eliminarCuenta, obtenerTransferencias, obtenerMensualidadesFuturas, eliminarTransferencia, pagarTarjetaCredito } from '../lib/db.js'
+import { repartirDeuda } from '../lib/meses.js'
 import { useScrollLock } from '../hooks/useScrollLock.js'
 import { usePreferencias } from '../context/PreferenciasContext.jsx'
 import Monto from '../components/Monto.jsx'
@@ -29,15 +30,17 @@ export default function AdministrarCuentas({ userId, onBack, onCambio }) {
   const [aPagar, setAPagar] = useState(null) // tarjeta de crédito seleccionada para pagar
   const [procesando, setProcesando] = useState(false)
   const [transferencias, setTransferencias] = useState([])
+  const [mensualidadesFuturas, setMensualidadesFuturas] = useState([])
   useScrollLock(editando !== null || Boolean(aEliminar) || Boolean(aPagar))
 
   const cargar = useCallback(async () => {
     setCargando(true)
     setError(null)
     try {
-      const [cuentasList, tfs] = await Promise.all([obtenerCuentas(userId), obtenerTransferencias(userId)])
+      const [cuentasList, tfs, pendientes] = await Promise.all([obtenerCuentas(userId), obtenerTransferencias(userId), obtenerMensualidadesFuturas(userId).catch(() => [])])
       setLista(cuentasList)
       setTransferencias(tfs)
+      setMensualidadesFuturas(pendientes)
     } catch (err) {
       setError(mensajeAmigable(err))
     } finally {
@@ -138,6 +141,12 @@ export default function AdministrarCuentas({ userId, onBack, onCambio }) {
               <>
                 <div style={{ fontSize: 12, color: 'var(--danger)' }}>{t('cu_deuda_actual')}: <Monto valor={c.saldo} /></div>
                 <div style={{ fontSize: 11, color: 'var(--text-muted)' }}>{t('cu_disponible')}: <Monto valor={Number(c.limite_credito || 0) - Number(c.saldo || 0)} /> {t('cu_de')} <Monto valor={c.limite_credito || 0} /></div>
+                {(() => {
+                  const { alCorte, aMeses } = repartirDeuda(c, mensualidadesFuturas)
+                  return aMeses > 0 && (
+                    <div style={{ fontSize: 11, color: 'var(--text-muted)' }}>{t('msi_pago_mes')}: <Monto valor={alCorte} /> · {t('msi_pendiente')}: <Monto valor={aMeses} /></div>
+                  )
+                })()}
               </>
             ) : (
               <div style={{ fontSize: 12, color: 'var(--success)' }}><Monto valor={c.saldo} /></div>

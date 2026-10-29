@@ -476,3 +476,118 @@ describe('un dispositivo, una sola cuenta', () => {
     expect(rows.map(f => f.user_id)).toEqual([beto])
   })
 })
+
+describe('compras a meses sin intereses', () => {
+  let ana, efectivo, tarjeta
+  beforeEach(async () => {
+    ana = await crearUsuario(db)
+    efectivo = await crearCuenta(db, ana, { saldo: 1000 })
+    tarjeta = await crearCuenta(db, ana, { nombre: 'Visa', tipo: 'tarjeta_credito', saldo: 0 })
+  })
+
+  let op = 0
+  const comprar = (monto, meses, { cuenta = tarjeta, fecha = HOY, opId = `meses-${++op}-${Date.now()}`, usuario = ana } = {}) =>
+    rpc(usuario, 'crear_compra_meses_idempotente', {
+      p_client_op_id: opId, p_cuenta_id: cuenta, p_categoria_nombre: 'Comida',
+      p_monto: monto, p_meses: meses, p_descripcion: ' Pantalla ', p_fecha: fecha,
+    })
+  const mensualidades = async (compra) => (await db.query(
+    `select monto::float8 as monto, to_char(fecha, 'YYYY-MM-DD') as fecha, mensualidad, meses, descripcion
+     from public.transacciones where compra_meses_id = $1 order by mensualidad`, [compra]
+  )).rows
+
+  it('reparte el total en una mensualidad por mes y sube la deuda completa de una vez', async () => {
+    const compra = await comprar(3000, 6)
+    const filas = await mensualidades(compra)
+    expect(filas.map(f => f.monto)).toEqual([500, 500, 500, 500, 500, 500])
+    expect(filas.map(f => f.fecha)).toEqual(['2026-10-26', '2026-11-26', '2026-12-26', '2027-01-26', '2027-02-26', '2027-03-26'])
+    expect(filas.map(f => f.mensualidad)).toEqual([1, 2, 3, 4, 5, 6])
+    expect(filas.every(f => f.meses === 6 && f.descripcion === 'Pantalla')).toBe(true)
+    expect(await saldo(db, tarjeta)).toBe(3000)
+  })
+
+  it('los centavos que sobran van en la primera mensualidad y los fines de mes se ajustan', async () => {
+    const compra = await comprar(1000, 3, { fecha: '2026-01-31' })
+    const filas = await mensualidades(compra)
+    expect(filas.map(f => f.monto)).toEqual([333.34, 333.33, 333.33])
+    expect(filas.map(f => f.fecha)).toEqual(['2026-01-31', '2026-02-28', '2026-03-31'])
+  })
+
+  it('reintentar la misma operación no duplica la compra', async () => {
+    const primera = await comprar(1200, 3, { opId: 'meses-reintento-1' })
+    const reintento = await comprar(1200, 3, { opId: 'meses-reintento-1' })
+    expect(reintento).toBe(primera)
+    expect(await mensualidades(primera)).toHaveLength(3)
+    expect(await saldo(db, tarjeta)).toBe(1200)
+  })
+
+  it('solo acepta tarjetas de crédito propias, de 2 a 48 meses y montos divisibles', async () => {
+    const beto = await crearUsuario(db)
+    await expect(comprar(600, 3, { cuenta: efectivo })).rejects.toThrow('Solo las compras con tarjeta de crédito')
+    await expect(comprar(600, 3, { usuario: beto })).rejects.toThrow('Cuenta no válida')
+    await expect(comprar(600, 1)).rejects.toThrow('entre 2 y 48')
+    await expect(comprar(600, 49)).rejects.toThrow('entre 2 y 48')
+    await expect(comprar(0.05, 6)).rejects.toThrow('muy pequeño')
+    await expect(comprar(0, 6)).rejects.toThrow('mayor que cero')
+    expect([await saldo(db, efectivo), await saldo(db, tarjeta)]).toEqual([1000, 0])
+  })
+
+  it('una mensualidad no se edita ni se borra sola; eliminar la compra quita todo y baja la deuda', async () => {
+    const compra = await comprar(900, 3)
+    const [{ id }] = (await db.query(`select id from public.transacciones where compra_meses_id = $1 and mensualidad = 2`, [compra])).rows
+
+    await expect(rpc(ana, 'eliminar_transaccion_segura', { p_transaccion_id: id })).rejects.toThrow('elimina la compra completa')
+    await expect(rpc(ana, 'editar_transaccion_segura', {
+      p_transaccion_id: id, p_cuenta_id: tarjeta, p_categoria_nombre: 'Comida',
+      p_tipo: 'gasto', p_monto: 10, p_descripcion: null, p_fecha: HOY,
+    })).rejects.toThrow('compra a meses')
+    expect(await saldo(db, tarjeta)).toBe(900)
+
+    await rpc(ana, 'eliminar_compra_meses', { p_compra_meses_id: compra })
+    expect(await mensualidades(compra)).toEqual([])
+    expect(await saldo(db, tarjeta)).toBe(0)
+  })
+
+  it('otro usuario no puede eliminar la compra', async () => {
+    const beto = await crearUsuario(db)
+    const compra = await comprar(900, 3)
+    await expect(rpc(beto, 'eliminar_compra_meses', { p_compra_meses_id: compra })).rejects.toThrow('Compra no encontrada')
+    expect(await mensualidades(compra)).toHaveLength(3)
+    expect(await saldo(db, tarjeta)).toBe(900)
+  })
+
+  describe('avisos', () => {
+    let hoy
+    beforeEach(async () => {
+      // Mismo "hoy" que usan los avisos: el de México, no el de UTC
+      hoy = (await db.query(`select to_char((now() at time zone 'America/Mexico_City')::date, 'YYYY-MM-DD') as d`)).rows[0].d
+      await db.query(`insert into public.push_subscriptions (user_id, endpoint, p256dh, auth) values ($1, $2, 'k', 'a')`, [ana, `https://push.example/${ana}`])
+    })
+    const llamadas = async () => (await db.query(`select body from net.llamadas where body->>'user_id' = $1 order by id`, [ana])).rows
+
+    it('el presupuesto de este mes solo cuenta la mensualidad de este mes', async () => {
+      await db.query(`insert into public.presupuestos (user_id, categoria_nombre, monto_limite) values ($1, 'Comida', 1000)`, [ana])
+      await comprar(2700, 3, { fecha: hoy })
+      const avisos = await llamadas()
+      expect(avisos).toHaveLength(1)
+      expect(avisos[0].body.title).toContain('90%')
+    })
+
+    it('el aviso de corte pide el pago del mes y muestra aparte lo que queda a meses', async () => {
+      await db.query(`update public.cuentas set fecha_corte = extract(day from $2::date) where id = $1`, [tarjeta, hoy])
+      await comprar(3000, 3, { fecha: hoy })
+      await db.query(`select public.revisar_notificaciones_tarjetas_credito()`)
+      const [aviso] = await llamadas()
+      expect(aviso.body.body).toBe('Deuda al corte: $1,000.00 (más $2,000.00 a meses)')
+    })
+
+    it('si la tarjeta ya se pagó no queda nada a meses', async () => {
+      await db.query(`update public.cuentas set fecha_corte = extract(day from $2::date) where id = $1`, [tarjeta, hoy])
+      await comprar(3000, 3, { fecha: hoy })
+      await rpc(ana, 'pagar_tarjeta_credito', { p_tarjeta_id: tarjeta, p_cuenta_origen_id: efectivo, p_monto: 2500, p_fecha: hoy, p_descripcion: null })
+      await db.query(`select public.revisar_notificaciones_tarjetas_credito()`)
+      const [aviso] = await llamadas()
+      expect(aviso.body.body).toBe('Deuda al corte: $0.00 (más $500.00 a meses)')
+    })
+  })
+})

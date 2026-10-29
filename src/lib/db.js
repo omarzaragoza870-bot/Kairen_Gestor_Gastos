@@ -557,6 +557,51 @@ export async function crearTransaccion(datos) {
   return data
 }
 
+/**
+ * Compra con tarjeta de crédito a meses sin intereses: el servidor crea una
+ * mensualidad por mes (ligadas por compra_meses_id) y sube la deuda de la
+ * tarjeta el total de una vez. Siempre lleva clientOpId, como la cola offline.
+ */
+export async function crearCompraMeses({ clientOpId, cuentaId, categoriaNombre, monto, meses, descripcion, fecha }) {
+  const { data, error } = await supabase.rpc('crear_compra_meses_idempotente', {
+    p_client_op_id: clientOpId,
+    p_cuenta_id: cuentaId,
+    p_categoria_nombre: categoriaNombre,
+    p_monto: monto,
+    p_meses: meses,
+    p_descripcion: descripcion || null,
+    p_fecha: fecha
+  })
+  if (error) {
+    if (esFuncionNoDisponible(error)) throw errorFuncionFaltante('crear_compra_meses_idempotente', 'supabase/migrations/20261029000000_compras_a_meses.sql')
+    throw error
+  }
+  return data
+}
+
+/** Borra todas las mensualidades de una compra a meses y baja la deuda de la tarjeta. */
+export async function eliminarCompraMeses(compraMesesId) {
+  const { error } = await supabase.rpc('eliminar_compra_meses', { p_compra_meses_id: compraMesesId })
+  if (error) {
+    if (esFuncionNoDisponible(error)) throw errorFuncionFaltante('eliminar_compra_meses', 'supabase/migrations/20261029000000_compras_a_meses.sql')
+    throw error
+  }
+}
+
+/**
+ * Mensualidades de compras a meses con fecha después de hoy. Ya están dentro
+ * de la deuda (saldo); lib/meses.js separa las que no entran en el próximo corte.
+ */
+export async function obtenerMensualidadesFuturas(userId) {
+  return traerTodasLasPaginas(() => supabase
+    .from('transacciones')
+    .select('id, cuenta_id, monto, fecha')
+    .eq('user_id', userId)
+    .not('compra_meses_id', 'is', null)
+    .gt('fecha', hoyLocal())
+    .order('id', { ascending: true }))
+}
+
 export async function editarTransaccion({ transaccionId, cuentaId, categoriaNombre, tipo, monto, descripcion, fecha }) {
   const { data, error } = await supabase.rpc('editar_transaccion_segura', {
     p_transaccion_id: transaccionId,

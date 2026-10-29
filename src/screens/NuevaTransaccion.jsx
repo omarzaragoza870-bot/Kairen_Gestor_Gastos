@@ -4,6 +4,7 @@ import {
   asegurarCuentasPorDefecto,
   asegurarCategoriasPorDefecto,
   crearTransaccion,
+  crearCompraMeses,
   editarTransaccion,
   obtenerCuentas,
   obtenerCategorias,
@@ -30,8 +31,14 @@ const limpiarMonto = (valor) => {
   let limpio = valor.replace(',', '.').replace(/[^0-9.]/g, '')
   const partes = limpio.split('.')
   if (partes.length > 2) limpio = partes[0] + '.' + partes.slice(1).join('')
+  // Centavos como máximo: el servidor guarda montos con 2 decimales
+  const punto = limpio.indexOf('.')
+  if (punto !== -1) limpio = limpio.slice(0, punto + 3)
   return limpio
 }
+
+const OPCIONES_MESES = [3, 6, 9, 12, 18, 24]
+
 export default function NuevaTransaccion({ onBack, onGuardada, transaccionEditar = null, tipoInicial = 'gasto' }) {
   const editando = Boolean(transaccionEditar)
   // Al crear una nueva (no editando), respeta el tipo que venga preseleccionado
@@ -44,6 +51,8 @@ export default function NuevaTransaccion({ onBack, onGuardada, transaccionEditar
   const [categoria, setCategoria] = useState(transaccionEditar?.categoria_nombre || null)
   const [descripcion, setDescripcion] = useState(transaccionEditar?.descripcion || '')
   const [fecha, setFecha] = useState(transaccionEditar?.fecha || hoyLocal())
+  const [aMeses, setAMeses] = useState(false)
+  const [meses, setMeses] = useState(6)
   const [userId, setUserId] = useState(null)
   const [categoriasGasto, setCategoriasGasto] = useState([])
   const [categoriasIngreso, setCategoriasIngreso] = useState([])
@@ -100,7 +109,15 @@ export default function NuevaTransaccion({ onBack, onGuardada, transaccionEditar
   const cuentasDisponibles = tipo === 'ingreso' ? cuentas.filter(c => c.tipo !== 'tarjeta_credito') : cuentas
   const cuentaSeleccionada = cuentas.find(c => c.id === cuentaId)
   const montoNumerico = Number(monto)
-  const valido = Number.isFinite(montoNumerico) && montoNumerico > 0 && Boolean(categoria) && Boolean(cuentaId) && Boolean(userId) && Boolean(cuentaSeleccionada) && Boolean(fecha)
+  // Solo un gasto nuevo con tarjeta de crédito se puede diferir; si cambian
+  // la cuenta o el tipo, la opción queda guardada pero ya no aplica.
+  const puedeMeses = !editando && tipo === 'gasto' && cuentaSeleccionada?.tipo === 'tarjeta_credito'
+  const usaMeses = puedeMeses && aMeses
+  // Igual que en el servidor: centavos hacia abajo, la primera mensualidad absorbe el resto
+  const centavos = Math.round(montoNumerico * 100)
+  const mensualidad = Math.floor(centavos / meses) / 100
+  const primeraMensualidad = (centavos - Math.floor(centavos / meses) * (meses - 1)) / 100
+  const valido = Number.isFinite(montoNumerico) && montoNumerico > 0 && Boolean(categoria) && Boolean(cuentaId) && Boolean(userId) && Boolean(cuentaSeleccionada) && Boolean(fecha) && (!usaMeses || mensualidad > 0)
 
   const etiquetaBoton = useMemo(() => {
     if (guardando) return editando ? t('nt_guardando_cambios') : t('nt_guardando')
@@ -182,10 +199,9 @@ export default function NuevaTransaccion({ onBack, onGuardada, transaccionEditar
     // revertir el movimiento anterior correctamente, así que eso sí requiere red.
     const intentarEncolar = async () => {
       try {
-        await encolarOperacion({
-          accion: 'crearTransaccion',
-          datos: { clientOpId: idOperacion.current, ...comunes }
-        })
+        await encolarOperacion(usaMeses
+          ? { accion: 'crearCompraMeses', datos: { clientOpId: idOperacion.current, ...comunes, meses } }
+          : { accion: 'crearTransaccion', datos: { clientOpId: idOperacion.current, ...comunes } })
         onGuardada?.()
       } catch (err) {
         logError('Error encolando transacción offline', err)
@@ -210,7 +226,8 @@ export default function NuevaTransaccion({ onBack, onGuardada, transaccionEditar
         marcarConectividad(true)
         onGuardada?.()
       } else {
-        await crearTransaccion({ clientOpId: idOperacion.current, ...comunes })
+        if (usaMeses) await crearCompraMeses({ clientOpId: idOperacion.current, ...comunes, meses })
+        else await crearTransaccion({ clientOpId: idOperacion.current, ...comunes })
         marcarConectividad(true)
         // Solo revisamos el presupuesto en gastos nuevos — si se excedió,
         // verificarPresupuesto ya deja lista la alerta y AlertaPresupuesto
@@ -283,6 +300,30 @@ export default function NuevaTransaccion({ onBack, onGuardada, transaccionEditar
         <span style={{ color: 'var(--text-muted)' }}>$</span>
         <input inputMode="decimal" value={monto} onChange={e => setMonto(limpiarMonto(e.target.value))} placeholder="0.00" />
       </div>
+
+      {puedeMeses && (
+        <>
+          <label className="field-label">{t('msi_pago')}</label>
+          <div className="filter-row" role="radiogroup" aria-label={t('msi_pago')} style={{ marginTop: 8, marginBottom: aMeses ? 10 : 20 }}>
+            <button role="radio" aria-checked={!aMeses} className={!aMeses ? 'filter active' : 'filter'} onClick={() => setAMeses(false)}>{t('msi_contado')}</button>
+            <button role="radio" aria-checked={aMeses} className={aMeses ? 'filter active' : 'filter'} onClick={() => setAMeses(true)}>{t('msi_a_meses')}</button>
+          </div>
+          {aMeses && (
+            <>
+              <div className="filter-row" role="radiogroup" aria-label={t('msi_meses')} style={{ marginBottom: 8 }}>
+                {OPCIONES_MESES.map(n => (
+                  <button key={n} role="radio" aria-checked={meses === n} className={meses === n ? 'filter active' : 'filter'} onClick={() => setMeses(n)}>{n}</button>
+                ))}
+              </div>
+              <p style={{ fontSize: 13, color: 'var(--text-secondary)', margin: '0 0 4px' }}>
+                {meses} {t('msi_mensualidades_de')} <strong style={{ color: 'var(--text-primary)' }}><Monto valor={montoNumerico > 0 ? mensualidad : 0} /></strong>
+                {montoNumerico > 0 && primeraMensualidad !== mensualidad && <> {t('msi_primera_1')} <Monto valor={primeraMensualidad} />{t('msi_primera_2')}</>}
+              </p>
+              <p style={{ fontSize: 12, color: 'var(--text-muted)', margin: '0 0 20px', lineHeight: 1.4 }}>{t('msi_explicacion')}</p>
+            </>
+          )}
+        </>
+      )}
 
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
         <label className="field-label">{t('nt_categoria')}</label>

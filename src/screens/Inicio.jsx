@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { supabase } from '../lib/supabaseClient.js'
-import { obtenerTransaccionesPorMes, obtenerTransaccionesEnRango, obtenerDisponibleHistorico, obtenerCategorias, obtenerCuentas, eliminarTransaccion, pagarTarjetaCredito } from '../lib/db.js'
+import { obtenerTransaccionesPorMes, obtenerTransaccionesEnRango, obtenerDisponibleHistorico, obtenerCategorias, obtenerCuentas, eliminarTransaccion, eliminarCompraMeses, obtenerMensualidadesFuturas, pagarTarjetaCredito } from '../lib/db.js'
+import { repartirDeuda } from '../lib/meses.js'
 import InfoTooltip from '../components/InfoTooltip.jsx'
 import SelectorPeriodo from '../components/SelectorPeriodo.jsx'
 import { MESES_POR_IDIOMA } from '../i18n/translations.js'
@@ -28,6 +29,7 @@ export default function Inicio({ onNuevo, onEditar, onVerTodas, refreshKey }) {
   const [mostrarCuentas, setMostrarCuentas] = useState(false)
   const [iconosPorCategoria, setIconosPorCategoria] = useState({})
   const [cuentas, setCuentas] = useState([])
+  const [mensualidadesFuturas, setMensualidadesFuturas] = useState([])
   const [disponible, setDisponible] = useState(0)
   const [verDetalle, setVerDetalle] = useState(null)
   const [aEliminar, setAEliminar] = useState(null)
@@ -111,6 +113,9 @@ export default function Inicio({ onNuevo, onEditar, onVerTodas, refreshKey }) {
     // Misma clave de caché que usa el precargado de App.jsx — reutiliza offline.
     // conRespaldoOffline siempre intenta la red primero, así que llamarla de
     // nuevo tras un pago trae saldos frescos (no se queda pegada al caché).
+    conRespaldoOffline(`mensualidades-futuras:${uid}`, () => obtenerMensualidadesFuturas(uid))
+      .then(setMensualidadesFuturas)
+      .catch(err => logWarn('No se pudo cargar lo pendiente a meses', err))
     return conRespaldoOffline(`cuentas:${uid}`, () => obtenerCuentas(uid))
       .then(setCuentas)
       .catch(err => logWarn('No se pudieron cargar las cuentas', err))
@@ -156,7 +161,8 @@ export default function Inicio({ onNuevo, onEditar, onVerTodas, refreshKey }) {
     setEliminando(true)
     setError(null)
     try {
-      await eliminarTransaccion(aEliminar.id)
+      if (aEliminar.compra_meses_id) await eliminarCompraMeses(aEliminar.compra_meses_id)
+      else await eliminarTransaccion(aEliminar.id)
       setAEliminar(null)
       if (userId) {
         // Borrar devuelve el monto a su cuenta: los saldos también cambian
@@ -271,6 +277,7 @@ export default function Inicio({ onNuevo, onEditar, onVerTodas, refreshKey }) {
           {tarjetasCredito.map(tc => {
             const disponibleTc = Number(tc.limite_credito || 0) - Number(tc.saldo || 0)
             const porcentajeUsado = Number(tc.limite_credito) > 0 ? Math.min(100, (Number(tc.saldo) / Number(tc.limite_credito)) * 100) : 0
+            const { alCorte, aMeses: aMesesTc } = repartirDeuda(tc, mensualidadesFuturas)
             return (
               <div key={tc.id} style={{
                 background: 'var(--bg-surface)', border: '1px solid var(--border-subtle)',
@@ -298,6 +305,12 @@ export default function Inicio({ onNuevo, onEditar, onVerTodas, refreshKey }) {
                     background: porcentajeUsado >= 90 ? 'var(--danger)' : 'var(--gradient-brand)'
                   }} />
                 </div>
+                {aMesesTc > 0 && !cargando && (
+                  <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 8, fontSize: 11, color: 'var(--text-muted)' }}>
+                    <span>{t('msi_pago_mes')}: <Monto valor={alCorte} /></span>
+                    <span>{t('msi_pendiente')}: <Monto valor={aMesesTc} /></span>
+                  </div>
+                )}
               </div>
             )
           })}
@@ -344,7 +357,7 @@ export default function Inicio({ onNuevo, onEditar, onVerTodas, refreshKey }) {
             <div style={{ minWidth: 0 }}>
               <div className="transaction-category">{tx.categoria_nombre}</div>
               {tx.descripcion && <div className="transaction-description">{tx.descripcion}</div>}
-              <div className="transaction-date">{fmtFecha(tx.fecha)}</div>
+              <div className="transaction-date">{fmtFecha(tx.fecha)}{tx.compra_meses_id ? ` · ${tx.mensualidad}/${tx.meses}` : ''}</div>
             </div>
           </div>
           <div className={tx.tipo === 'gasto' ? 'amount expense' : 'amount income'}><Monto valor={tx.monto} prefijo={tx.tipo === 'gasto' ? '-' : '+'} /></div>
@@ -361,6 +374,9 @@ export default function Inicio({ onNuevo, onEditar, onVerTodas, refreshKey }) {
             <h3 style={{ margin: '0 0 4px' }}>{verDetalle.categoria_nombre}</h3>
             <p style={{ color: 'var(--text-muted)', margin: '0 0 2px', fontSize: 13, fontWeight: 600 }}>{cuentaDe(verDetalle)}</p>
             <p style={{ color: 'var(--text-muted)', margin: '0 0 16px', fontSize: 12 }}>{fmtFechaLarga(verDetalle.fecha)}</p>
+            {verDetalle.compra_meses_id && (
+              <p style={{ color: 'var(--text-muted)', margin: '-12px 0 16px', fontSize: 12 }}>{t('msi_mensualidad')} {verDetalle.mensualidad} {t('msi_de')} {verDetalle.meses} · {t('msi_no_editable')}</p>
+            )}
             {verDetalle.descripcion && (
               <p style={{ margin: '0 0 16px', fontSize: 14, color: 'var(--text-secondary)' }}>{verDetalle.descripcion}</p>
             )}
@@ -373,14 +389,15 @@ export default function Inicio({ onNuevo, onEditar, onVerTodas, refreshKey }) {
 
             <div className="modal-actions">
               <button onClick={() => setVerDetalle(null)}>{t('comun_cancelar')}</button>
-              <button onClick={() => { onEditar(verDetalle); setVerDetalle(null) }}><Pencil size={15} aria-hidden="true" style={{ verticalAlign: '-2px', marginRight: 6 }} />{t('comun_editar')}</button>
+              {/* Una mensualidad no se edita sola: solo se elimina la compra completa */}
+              {!verDetalle.compra_meses_id && <button onClick={() => { onEditar(verDetalle); setVerDetalle(null) }}><Pencil size={15} aria-hidden="true" style={{ verticalAlign: '-2px', marginRight: 6 }} />{t('comun_editar')}</button>}
             </div>
             <button
               className="danger-link"
               style={{ marginTop: 14, width: '100%', textAlign: 'center' }}
               onClick={() => { setAEliminar(verDetalle); setVerDetalle(null) }}
             >
-              <Trash2 size={15} aria-hidden="true" style={{ verticalAlign: '-2px', marginRight: 6 }} />{t('comun_eliminar')}
+              <Trash2 size={15} aria-hidden="true" style={{ verticalAlign: '-2px', marginRight: 6 }} />{verDetalle.compra_meses_id ? t('msi_eliminar_compra') : t('comun_eliminar')}
             </button>
           </div>
         </div>
@@ -399,8 +416,10 @@ export default function Inicio({ onNuevo, onEditar, onVerTodas, refreshKey }) {
       {aEliminar && (
         <div className="modal-backdrop" onClick={() => !eliminando && setAEliminar(null)}>
           <div className="modal-card" onClick={e => e.stopPropagation()}>
-            <h3>{t('tx_eliminar_confirmar_titulo')}</h3>
-            <p>{t('tx_eliminar_confirmar_1')} "{aEliminar.categoria_nombre}" {t('tx_eliminar_confirmar_2')} <Monto valor={aEliminar.monto} /> {t('tx_eliminar_confirmar_3')}</p>
+            <h3>{aEliminar.compra_meses_id ? t('msi_eliminar_titulo') : t('tx_eliminar_confirmar_titulo')}</h3>
+            {aEliminar.compra_meses_id
+            ? <p>{t('msi_eliminar_texto')}</p>
+            : <p>{t('tx_eliminar_confirmar_1')} "{aEliminar.categoria_nombre}" {t('tx_eliminar_confirmar_2')} <Monto valor={aEliminar.monto} /> {t('tx_eliminar_confirmar_3')}</p>}
             <div className="modal-actions">
               <button onClick={() => setAEliminar(null)} disabled={eliminando}>{t('comun_cancelar')}</button>
               <button className="danger-button" onClick={confirmarEliminar} disabled={eliminando}>{eliminando ? t('comun_eliminando') : t('comun_si_eliminar')}</button>
