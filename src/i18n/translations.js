@@ -73,7 +73,7 @@ export const traducciones = {
     ajustes_reiniciar: 'Reiniciar Cuenta Actual',
     ajustes_reiniciar_desc: 'Volver tu cuenta a su estado inicial',
     ajustes_acerca: 'Acerca de la App',
-    ajustes_version: 'Versión 2.0',
+    ajustes_version: 'Versión',
     ajustes_ecosistema: 'Parte del ecosistema KAIREN',
     ajustes_privacidad: 'Política de privacidad',
 
@@ -414,7 +414,7 @@ export const traducciones = {
     ajustes_reiniciar: 'Reset Current Account',
     ajustes_reiniciar_desc: 'Return your account to its initial state',
     ajustes_acerca: 'About the App',
-    ajustes_version: 'Version 2.0',
+    ajustes_version: 'Version',
     ajustes_ecosistema: 'Part of the KAIREN ecosystem',
     ajustes_privacidad: 'Privacy policy',
 

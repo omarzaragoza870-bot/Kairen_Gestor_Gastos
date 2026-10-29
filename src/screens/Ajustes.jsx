@@ -19,6 +19,8 @@ import SelectorTema from './SelectorTema.jsx'
 import SelectorIdioma from './SelectorIdioma.jsx'
 import { Coins, Globe, Palette, Tag, PieChart, Repeat, FileText, Bell, Eye, Users, Download, Upload, RotateCcw, ChevronRight, User, GraduationCap, LogOut, Trash2 } from 'lucide-react'
 import GoogleLogo from '../components/GoogleLogo.jsx'
+// La versión sale de package.json para no tener que cambiarla a mano en cada build
+import { version } from '../../package.json'
 
 // Íconos de las filas de Ajustes (antes emojis), en cuadros grises estilo Configuración de iOS
 const ICONOS_AJUSTE = {
@@ -545,7 +547,7 @@ export default function Ajustes({ onVerTutorial }) {
       }}>
         <div style={{ fontSize: 28, marginBottom: 6 }}>💜</div>
         <div style={{ fontWeight: 700, fontSize: 15 }}>Kairen Finanzas</div>
-        <div style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 2 }}>{t('ajustes_version')}</div>
+        <div style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 2 }}>{t('ajustes_version')} {version}</div>
         <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 8 }}>{t('ajustes_ecosistema')}</div>
         <button
           onClick={abrirPrivacidad}
