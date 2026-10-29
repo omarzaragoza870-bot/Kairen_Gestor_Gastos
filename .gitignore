@@ -25,3 +25,6 @@ dev-dist/
 .idea/
 *.iml
 
+
+# Correos reales de testers con premium de por vida (datos personales)
+supabase/fundadores.local.sql

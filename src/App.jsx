@@ -4,6 +4,7 @@ import { asegurarCuentasPorDefecto, asegurarCategoriasPorDefecto, crearTransacci
 import { logError } from './lib/logger.js'
 import { useEnLinea } from './hooks/useEnLinea.js'
 import { obtenerColaPendiente, sincronizarCola, conRespaldoOffline, idOperacionDe } from './lib/offline.js'
+import { iniciarPagos, cerrarPagos } from './lib/pagos.js'
 import { pushSoportado, permisoPush } from './lib/push.js'
 import BannerSinConexion from './components/BannerSinConexion.jsx'
 import BottomNav from './components/BottomNav.jsx'
@@ -259,6 +260,7 @@ function AppInner() {
       precargarOffline(uid)
       procesarRecurrentes().then(n => { if (n > 0) setRefreshKey(k => k + 1) }).catch(() => {})
       inicializarFirebaseMessaging(uid)
+      iniciarPagos(uid)
       // Se lee aquí y no al montar: si ya se vio con la cuenta anterior, no se repite
       let yaVistoAntes = false
       try { yaVistoAntes = localStorage.getItem(TOUR_STORAGE_KEY) === 'true' } catch { /* noop */ }
@@ -282,6 +284,7 @@ function AppInner() {
       if (!nueva) {
         // La siguiente cuenta empieza desde Inicio, no donde se quedó la anterior
         uidInicializado = null
+        cerrarPagos()
         setTab('inicio')
         setVista('principal')
         setTransaccionEditar(null)

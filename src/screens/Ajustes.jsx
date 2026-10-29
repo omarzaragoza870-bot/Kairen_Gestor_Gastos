@@ -13,11 +13,12 @@ import Presupuestos from './Presupuestos.jsx'
 import Recurrentes from './Recurrentes.jsx'
 import Reportes from './Reportes.jsx'
 import Colaborar from './Colaborar.jsx'
+import Premium from './Premium.jsx'
 import { pushSoportado, permisoPush, suscribirPush, desuscribirPush, estaSuscrito, olvidarEsteDispositivo } from '../lib/push.js'
 import SelectorMoneda from './SelectorMoneda.jsx'
 import SelectorTema from './SelectorTema.jsx'
 import SelectorIdioma from './SelectorIdioma.jsx'
-import { Coins, Globe, Palette, Tag, PieChart, Repeat, FileText, Bell, Eye, Users, Download, Upload, RotateCcw, ChevronRight, User, GraduationCap, LogOut, Trash2 } from 'lucide-react'
+import { Coins, Globe, Palette, Tag, PieChart, Repeat, FileText, Bell, Eye, Users, Download, Upload, RotateCcw, ChevronRight, User, GraduationCap, LogOut, Trash2, Pencil, Crown } from 'lucide-react'
 import GoogleLogo from '../components/GoogleLogo.jsx'
 // La versión sale de package.json para no tener que cambiarla a mano en cada build
 import { version } from '../../package.json'
@@ -43,6 +44,8 @@ function IconoAjuste({ icono }) {
 export default function Ajustes({ onVerTutorial }) {
   const { ocultarSaldos, toggleOcultarSaldos, moneda, tema, idioma, t } = usePreferencias()
   const [user, setUser] = useState(null)
+  const [editandoNombre, setEditandoNombre] = useState(null) // null cerrado, texto mientras se edita
+  const [guardandoNombre, setGuardandoNombre] = useState(false)
   const [confirmando, setConfirmando] = useState(false)
   const [confirmandoReinicio, setConfirmandoReinicio] = useState(false)
   const [mostrarCategorias, setMostrarCategorias] = useState(false)
@@ -80,7 +83,7 @@ export default function Ajustes({ onVerTutorial }) {
   const [mostrarMoneda, setMostrarMoneda] = useState(false)
   const [mostrarTema, setMostrarTema] = useState(false)
   const [mostrarIdioma, setMostrarIdioma] = useState(false)
-  useScrollLock(confirmando || confirmandoReinicio)
+  useScrollLock(confirmando || confirmandoReinicio || editandoNombre !== null)
   const [eliminando, setEliminando] = useState(false)
   const [reiniciando, setReiniciando] = useState(false)
   const [exportando, setExportando] = useState(false)
@@ -89,8 +92,17 @@ export default function Ajustes({ onVerTutorial }) {
   const [error, setError] = useState(null)
   const inputImportarRef = useRef(null)
 
+  const [mostrarPremium, setMostrarPremium] = useState(false)
+  const [perfil, setPerfil] = useState(null) // { acceso_fundador, plan }
+
+  const cargarPerfil = (uid) => supabase.from('perfiles').select('acceso_fundador, plan').eq('user_id', uid).single()
+    .then(({ data }) => setPerfil(data))
+
   useEffect(() => {
-    supabase.auth.getUser().then(({ data }) => setUser(data.user))
+    supabase.auth.getUser().then(({ data }) => {
+      setUser(data.user)
+      if (data.user) cargarPerfil(data.user.id)
+    })
   }, [])
 
   const [vinculando, setVinculando] = useState(false)
@@ -274,7 +286,26 @@ export default function Ajustes({ onVerTutorial }) {
   }
 
 
-  const nombre = user?.user_metadata?.full_name || user?.user_metadata?.name || 'Usuario'
+  // nombre_preferido es el que escribe la persona. Google vuelve a escribir
+  // full_name en cada inicio de sesión, así que no se puede guardar ahí.
+  const nombre = user?.user_metadata?.nombre_preferido || user?.user_metadata?.full_name || user?.user_metadata?.name || 'Usuario'
+
+  const guardarNombre = async () => {
+    const limpio = (editandoNombre || '').trim()
+    if (!limpio || guardandoNombre) return
+    setGuardandoNombre(true)
+    setError(null)
+    try {
+      const { data, error: errorAuth } = await supabase.auth.updateUser({ data: { nombre_preferido: limpio } })
+      if (errorAuth) throw errorAuth
+      setUser(data.user)
+      setEditandoNombre(null)
+    } catch (err) {
+      setError(mensajeAmigable(err, t('ajustes_nombre_error')))
+    } finally {
+      setGuardandoNombre(false)
+    }
+  }
   const avatarBruto = user?.user_metadata?.avatar_url
   // XSS-03: solo aceptamos avatares servidos por https, nunca esquemas raros (javascript:, data:, etc.)
   const avatar = avatarBruto?.startsWith('https://') ? avatarBruto : null
@@ -325,8 +356,8 @@ export default function Ajustes({ onVerTutorial }) {
             {nombre.charAt(0).toUpperCase()}
           </div>
         )}
-        <div style={{ overflow: 'hidden' }}>
-          <div style={{ fontWeight: 700, fontSize: 15 }}>{nombre}</div>
+        <div style={{ overflow: 'hidden', flex: 1, minWidth: 0 }}>
+          <div style={{ fontWeight: 700, fontSize: 15, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{nombre}</div>
           {esInvitado ? (
             <div style={{ fontSize: 11, color: 'var(--warning)', marginTop: 2 }}><User size={12} aria-hidden="true" style={{ marginRight: 6, verticalAlign: '-2px' }} />{t('ajustes_cuenta_invitado')}</div>
           ) : (
@@ -336,7 +367,34 @@ export default function Ajustes({ onVerTutorial }) {
             </>
           )}
         </div>
+        {user && (
+          <button onClick={() => setEditandoNombre(nombre === 'Usuario' ? '' : nombre)} aria-label={t('ajustes_editar_nombre')} className="icon-button" style={{ flexShrink: 0, width: 40, height: 40 }}>
+            <Pencil size={17} aria-hidden="true" />
+          </button>
+        )}
       </section>
+
+      {editandoNombre !== null && (
+        <div className="modal-backdrop" onClick={() => !guardandoNombre && setEditandoNombre(null)}>
+          <div className="modal-card" onClick={e => e.stopPropagation()}>
+            <h3>{t('ajustes_editar_nombre')}</h3>
+            <div className="input-shell" style={{ margin: '12px 0 16px' }}>
+              <input
+                autoFocus value={editandoNombre} maxLength={50}
+                onChange={e => setEditandoNombre(e.target.value)}
+                onKeyDown={e => { if (e.key === 'Enter') guardarNombre() }}
+                placeholder={t('ajustes_nombre_placeholder')}
+              />
+            </div>
+            <div className="modal-actions">
+              <button onClick={() => setEditandoNombre(null)} disabled={guardandoNombre}>{t('comun_cancelar')}</button>
+              <button onClick={guardarNombre} disabled={guardandoNombre || !editandoNombre.trim()} style={{ background: 'var(--accent)', color: 'var(--on-accent)' }}>
+                {guardandoNombre ? t('nt_guardando') : t('ajustes_guardar_nombre')}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Cuenta */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 6, margin: '4px 0 8px' }}>
@@ -346,6 +404,25 @@ export default function Ajustes({ onVerTutorial }) {
           text="Cerrar sesión solo desvincula este dispositivo — tus datos siguen guardados y puedes volver a entrar cuando quieras. Eliminar cuenta borra permanentemente tu perfil y todos tus datos, sin poder recuperarlos."
         />
       </div>
+
+      <button
+        onClick={() => setMostrarPremium(true)}
+        style={{
+          width: '100%', textAlign: 'left', padding: '14px 16px', marginBottom: 10,
+          background: 'var(--bg-surface)', borderRadius: 'var(--radius-md)',
+          border: '1px solid var(--border-subtle)', color: 'var(--text-primary)',
+          fontSize: 14, fontWeight: 600, display: 'flex', alignItems: 'center', gap: 10
+        }}
+      >
+        <Crown size={18} aria-hidden="true" />
+        <span style={{ flex: 1 }}>{t('premium_fila')}</span>
+        <span style={{ fontSize: 13, fontWeight: 500, color: 'var(--text-muted)' }}>
+          {perfil?.acceso_fundador ? t('premium_estado_fundador') : perfil?.plan === 'premium' ? t('premium_estado_activo') : t('premium_estado_gratis')}
+        </span>
+        <ChevronRight size={16} aria-hidden="true" style={{ color: 'var(--text-muted)' }} />
+      </button>
+
+      {mostrarPremium && <Premium onCerrar={() => setMostrarPremium(false)} onActivado={() => user && cargarPerfil(user.id)} />}
 
       {onVerTutorial && (
         <button
@@ -576,6 +653,7 @@ export default function Ajustes({ onVerTutorial }) {
             <p style={{ margin: '0 0 20px', fontSize: 13, color: 'var(--text-secondary)', lineHeight: 1.5 }}>
               Se borrarán permanentemente todas tus transacciones, categorías y datos de ahorro.
               Esta acción no se puede deshacer.
+              {perfil?.plan === 'premium' && !perfil?.acceso_fundador && <><br /><br />{t('ajustes_eliminar_aviso_suscripcion')}</>}
             </p>
             <div style={{ display: 'flex', gap: 10 }}>
               <button

@@ -4,7 +4,7 @@
 // IA financiera de Kairen — usa Gemini 2.0 Flash (gratuito)
 // Lee los datos reales del usuario y responde preguntas financieras personalizadas.
 
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.111.0'
 import { corsHeadersPara } from '../_shared/cors.ts'
 
 // El servidor de Supabase corre en UTC. Sin una zona horaria, el último
@@ -24,13 +24,14 @@ const MINIMO_PARA_REINTENTAR_MS = 4000
  * Llama a Gemini y lee su respuesta sin pasar de `limite` (timestamp en ms);
  * reintenta una vez si tarda o falla su servidor y aún queda tiempo.
  */
-async function llamarGemini(url: string, cuerpo: unknown, limite: number) {
+// La llave va en un encabezado y no en la URL, para que no quede en logs de peticiones
+async function llamarGemini(url: string, llave: string, cuerpo: unknown, limite: number) {
   for (let intento = 1; ; intento++) {
     const restante = limite - Date.now()
     try {
       const res = await fetch(url, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', 'x-goog-api-key': llave },
         body: JSON.stringify(cuerpo),
         signal: AbortSignal.timeout(Math.max(1, Math.min(TIEMPO_GEMINI_MS, restante)))
       })
@@ -128,7 +129,7 @@ Deno.serve(async (req) => {
 
     // Nombre de pila del usuario para el saludo (Google o registro con correo).
     // Se limpia para que no pueda colar instrucciones dentro del prompt.
-    const nombreCompleto = String(user.user_metadata?.full_name || user.user_metadata?.name || '')
+    const nombreCompleto = String(user.user_metadata?.nombre_preferido || user.user_metadata?.full_name || user.user_metadata?.name || '')
     const nombre = nombreCompleto
       .replace(/[^\p{L}\p{M}' -]/gu, '')
       .trim()
@@ -193,13 +194,20 @@ Deno.serve(async (req) => {
     }
 
     // Límite de uso por usuario (tabla ia_rate_limit): protege la cuota de
-    // Gemini. Si la tabla falla, no se bloquea al usuario.
+    // Gemini. Si no se puede contar, no se pregunta: sin límite, una sola
+    // cuenta podría agotar la cuota de todos.
     const haceUnaHora = new Date(Date.now() - 60 * 60 * 1000).toISOString()
     const { count: usadas, error: errorLimite } = await adminClient.from('ia_rate_limit')
       .select('id', { count: 'exact', head: true })
       .eq('user_id', uid)
       .gte('created_at', haceUnaHora)
-    if (!errorLimite && (usadas ?? 0) >= MAX_PREGUNTAS_POR_HORA) {
+    if (errorLimite) {
+      console.error('[preguntar-kairen] no se pudo leer ia_rate_limit', errorLimite)
+      return new Response(JSON.stringify({ error: 'Kairen IA no está disponible en este momento. Intenta más tarde.' }), {
+        status: 503, headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      })
+    }
+    if ((usadas ?? 0) >= MAX_PREGUNTAS_POR_HORA) {
       return new Response(JSON.stringify({ error: 'Demasiadas preguntas. Intente de nuevo más tarde.' }), {
         status: 429, headers: { ...corsHeaders, 'Content-Type': 'application/json' }
       })
@@ -299,7 +307,8 @@ Número de transacciones este mes: ${(transaccionesMes || []).length}
 
     // Llamar a Gemini
     const gemini = await llamarGemini(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-lite:generateContent?key=${geminiKey}`,
+      'https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-lite:generateContent',
+      geminiKey,
       {
         contents: [
           {

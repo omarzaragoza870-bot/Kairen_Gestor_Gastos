@@ -2,6 +2,8 @@ import { useState, useEffect } from 'react'
 import { supabase } from '../lib/supabaseClient.js'
 import { mensajeAmigable } from '../lib/errores.js'
 import { Lock, Check, Crown, User } from 'lucide-react'
+import { usePreferencias } from '../context/PreferenciasContext.jsx'
+import Premium from './Premium.jsx'
 
 export default function Colaborar({ onBack }) {
   const [cargando, setCargando] = useState(true)
@@ -15,6 +17,8 @@ export default function Colaborar({ onBack }) {
   const [procesando, setProcesando] = useState(false)
   const [error, setError] = useState(null)
   const [mensaje, setMensaje] = useState(null)
+  const [mostrarPremium, setMostrarPremium] = useState(false)
+  const { t } = usePreferencias()
 
   useEffect(() => {
     const cargar = async () => {
@@ -66,7 +70,7 @@ export default function Colaborar({ onBack }) {
     setProcesando(true)
     setError(null)
     try {
-      const { error } = await supabase.rpc('unirse_a_grupo', { p_codigo: codigoInput.trim().toUpperCase() })
+      const { error } = await supabase.rpc('unirse_a_grupo', { p_codigo: codigoInput.replace(/\s/g, '').toUpperCase() })
       if (error) throw error
       setMensaje('¡Te uniste al grupo!')
       setUniendose(false)
@@ -106,8 +110,11 @@ export default function Colaborar({ onBack }) {
           <div style={{ marginBottom: 8, display: 'flex', justifyContent: 'center', color: 'var(--text-muted)' }}><Lock size={30} strokeWidth={1.6} aria-hidden="true" /></div>
           <div style={{ fontWeight: 700, marginBottom: 6 }}>Función Premium</div>
           <div style={{ fontSize: 13, color: 'var(--text-secondary)' }}>El modo colaborativo requiere una suscripción Premium.</div>
+          <button onClick={() => setMostrarPremium(true)} style={{ marginTop: 14, padding: '10px 18px', borderRadius: 999, background: 'var(--accent)', color: 'var(--on-accent)', fontWeight: 600, fontSize: 14 }}>{t('premium_ver_planes')}</button>
         </div>
       )}
+
+      {mostrarPremium && <Premium onCerrar={() => setMostrarPremium(false)} onActivado={() => { setMostrarPremium(false); setEsPremium(true) }} />}
 
       {esPremium && (
         <>
@@ -135,7 +142,7 @@ export default function Colaborar({ onBack }) {
                     <div style={{ background: 'var(--bg-surface-2)', borderRadius: 'var(--radius-sm)', padding: '10px 14px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                       <div>
                         <div style={{ fontSize: 11, color: 'var(--text-muted)', marginBottom: 2 }}>Código de invitación</div>
-                        <div style={{ fontWeight: 700, fontSize: 16, letterSpacing: 2, fontFamily: 'monospace' }}>{g.codigo_invitacion}</div>
+                        <div style={{ fontWeight: 700, fontSize: 16, letterSpacing: 1, wordBreak: 'break-all', fontFamily: 'monospace' }}>{g.codigo_invitacion}</div>
                       </div>
                       <button
                         onClick={() => copiarCodigo(g.codigo_invitacion)}
@@ -195,19 +202,20 @@ export default function Colaborar({ onBack }) {
               <div className="input-shell" style={{ marginBottom: 14 }}>
                 <input
                   value={codigoInput}
-                  onChange={e => setCodigoInput(e.target.value.toUpperCase())}
-                  placeholder="XXXXXX"
-                  maxLength={6}
+                  onChange={e => setCodigoInput(e.target.value.replace(/\s/g, '').toUpperCase().slice(0, 16))}
+                  placeholder="XXXXXXXXXXXXXXXX"
+                  maxLength={40}
                   autoFocus
-                  style={{ letterSpacing: 4, fontFamily: 'monospace', fontSize: 18, textAlign: 'center' }}
+                  autoCapitalize="characters"
+                  style={{ letterSpacing: 1, fontFamily: 'monospace', fontSize: 16, textAlign: 'center' }}
                 />
               </div>
               <div className="modal-actions">
                 <button onClick={() => { setUniendose(false); setCodigoInput('') }} disabled={procesando}>Cancelar</button>
                 <button
                   onClick={handleUnirse}
-                  disabled={codigoInput.length < 6 || procesando}
-                  style={{ background: codigoInput.length >= 6 ? 'var(--gradient-brand)' : 'var(--bg-surface-2)', color: codigoInput.length >= 6 ? 'var(--on-accent)' : 'var(--text-muted)' }}
+                  disabled={codigoInput.length < 16 || procesando}
+                  style={{ background: codigoInput.length >= 16 ? 'var(--gradient-brand)' : 'var(--bg-surface-2)', color: codigoInput.length >= 16 ? 'var(--on-accent)' : 'var(--text-muted)' }}
                 >
                   {procesando ? 'Uniéndome…' : 'Unirme'}
                 </button>

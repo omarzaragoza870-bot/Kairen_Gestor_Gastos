@@ -1,2 +1,5 @@
 [functions.send-push]
 verify_jwt = false
+
+[functions.revenuecat-webhook]
+verify_jwt = false

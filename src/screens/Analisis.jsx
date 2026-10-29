@@ -10,6 +10,7 @@ import { conRespaldoOffline, leerDeCache } from '../lib/offline.js'
 import { mensajeAmigable } from '../lib/errores.js'
 import { MESES_POR_IDIOMA } from '../i18n/translations.js'
 import Monto from '../components/Monto.jsx'
+import Premium from './Premium.jsx'
 import { usePreferencias } from '../context/PreferenciasContext.jsx'
 import { CalendarDays, ChevronDown, Sparkles, Lightbulb, TrendingUp, Lock } from 'lucide-react'
 
@@ -484,6 +485,8 @@ function KairenIATab({ pregunta, setPregunta, respuesta, setRespuesta, preguntan
   // null = verificando; true/false = si el usuario puede usar Kairen IA.
   // Solo Premium o acceso fundador. El servidor también lo valida.
   const [tieneAcceso, setTieneAcceso] = useState(null)
+  const [mostrarPremium, setMostrarPremium] = useState(false)
+  const { t } = usePreferencias()
 
   useEffect(() => {
     let cancelado = false
@@ -569,8 +572,11 @@ function KairenIATab({ pregunta, setPregunta, respuesta, setRespuesta, preguntan
           <div style={{ marginBottom: 8, display: 'flex', justifyContent: 'center', color: 'var(--text-muted)' }}><Lock size={30} strokeWidth={1.6} aria-hidden="true" /></div>
           <div style={{ fontWeight: 700, marginBottom: 6 }}>Función Premium</div>
           <div style={{ fontSize: 13, color: 'var(--text-secondary)' }}>Kairen IA está disponible para usuarios Premium.</div>
+          <button onClick={() => setMostrarPremium(true)} style={{ marginTop: 14, padding: '10px 18px', borderRadius: 999, background: 'var(--accent)', color: 'var(--on-accent)', fontWeight: 600, fontSize: 14 }}>{t('premium_ver_planes')}</button>
         </div>
       )}
+
+      {mostrarPremium && <Premium onCerrar={() => setMostrarPremium(false)} onActivado={() => { setMostrarPremium(false); setTieneAcceso(true) }} />}
 
       {tieneAcceso === null && (
         <p style={{ fontSize: 13, color: 'var(--text-muted)', textAlign: 'center' }}>Cargando…</p>

@@ -1,7 +1,7 @@
 {
   "name": "kairen-finanzas",
   "private": true,
-  "version": "2.0.4",
+  "version": "2.0.5",
   "type": "module",
   "scripts": {
     "dev": "vite",
@@ -25,6 +25,7 @@
     "@capacitor/ios": "^8.5.0",
     "@capacitor/preferences": "^8.0.1",
     "@capacitor/share": "^8.0.3",
+    "@revenuecat/purchases-capacitor": "13.7.4",
     "@supabase/supabase-js": "2.111.0",
     "firebase": "^12.17.0",
     "jspdf": "^4.2.1",

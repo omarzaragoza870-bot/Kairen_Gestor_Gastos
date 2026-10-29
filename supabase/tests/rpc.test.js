@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeAll, beforeEach } from 'vitest'
+import { describe, it, expect, beforeAll, beforeEach, afterAll } from 'vitest'
 import { crearBaseDePrueba, crearUsuario, crearCuenta, saldo, comoUsuario, comoAnonimo } from './db.js'
 
 // Todas las llamadas a las RPC se hacen como el usuario (rol authenticated),
@@ -257,7 +257,7 @@ describe('avisos push (pg_net + registro en push_envios)', () => {
   })
 
   const suscribirWeb = (uid = ana) => db.query(
-    `insert into public.push_subscriptions (user_id, endpoint, p256dh, auth) values ($1, $2, 'k', 'a')`, [uid, `https://push.example/${uid}`]
+    `insert into public.push_subscriptions (user_id, endpoint, p256dh, auth) values ($1, $2, 'k', 'a')`, [uid, `https://fcm.googleapis.com/fcm/send/${uid}`]
   )
   const registrarFcm = (uid = ana) => db.query(`insert into public.fcm_tokens (user_id, token) values ($1, $2)`, [uid, `fcm-${uid}`])
   const llamadasDe = async (uid) => (await db.query(
@@ -469,10 +469,10 @@ describe('un dispositivo, una sola cuenta', () => {
     const ana = await crearUsuario(db)
     const beto = await crearUsuario(db)
     const suscribir = (userId) => comoUsuario(db, userId, () => db.query(
-      `insert into public.push_subscriptions (user_id, endpoint, p256dh, auth) values ($1, 'https://push/x', 'k', 'a')`, [userId]))
+      `insert into public.push_subscriptions (user_id, endpoint, p256dh, auth) values ($1, 'https://fcm.googleapis.com/fcm/send/x', 'k', 'a')`, [userId]))
     await suscribir(ana)
     await suscribir(beto)
-    const { rows } = await db.query(`select user_id from public.push_subscriptions where endpoint = 'https://push/x'`)
+    const { rows } = await db.query(`select user_id from public.push_subscriptions where endpoint = 'https://fcm.googleapis.com/fcm/send/x'`)
     expect(rows.map(f => f.user_id)).toEqual([beto])
   })
 })
@@ -561,7 +561,7 @@ describe('compras a meses sin intereses', () => {
     beforeEach(async () => {
       // Mismo "hoy" que usan los avisos: el de México, no el de UTC
       hoy = (await db.query(`select to_char((now() at time zone 'America/Mexico_City')::date, 'YYYY-MM-DD') as d`)).rows[0].d
-      await db.query(`insert into public.push_subscriptions (user_id, endpoint, p256dh, auth) values ($1, $2, 'k', 'a')`, [ana, `https://push.example/${ana}`])
+      await db.query(`insert into public.push_subscriptions (user_id, endpoint, p256dh, auth) values ($1, $2, 'k', 'a')`, [ana, `https://fcm.googleapis.com/fcm/send/${ana}`])
     })
     const llamadas = async () => (await db.query(`select body from net.llamadas where body->>'user_id' = $1 order by id`, [ana])).rows
 
@@ -589,5 +589,72 @@ describe('compras a meses sin intereses', () => {
       const [aviso] = await llamadas()
       expect(aviso.body.body).toBe('Deuda al corte: $0.00 (más $500.00 a meses)')
     })
+  })
+})
+
+describe('premium de por vida por lista de correos', () => {
+  // En producción este trigger vive en auth.users (fuera del volcado de public)
+  beforeAll(async () => {
+    await db.query(`create or replace trigger on_auth_user_created after insert on auth.users
+      for each row execute function public.crear_perfil_usuario()`)
+  })
+  afterAll(() => db.query(`drop trigger if exists on_auth_user_created on auth.users`))
+  // Por defecto con el correo ya confirmado, como llega quien entra con Google
+  const nuevoUsuario = async (email, { creado = 'now()', confirmado = true } = {}) => {
+    const { rows: [{ id }] } = await db.query(
+      `insert into auth.users (id, email, email_confirmed_at, created_at) values (gen_random_uuid(), $1, ${confirmado ? 'now()' : 'null'}, ${creado}) returning id`, [email])
+    return id
+  }
+  const fundador = async (id) => (await db.query(`select acceso_fundador from public.perfiles where user_id = $1`, [id])).rows[0]?.acceso_fundador
+
+  it('quien se registra con un correo de la lista (sin importar mayúsculas) entra como fundador', async () => {
+    await db.query(`insert into public.correos_fundadores (email) values ('nuevo.tester@gmail.com')`)
+    expect(await fundador(await nuevoUsuario('Nuevo.Tester@Gmail.com'))).toBe(true)
+    expect(await fundador(await nuevoUsuario('otra.persona@gmail.com'))).toBe(false)
+  })
+
+  it('se respeta la fecha de corte de agosto', async () => {
+    expect(await fundador(await nuevoUsuario('pionero@gmail.com', { creado: `'2026-08-01'` }))).toBe(true)
+  })
+
+  it('con el correo sin confirmar no recibe nada hasta que lo confirma', async () => {
+    await db.query(`insert into public.correos_fundadores (email) values ('por.confirmar@gmail.com')`)
+    const id = await nuevoUsuario('por.confirmar@gmail.com', { confirmado: false })
+    expect(await fundador(id)).toBe(false)
+    await db.query(`update auth.users set email_confirmed_at = now() where id = $1`, [id])
+    expect(await fundador(id)).toBe(true)
+  })
+
+  it('agregar a la lista un correo sin confirmar no lo activa', async () => {
+    const id = await nuevoUsuario('suplantado@gmail.com', { confirmado: false })
+    await db.query(`insert into public.correos_fundadores (email) values ('suplantado@gmail.com')`)
+    expect(await fundador(id)).toBe(false)
+  })
+
+  it('agregar el correo de una cuenta que ya existe la vuelve fundadora al momento', async () => {
+    const id = await nuevoUsuario('ya.existia@gmail.com')
+    expect(await fundador(id)).toBe(false)
+    await db.query(`insert into public.correos_fundadores (email) values ('ya.existia@gmail.com')`)
+    expect(await fundador(id)).toBe(true)
+  })
+
+  it('un invitado que vincula un correo de la lista lo recibe al vincular', async () => {
+    await db.query(`insert into public.correos_fundadores (email) values ('invitado.vincula@gmail.com')`)
+    const id = await nuevoUsuario(null, { confirmado: false })
+    expect(await fundador(id)).toBe(false)
+    await db.query(`update auth.users set email = 'invitado.vincula@gmail.com', email_confirmed_at = now() where id = $1`, [id])
+    expect(await fundador(id)).toBe(true)
+  })
+
+  it('desde la app nadie puede ver ni tocar la lista', async () => {
+    const ana = await nuevoUsuario('curioso@gmail.com')
+    for (const sql of [
+      `select * from public.correos_fundadores`,
+      `insert into public.correos_fundadores (email) values ('yo@gmail.com')`,
+      `select public.es_correo_fundador('tester.lista@gmail.com')`,
+    ]) {
+      await expect(comoUsuario(db, ana, () => db.query(sql))).rejects.toThrow('permission denied')
+      await expect(comoAnonimo(db, () => db.query(sql))).rejects.toThrow('permission denied')
+    }
   })
 })

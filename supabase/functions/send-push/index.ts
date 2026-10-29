@@ -9,8 +9,17 @@
 // (el que firma el JWT del header Authorization), O la petición debe venir
 // con la service_role_key (para triggers internos de Postgres/Edge Functions).
 
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.111.0'
 import webpush from 'https://esm.sh/web-push@3.6.7'
+
+// Comparación en tiempo constante para no filtrar el secreto por tiempos de respuesta
+function iguales(a: string, b: string): boolean {
+  const ta = new TextEncoder().encode(a)
+  const tb = new TextEncoder().encode(b)
+  let diferencia = ta.length ^ tb.length
+  for (let i = 0; i < Math.max(ta.length, tb.length); i++) diferencia |= (ta[i] ?? 0) ^ (tb[i] ?? 0)
+  return diferencia === 0
+}
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': 'https://kairen-gestor-gastos.vercel.app',
@@ -117,7 +126,7 @@ Deno.serve(async (req) => {
     // Permitimos dos escenarios:
     // 1. El header trae nuestro secreto interno (triggers/cron de Postgres)
     // 2. El JWT pertenece al propio usuario (se manda notificación a sí mismo)
-    const esLlamadaInterna = Boolean(cronSecret) && authHeader === `Bearer ${cronSecret}`
+    const esLlamadaInterna = Boolean(cronSecret) && iguales(authHeader || '', `Bearer ${cronSecret}`)
 
     if (!esLlamadaInterna) {
       // Verificar que el JWT corresponde al user_id solicitado
@@ -176,6 +185,7 @@ Deno.serve(async (req) => {
       })
       if (expiradas.length > 0) {
         await adminClient.from('push_subscriptions').delete()
+          .eq('user_id', user_id)
           .in('endpoint', expiradas.map(s => s.endpoint))
       }
       enviadas += resultados.filter(r => r.status === 'fulfilled').length
