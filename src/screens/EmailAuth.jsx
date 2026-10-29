@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { supabase } from '../lib/supabaseClient.js'
 import { logError } from '../lib/logger.js'
+import RecuperarContrasena from './RecuperarContrasena.jsx'
 
 export default function EmailAuth({ onCancelar }) {
   const [modo, setModo] = useState('entrar') // 'entrar' | 'crear'
@@ -12,6 +13,7 @@ export default function EmailAuth({ onCancelar }) {
   const [mensaje, setMensaje] = useState(null)
   const [intentosFallidos, setIntentosFallidos] = useState(0)
   const [bloqueadoHasta, setBloqueadoHasta] = useState(null)
+  const [recuperando, setRecuperando] = useState(false)
 
   const valido = email.trim().length > 3 && password.length >= 6 && (modo === 'entrar' || nombre.trim().length > 0)
 
@@ -63,6 +65,10 @@ export default function EmailAuth({ onCancelar }) {
     } finally {
       setProcesando(false)
     }
+  }
+
+  if (recuperando) {
+    return <RecuperarContrasena emailInicial={email} onVolver={() => { setRecuperando(false); setError(null); setMensaje(null) }} />
   }
 
   return (
@@ -120,6 +126,15 @@ export default function EmailAuth({ onCancelar }) {
         <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} placeholder="Mínimo 6 caracteres" autoComplete={modo === 'entrar' ? 'current-password' : 'new-password'} />
       </div>
       <p style={{ fontSize: 11, color: 'var(--text-muted)', margin: '0 0 20px' }}>Mínimo 6 caracteres.</p>
+
+      {modo === 'entrar' && (
+        <button
+          onClick={() => setRecuperando(true)}
+          style={{ background: 'transparent', color: 'var(--text-secondary)', fontSize: 13, alignSelf: 'flex-start', margin: '-8px 0 20px', textDecoration: 'underline' }}
+        >
+          ¿Olvidaste tu contraseña?
+        </button>
+      )}
 
       {mensaje && <p style={{ color: 'var(--success)', fontSize: 13, marginBottom: 12 }}>{mensaje}</p>}
       {error && <p className="error-message">{error}</p>}
